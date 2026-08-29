@@ -1,0 +1,42 @@
+# MacOS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Android
+.gradle/
+build/
+*.apk
+*.aar
+*.jks
+*.keystore
+
+# iOS
+ios/build/
+ios/Pods/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+
+# React Native
+.expo/
+.expo-shared/
+.watchmanconfig
+
+# IDEs
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Replace "YOUR_SPECIFIC_FIREBASE_UID" with your actual UID from Firebase Console
+    function isAppOwner() {
+      return isAuthenticated() && request.auth.uid == "l2JP5nnzVSP6gd8aSDEqI60Tbfl2";
+    }
+
+    // Helper to get current user's employee record
+    function getEmployee() {
+      return get(/databases/$(database)/documents/employees/$(request.auth.uid)).data;
+    }
+
+    // Check if user is staff of a shop
+    function isStaff(shopId) {
+      return isAuthenticated() && (isAppOwner() || getEmployee().shopId == shopId);
+    }
+
+    // Check if user is Manager or Owner of a shop
+    function isManager(shopId) {
+      let employee = getEmployee();
+      return isAuthenticated() && (isAppOwner() || (employee.shopId == shopId && (employee.role == "OWNER" || employee.role == "MANAGER")));
+    }
+
+    // --- Collection Rules ---
+
+    // Registered Shops (Global metadata)
+    match /registered_shops/{shopId} {
+      // Anyone authenticated can read to verify a join code
+      allow read: if isAuthenticated();
+      // Only the App Owner can create new registered shops
+      allow create: if isAppOwner();
+      // Only the owner of the shop or App Owner can update metadata
+      allow update: if isAppOwner() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+      allow delete: if isAppOwner();
+    }
+
+    // Shop Requests (Users request a shop to be created)
+    match /shop_requests/{requestId} {
+      allow read: if isAppOwner();
+      allow create: if true; // Allow anyone to submit a shop request
+      allow update, delete: if isAppOwner();
+    }
+
+    // Root Employees collection (used for login and staff management)
+    match /employees/{uid} {
+      // Users can read their own profile. Managers can read their shop's staff.
+      allow read: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.shopId));
+      // Users can create their own record during registration
+      allow create: if isAuthenticated() && request.auth.uid == uid;
+      // Managers can update staff records for their shop
+      allow update, delete: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.shopId));
+    }
+
+    // Shop-scoped data
+    match /shops/{shopId} {
+
+      // Products & Inventory: Staff can read, Managers can manage
+      match /products/{productId} {
+        allow read: if isStaff(shopId);
+        allow write: if isManager(shopId);
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isStaff(shopId);
+        allow write: if isManager(shopId);
+      }
+
+      // Sales: Staff can record sales, Managers can view/edit history
+      match /sales/{saleId} {
+        allow read: if isStaff(shopId);
+        allow create: if isStaff(shopId);
+        allow update, delete: if isManager(shopId);
+      }
+
+      // Suppliers: Staff can read, Managers can manage
+      match /suppliers/{supplierId} {
+        allow read: if isStaff(shopId);
+        allow write: if isManager(shopId);
+      }
+
+      // Customers & Debts: Staff can manage customer relationships
+      match /customers/{customerId} {
+        allow read, write: if isStaff(shopId);
+
+        match /payments/{paymentId} {
+          allow read, write: if isStaff(shopId);
+        }
+      }
+
+      // Expenses & Audit Logs: Restricted to Managers
+      match /expenses/{expenseId} {
+        allow read, write: if isManager(shopId);
+      }
+
+      match /audit_logs/{logId} {
+        allow read: if isManager(shopId);
+        allow create: if isStaff(shopId); // Allow staff to trigger logs
+        allow update, delete: if false;   // Logs should be immutable
+      }
+    }
+  }
+}
