@@ -1,10 +1,35 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, useTheme, Menu, Divider, Surface, IconButton } from 'react-native-paper';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  Box,
+  VStack,
+  HStack,
+  Heading,
+  Text,
+  Button,
+  ButtonText,
+  ButtonIcon,
+  Input,
+  InputField,
+  InputSlot,
+  InputIcon,
+  FormControl,
+  FormControlLabel,
+  FormControlLabelText,
+  Icon,
+  ArrowLeftIcon,
+  PhoneIcon,
+  ChevronDownIcon,
+  Menu,
+  MenuItem,
+  MenuItemLabel,
+  Spinner,
+  Pressable,
+} from '@gluestack-ui/themed';
 import { StackScreenProps } from '@react-navigation/stack';
+import { User, MapPin } from 'lucide-react-native';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { ShopRepository } from '../../repositories/ShopRepository';
-import AppIcon from '../../components/common/AppIcon';
 
 type Props = StackScreenProps<RootStackParamList, 'ShopRequest'>;
 
@@ -27,9 +52,6 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [menuVisible, setMenuVisible] = useState(false);
-
-  const theme = useTheme();
   const shopRepo = new ShopRepository();
 
   const handleSubmit = async () => {
@@ -60,182 +82,138 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-            <IconButton
-                icon="arrow-left"
-                onPress={() => navigation.goBack()}
-                style={styles.backButton}
-            />
-            <Text variant="headlineMedium" style={styles.title}>Register Your Business</Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-            Provide these details to get your unique shop code.
-            </Text>
-        </View>
-
-        <Surface style={styles.formCard} elevation={1}>
-            <TextInput
-            label="Full Name"
-            value={ownerName}
-            onChangeText={setOwnerName}
-            mode="outlined"
-            style={styles.input}
-            left={<TextInput.Icon icon="account-outline" />}
-            />
-
-            <TextInput
-            label="WhatsApp Number"
-            value={whatsappNumber}
-            onChangeText={setWhatsappNumber}
-            mode="outlined"
-            style={styles.input}
-            keyboardType="phone-pad"
-            left={<TextInput.Icon icon="whatsapp" color="#25D366" />}
-            />
-
-            <TextInput
-            label="Shop Name"
-            value={shopName}
-            onChangeText={setShopName}
-            mode="outlined"
-            style={styles.input}
-            left={<TextInput.Icon icon="store-outline" />}
-            />
-
-            <View style={styles.menuContainer}>
-            <Menu
-                visible={menuVisible}
-                onDismiss={() => setMenuVisible(false)}
-                contentStyle={{ backgroundColor: 'white' }}
-                anchor={
-                <Button
-                    mode="outlined"
-                    onPress={() => setMenuVisible(true)}
-                    style={styles.menuButton}
-                    contentStyle={styles.menuButtonContent}
-                    labelStyle={{ color: shopType ? theme.colors.onSurface : theme.colors.outline }}
-                    icon="chevron-down"
-                >
-                    {shopType ? shopType : 'Select Business Category'}
-                </Button>
-                }
-            >
-                {SHOP_TYPES.map((type) => (
-                <Menu.Item
-                    key={type}
-                    onPress={() => {
-                    setShopType(type);
-                    setMenuVisible(false);
-                    }}
-                    title={type}
-                />
-                ))}
-            </Menu>
-            </View>
-
-            <TextInput
-            label="Business Location"
-            value={location}
-            onChangeText={setLocation}
-            mode="outlined"
-            style={styles.input}
-            multiline
-            numberOfLines={3}
-            left={<TextInput.Icon icon="map-marker-outline" />}
-            />
-
+    <Box flex={1} bg="$backgroundLight50">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'android' ? 'height' : 'padding'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20 }}>
+          <VStack space="md" mt="$5" mb="$6">
             <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading}
-            style={styles.submitButton}
-            contentStyle={styles.buttonContent}
+              variant="link"
+              onPress={() => navigation.goBack()}
+              p="$0"
+              justifyContent="flex-start"
+              w="$10"
             >
-            Submit Registration
+              <ButtonIcon as={ArrowLeftIcon} size="xl" color="$primary800" />
             </Button>
-        </Surface>
+            <VStack space="xs">
+              <Heading size="2xl" color="$text900" fontWeight="$black">Register Business</Heading>
+              <Text size="md" color="$text600">Provide details to get your shop code.</Text>
+            </VStack>
+          </VStack>
 
-        <View style={styles.helpText}>
-            <AppIcon name="group" size={16} color="#666" />
-            <Text variant="bodySmall" style={styles.infoText}>
-                The admin will verify your details and generate a shop code for you.
+          <Box bg="$white" p="$6" rounded="$3xl" borderWidth={1} borderColor="$borderLight" shadowColor="$primary800">
+            <VStack space="lg">
+              <FormControl isRequired>
+                <FormControlLabel>
+                  <FormControlLabelText>Full Name</FormControlLabelText>
+                </FormControlLabel>
+                <Input variant="outline" size="md" borderRadius={12}>
+                  <InputSlot pl="$3">
+                    <Icon as={User} size="sm" />
+                  </InputSlot>
+                  <InputField
+                    placeholder="Owner Name"
+                    value={ownerName}
+                    onChangeText={setOwnerName}
+                  />
+                </Input>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormControlLabel>
+                  <FormControlLabelText>WhatsApp Number</FormControlLabelText>
+                </FormControlLabel>
+                <Input variant="outline" size="md" borderRadius={12}>
+                  <InputSlot pl="$3">
+                    <Icon as={PhoneIcon} color="$success600" />
+                  </InputSlot>
+                  <InputField
+                    placeholder="e.g. +234..."
+                    value={whatsappNumber}
+                    onChangeText={setWhatsappNumber}
+                    keyboardType="phone-pad"
+                  />
+                </Input>
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormControlLabel>
+                  <FormControlLabelText>Shop Name</FormControlLabelText>
+                </FormControlLabel>
+                <Input variant="outline" size="md" borderRadius={12}>
+                  <InputField
+                    placeholder="Official Business Name"
+                    value={shopName}
+                    onChangeText={setShopName}
+                  />
+                </Input>
+              </FormControl>
+
+              <VStack space="xs">
+                <Text size="sm" fontWeight="$bold" color="$text900">Business Category</Text>
+                <Menu
+                  trigger={({ ...triggerProps }) => (
+                    <Pressable {...triggerProps} borderWidth={1} borderColor="$borderLight" p="$3" rounded="$lg">
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <Text size="sm" color={shopType ? '$text900' : '$text400'}>
+                          {shopType || 'Select Category'}
+                        </Text>
+                        <Icon as={ChevronDownIcon} />
+                      </HStack>
+                    </Pressable>
+                  )}
+                >
+                  {SHOP_TYPES.map(type => (
+                    <MenuItem key={type} textValue={type} onPress={() => setShopType(type)}>
+                      <MenuItemLabel size="sm">{type}</MenuItemLabel>
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </VStack>
+
+              <FormControl isRequired>
+                <FormControlLabel>
+                  <FormControlLabelText>Business Location</FormControlLabelText>
+                </FormControlLabel>
+                <Input variant="outline" size="md" borderRadius={12}>
+                  <InputSlot pl="$3">
+                    <Icon as={MapPin} size="sm" />
+                  </InputSlot>
+                  <InputField
+                    placeholder="Full Address"
+                    value={location}
+                    onChangeText={setLocation}
+                    multiline
+                  />
+                </Input>
+              </FormControl>
+
+              <Button
+                size="lg"
+                onPress={handleSubmit}
+                isDisabled={loading}
+                borderRadius={14}
+                bg="$primary800"
+                mt="$4"
+              >
+                {loading ? <Spinner color="white" /> : <ButtonText fontWeight="$bold">Submit Registration</ButtonText>}
+              </Button>
+            </VStack>
+          </Box>
+
+          <HStack space="sm" mt="$8" p="$2" alignItems="center" bg="$primary50" rounded="$lg">
+            <Icon as={User} size="xs" color="$primary800" />
+            <Text size="xs" color="$primary800" flex={1}>
+              The admin will verify your details and generate a shop code for you.
             </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </HStack>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Box>
   );
 };
-
-// Need to import IconButton
-// import { TextInput, Button, Text, useTheme, Menu, Divider, Surface, IconButton } from 'react-native-paper';
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#F8F9FA',
-  },
-  header: {
-    marginTop: 20,
-    marginBottom: 24,
-  },
-  backButton: {
-    marginLeft: -12,
-  },
-  title: {
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  subtitle: {
-    color: '#666',
-    marginTop: 4,
-  },
-  formCard: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  input: {
-    marginBottom: 16,
-  },
-  menuContainer: {
-    marginBottom: 16,
-  },
-  menuButton: {
-    width: '100%',
-    borderColor: '#79747E',
-    borderRadius: 4,
-    height: 50,
-  },
-  menuButtonContent: {
-    justifyContent: 'space-between',
-    flexDirection: 'row-reverse',
-    height: 50,
-  },
-  submitButton: {
-    marginTop: 8,
-    borderRadius: 12,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  helpText: {
-    flexDirection: 'row',
-    marginTop: 20,
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  infoText: {
-    marginLeft: 8,
-    color: '#666',
-  }
-});
 
 export default ShopRequestScreen;

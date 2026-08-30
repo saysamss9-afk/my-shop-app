@@ -1,8 +1,8 @@
-import SQLite from 'react-native-sqlite-storage';
+import { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { Sale, SaleItem } from '../db/types';
 
 export class SaleRepository {
-  constructor(private db: SQLite.SQLiteDatabase) {}
+  constructor(private db: SQLiteDatabase) {}
 
   async insertSale(sale: Sale, items: SaleItem[]) {
     await this.db.transaction(async (tx: any) => {

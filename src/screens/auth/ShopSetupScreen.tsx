@@ -7,6 +7,7 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import firebase from '../../firebase-config';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
+const PaperText = Text as any;
 type Props = StackScreenProps<RootStackParamList, 'ShopSetup'>;
 
 const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
@@ -61,15 +62,15 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
             />
         </View>
 
-        <Text variant="headlineMedium" style={styles.title}>
+        <PaperText variant="headlineMedium" style={styles.title}>
             {requestStatus === 'PENDING' ? 'Registration Pending' : 'Almost There!'}
-        </Text>
+        </PaperText>
 
-        <Text variant="bodyLarge" style={styles.subtitle}>
+        <PaperText variant="bodyLarge" style={styles.subtitle}>
             {requestStatus === 'PENDING'
                 ? "Your shop registration is being reviewed by our team. We'll contact you on WhatsApp with your unique code soon."
                 : "It looks like your account isn't linked to a shop yet. Please use the shop code provided by your admin."}
-        </Text>
+        </PaperText>
 
         <Surface style={styles.infoCard} elevation={1}>
             <ListInfo
@@ -105,7 +106,7 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
 const ListInfo = ({ icon, text, color }: any) => (
     <View style={styles.infoRow}>
         <MaterialCommunityIcons name={icon} size={24} color={color} />
-        <Text variant="bodyMedium" style={styles.infoText}>{text}</Text>
+        <PaperText variant="bodyMedium" style={styles.infoText}>{text}</PaperText>
     </View>
 );
 

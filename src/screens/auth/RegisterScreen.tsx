@@ -1,10 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, useTheme, Surface } from 'react-native-paper';
+import { ScrollView, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import {
+  Box,
+  VStack,
+  HStack,
+  Heading,
+  Text,
+  Button,
+  ButtonText,
+  ButtonIcon,
+  Input,
+  InputField,
+  InputSlot,
+  InputIcon,
+  FormControl,
+  FormControlLabel,
+  FormControlLabelText,
+  Icon,
+  Center,
+  MailIcon,
+  LockIcon,
+  Spinner,
+} from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
+import { UserPlus } from 'lucide-react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = StackScreenProps<RootStackParamList, 'Register'>;
 
@@ -12,10 +33,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
   const { register, isLoading, error, isSuccess, user } = useAuth();
-  const theme = useTheme();
 
   useEffect(() => {
     if (isSuccess && user) {
@@ -29,136 +48,111 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Surface style={styles.header} elevation={0}>
-          <View style={styles.iconCircle}>
-            <MaterialCommunityIcons name="account-plus-outline" size={48} color={theme.colors.primary} />
-          </View>
-          <Text variant="headlineMedium" style={styles.title}>Create Owner Account</Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>Start your journey with My Shop</Text>
-        </Surface>
+    <Box flex={1} bg="$white">
+      <StatusBar barStyle="dark-content" backgroundColor="white" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'android' ? 'height' : 'padding'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}>
+          <VStack space="xl" alignItems="center" mb="$8">
+            <Center
+              w={80}
+              h={80}
+              rounded="$full"
+              bg="$primary50"
+            >
+              <Icon as={UserPlus} size="xl" color="$primary800" />
+            </Center>
+            <VStack space="xs" alignItems="center">
+              <Heading size="2xl" color="$text900" fontWeight="$black">Create Owner Account</Heading>
+              <Text size="md" color="$text600">Start your journey with My Shop</Text>
+            </VStack>
+          </VStack>
 
-        <View style={styles.form}>
-          <TextInput
-            label="Email Address"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            style={styles.input}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            left={<TextInput.Icon icon="email-outline" />}
-          />
+          <VStack space="lg">
+            <FormControl isRequired>
+              <FormControlLabel>
+                <FormControlLabelText>Email Address</FormControlLabelText>
+              </FormControlLabel>
+              <Input variant="outline" size="md" borderRadius={12}>
+                <InputSlot pl="$3">
+                  <InputIcon as={MailIcon} />
+                </InputSlot>
+                <InputField
+                  placeholder="email@example.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </Input>
+            </FormControl>
 
-          <TextInput
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            mode="outlined"
-            style={styles.input}
-            secureTextEntry={!showPassword}
-            left={<TextInput.Icon icon="lock-outline" />}
-            right={
-              <TextInput.Icon
-                icon={showPassword ? "eye-off" : "eye"}
-                onPress={() => setShowPassword(!showPassword)}
-              />
-            }
-          />
+            <FormControl isRequired>
+              <FormControlLabel>
+                <FormControlLabelText>Password</FormControlLabelText>
+              </FormControlLabel>
+              <Input variant="outline" size="md" borderRadius={12}>
+                <InputSlot pl="$3">
+                  <InputIcon as={LockIcon} />
+                </InputSlot>
+                <InputField
+                  placeholder="Min 6 characters"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </Input>
+            </FormControl>
 
-          <TextInput
-            label="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            mode="outlined"
-            style={styles.input}
-            secureTextEntry={!showPassword}
-            left={<TextInput.Icon icon="lock-check-outline" />}
-          />
+            <FormControl isRequired isInvalid={password !== confirmPassword && confirmPassword !== ''}>
+              <FormControlLabel>
+                <FormControlLabelText>Confirm Password</FormControlLabelText>
+              </FormControlLabel>
+              <Input variant="outline" size="md" borderRadius={12}>
+                <InputSlot pl="$3">
+                  <InputIcon as={LockIcon} />
+                </InputSlot>
+                <InputField
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              </Input>
+            </FormControl>
 
-          {error && (
-            <Text style={[styles.error, { color: theme.colors.error }]}>
-              {error}
-            </Text>
-          )}
+            {error && (
+              <Text size="xs" color="$error600" textAlign="center">
+                {error}
+              </Text>
+            )}
 
-          <Button
-            mode="contained"
-            onPress={handleRegister}
-            loading={isLoading}
-            disabled={isLoading || !email || !password || password !== confirmPassword}
-            style={styles.button}
-            contentStyle={styles.buttonContent}
-          >
-            Register as Owner
-          </Button>
+            <Button
+              size="lg"
+              onPress={handleRegister}
+              isDisabled={isLoading || !email || !password || password !== confirmPassword}
+              borderRadius={14}
+              bg="$primary800"
+              mt="$4"
+            >
+              {isLoading ? <Spinner color="white" /> : <ButtonText fontWeight="$bold">Register as Owner</ButtonText>}
+            </Button>
 
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('Login')}
-            style={styles.textButton}
-          >
-            Already have an account? Login
-          </Button>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <Button
+              variant="link"
+              action="secondary"
+              onPress={() => navigation.navigate('Login')}
+              mt="$2"
+            >
+              <ButtonText>Already have an account? Login</ButtonText>
+            </Button>
+          </VStack>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 24,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-    backgroundColor: 'transparent',
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F0EFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  subtitle: {
-    color: '#666',
-    marginTop: 4,
-  },
-  form: {
-    width: '100%',
-  },
-  input: {
-    marginBottom: 16,
-  },
-  error: {
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  button: {
-    marginTop: 8,
-    borderRadius: 12,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  textButton: {
-    marginTop: 16,
-  },
-});
 
 export default RegisterScreen;

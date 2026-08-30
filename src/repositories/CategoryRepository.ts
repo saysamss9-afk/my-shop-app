@@ -1,8 +1,8 @@
-import SQLite from 'react-native-sqlite-storage';
+import { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { Category } from '../db/types';
 
 export class CategoryRepository {
-  constructor(private db: SQLite.SQLiteDatabase) {}
+  constructor(private db: SQLiteDatabase) {}
 
   async insertCategory(category: Category) {
     const query = `

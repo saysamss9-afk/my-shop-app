@@ -1,14 +1,14 @@
-import SQLite from 'react-native-sqlite-storage';
+import { openDatabase, enablePromise, SQLiteDatabase } from 'react-native-sqlite-storage';
 
-SQLite.enablePromise(true);
+enablePromise(true);
 
 const databaseName = 'AppDatabase.db';
 
-export const getDBConnection = async () => {
-  return SQLite.openDatabase({ name: databaseName, location: 'default' });
+export const getDBConnection = async (): Promise<SQLiteDatabase> => {
+  return openDatabase({ name: databaseName, location: 'default' });
 };
 
-export const createTables = async (db: SQLite.SQLiteDatabase) => {
+export const createTables = async (db: SQLiteDatabase) => {
   const queries = [
     `CREATE TABLE IF NOT EXISTS Shop (
         id TEXT PRIMARY KEY,

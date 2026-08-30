@@ -1,8 +1,8 @@
-import SQLite from 'react-native-sqlite-storage';
+import { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { Supplier } from '../db/types';
 
 export class SupplierRepository {
-  constructor(private db: SQLite.SQLiteDatabase) {}
+  constructor(private db: SQLiteDatabase) {}
 
   async insertSupplier(supplier: Supplier) {
     const query = `

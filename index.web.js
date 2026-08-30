@@ -1,7 +1,12 @@
+if (typeof __DEV__ === 'undefined') {
+  global.__DEV__ = true;
+}
 import './src/firebase-config'; // MUST BE FIRST
 import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
+
+console.log('index.web.js: Starting application...');
 
 // Generate and inject required styles for react-native-web
 const style = document.createElement('style');
@@ -25,8 +30,14 @@ if (style.styleSheet) {
 }
 document.head.appendChild(style);
 
-AppRegistry.registerComponent(appName, () => App);
-AppRegistry.runApplication(appName, {
-  initialProps: {},
-  rootTag: document.getElementById('app-root'),
-});
+console.log('index.web.js: Running application...');
+try {
+  AppRegistry.registerComponent(appName, () => App);
+  AppRegistry.runApplication(appName, {
+    initialProps: {},
+    rootTag: document.getElementById('app-root'),
+  });
+  console.log('index.web.js: Application running successfully');
+} catch (error) {
+  console.error('index.web.js: Runtime error during startup:', error);
+}

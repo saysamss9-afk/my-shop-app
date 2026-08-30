@@ -1,69 +1,51 @@
 import React from 'react';
-import { StyleSheet, View, ScrollView, ViewStyle, StatusBar } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { ScrollView, StatusBar, Platform } from 'react-native';
+import { Box } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
-  style?: ViewStyle;
-  contentContainerStyle?: ViewStyle;
   scrollable?: boolean;
   withHeader?: boolean;
+  contentContainerStyle?: any;
 }
 
 const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   children,
-  style,
-  contentContainerStyle,
   scrollable = false,
   withHeader = false,
+  contentContainerStyle,
 }) => {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
 
-  const containerStyle = [
-    styles.container,
-    {
-      backgroundColor: theme.colors.background,
-      paddingTop: withHeader ? 0 : insets.top,
-    },
-    style,
-  ];
+  const content = (
+    <Box
+      flex={1}
+      pt={withHeader ? 0 : insets.top}
+      pb={insets.bottom}
+      bg="$backgroundLight50"
+    >
+      <StatusBar
+        barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+      {children}
+    </Box>
+  );
 
   if (scrollable) {
     return (
-      <View style={containerStyle}>
-        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-        >
-          {children}
-        </ScrollView>
-      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
+      >
+        {content}
+      </ScrollView>
     );
   }
 
-  return (
-    <View style={containerStyle}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      <View style={[styles.content, contentContainerStyle]}>
-        {children}
-      </View>
-    </View>
-  );
+  return content;
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-});
 
 export default ScreenWrapper;

@@ -2,6 +2,8 @@ import React from 'react';
 import { Provider as PaperProvider, MD3LightTheme, adaptNavigationTheme } from 'react-native-paper';
 import { NavigationContainer, DefaultTheme as NavigationDefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { GluestackUIProvider } from '@gluestack-ui/themed';
+import { config } from './src/gluestack-ui.config';
 import AppNavigator from './src/navigation/AppNavigator';
 
 const { LightTheme } = adaptNavigationTheme({
@@ -31,13 +33,16 @@ const theme = {
 };
 
 const App = () => {
+  console.log('App.tsx: Rendering root App component');
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <PaperProvider theme={theme}>
-        <NavigationContainer theme={theme}>
-          <AppNavigator />
-        </NavigationContainer>
-      </PaperProvider>
+      <GluestackUIProvider config={config}>
+        <PaperProvider theme={theme}>
+          <NavigationContainer theme={theme}>
+            <AppNavigator />
+          </NavigationContainer>
+        </PaperProvider>
+      </GluestackUIProvider>
     </SafeAreaProvider>
   );
 };

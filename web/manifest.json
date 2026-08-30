@@ -1,0 +1,17 @@
+{
+  "name": "My Shop",
+  "short_name": "MyShop",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1A237E",
+  "description": "Secure Point of Sale and Inventory Management System",
+  "icons": [
+    {
+      "src": "icon-user.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

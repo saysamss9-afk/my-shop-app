@@ -1,24 +1,39 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { ScrollView, Alert, StatusBar } from 'react-native';
 import {
-  Appbar,
-  Card,
+  Box,
+  VStack,
+  HStack,
   Text,
-  ActivityIndicator,
-  List,
-  Divider,
-  useTheme,
+  Heading,
+  Icon,
+  Center,
   Button,
-  Surface
-} from 'react-native-paper';
+  ButtonText,
+  ButtonIcon,
+  Spinner,
+  Divider,
+  DownloadIcon,
+  Pressable,
+} from '@gluestack-ui/themed';
+import { Appbar } from 'react-native-paper';
+import { TrendingUp, TrendingDown, User, RefreshCw } from 'lucide-react-native';
 import { useAnalytics } from '../../hooks/useAnalytics';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import RNPrint from 'react-native-print';
 
-const AvatarText = ({ index, name, theme }: any) => (
-    <View style={[styles.avatar, { backgroundColor: ['#E3F2FD', '#E8F5E9', '#FFF3E0', '#F3E5F5'][index % 4] }]}>
-        <Text variant="titleSmall" style={{ color: theme.colors.primary }}>{name.charAt(0)}</Text>
-    </View>
-);
+const AvatarText = ({ index, name }: any) => {
+    const bgColors = ['$blue100', '$green100', '$amber100', '$purple100'];
+    return (
+        <Center
+          w={40}
+          h={40}
+          rounded="$full"
+          bg={bgColors[index % 4]}
+        >
+            <Text size="sm" fontWeight="$bold" color="$primary800">{name.charAt(0)}</Text>
+        </Center>
+    );
+};
 
 const AnalyticsScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
@@ -28,11 +43,9 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
     topProducts,
     cashierPerformance,
     isLoading,
-    error,
     loadAnalytics
   } = useAnalytics(shopId);
 
-  const theme = useTheme();
   const netProfit = (summary?.totalProfit || 0) - expenses;
 
   const handleRefresh = () => {
@@ -41,200 +54,179 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
     loadAnalytics(startOfDay, now);
   };
 
+  const handleExport = async () => {
+    try {
+        const html = `
+            <html>
+                <body style="font-family: Arial; padding: 20px;">
+                    <h1 style="color: #1A237E; text-align: center;">Business Intelligence Report</h1>
+                    <hr/>
+                    <div style="margin: 20px 0;">
+                        <h2>Financial Summary</h2>
+                        <p>Total Revenue: <b>$${summary?.totalRevenue.toFixed(2)}</b></p>
+                        <p>Total Expenses: <b>$${expenses.toFixed(2)}</b></p>
+                        <p>Net Profit: <b>$${netProfit.toFixed(2)}</b></p>
+                    </div>
+                    <hr/>
+                    <h2>Top Products</h2>
+                    <ul>
+                        ${topProducts.map(p => `<li>${p.name}: ${p.totalQuantity} units - $${p.totalRevenue.toFixed(2)}</li>`).join('')}
+                    </ul>
+                </body>
+            </html>
+        `;
+        await RNPrint.print({ html });
+    } catch (e) {
+        Alert.alert("Export Error", "Could not generate report.");
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Appbar.Header style={styles.appbar}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Business Intelligence" titleStyle={styles.appbarTitle} />
-        <Appbar.Action icon="refresh" onPress={handleRefresh} />
-      </Appbar.Header>
+    <Box flex={1} bg="$backgroundLight50">
+      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+
+      {/* Modern Solid Header */}
+      <Box bg="$primary800">
+        <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
+          <Appbar.BackAction color="white" onPress={() => navigation.goBack()} />
+          <Appbar.Content
+            title="Business Intelligence"
+            titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
+          />
+          <Pressable onPress={handleRefresh} p="$3">
+            <Icon as={RefreshCw} color="white" size="sm" />
+          </Pressable>
+        </Appbar.Header>
+      </Box>
 
       {isLoading ? (
-        <ActivityIndicator animating={true} style={styles.loader} />
+        <Center flex={1}>
+          <Spinner size="large" color="$primary800" />
+        </Center>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {/* Main Financial Surface */}
-          <Surface style={styles.mainStats} elevation={2}>
-            <View style={styles.revenueBox}>
-                <Text variant="labelLarge" style={styles.whiteLabel}>Total Revenue</Text>
-                <Text variant="displaySmall" style={styles.revenueText}>
+          <Box bg="$primary800" p="$6" rounded="$3xl" mb="$6" shadowColor="$black">
+            <VStack space="md" alignItems="center">
+                <Text size="sm" color="rgba(255,255,255,0.7)" fontWeight="$bold" textTransform="uppercase">Total Revenue</Text>
+                <Heading size="3xl" color="$white" fontWeight="$black">
                   ${summary?.totalRevenue.toFixed(2) || '0.00'}
-                </Text>
-            </View>
-            <View style={styles.statsDivider} />
-            <View style={styles.profitRow}>
-                <View style={styles.profitItem}>
-                    <Text variant="labelSmall" style={styles.whiteLabel}>Expenses</Text>
-                    <Text variant="titleMedium" style={styles.expenseText}>-${expenses.toFixed(2)}</Text>
-                </View>
-                <View style={styles.profitItem}>
-                    <Text variant="labelSmall" style={styles.whiteLabel}>Net Profit</Text>
-                    <Text variant="titleLarge" style={[styles.profitText, { color: netProfit >= 0 ? '#4CAF50' : '#FF5252' }]}>
+                </Heading>
+            </VStack>
+
+            <Box h={1} bg="rgba(255,255,255,0.1)" my="$6" />
+
+            <HStack space="md" justifyContent="space-between">
+                <VStack flex={1} alignItems="center" space="xs">
+                    <Text size="xs" color="rgba(255,255,255,0.7)" fontWeight="$bold">EXPENSES</Text>
+                    <Text size="md" color="$error300" fontWeight="$bold">-${expenses.toFixed(2)}</Text>
+                </VStack>
+                <VStack flex={1} alignItems="center" space="xs">
+                    <Text size="xs" color="rgba(255,255,255,0.7)" fontWeight="$bold">NET PROFIT</Text>
+                    <Text size="lg" color={netProfit >= 0 ? '$success400' : '$error400'} fontWeight="$black">
                         ${netProfit.toFixed(2)}
                     </Text>
-                </View>
-            </View>
-          </Surface>
+                </VStack>
+            </HStack>
+          </Box>
 
-          <Text variant="titleMedium" style={styles.sectionTitle}>Sales Breakdown</Text>
-          <Card style={styles.sectionCard} mode="outlined">
-            <Card.Content style={{ padding: 0 }}>
-              <List.Item
-                title="Gross Profit"
-                left={props => <List.Icon {...props} icon="trending-up" color="#4CAF50" />}
-                right={() => <Text variant="titleMedium" style={styles.bold}>${summary?.totalProfit.toFixed(2)}</Text>}
-              />
-              <Divider />
-              <List.Item
-                title="Operation Costs"
-                left={props => <List.Icon {...props} icon="trending-down" color="#FF5252" />}
-                right={() => <Text variant="titleMedium" style={styles.bold}>-${expenses.toFixed(2)}</Text>}
-              />
-            </Card.Content>
-          </Card>
+          <VStack space="xl">
+            <VStack space="md">
+              <Heading size="sm" color="$text900" px="$1">SALES BREAKDOWN</Heading>
+              <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden">
+                <VStack>
+                  <HStack p="$4" justifyContent="space-between" alignItems="center">
+                    <HStack space="sm" alignItems="center">
+                      <Icon as={TrendingUp} color="$success600" />
+                      <Text size="sm" fontWeight="$medium">Gross Profit</Text>
+                    </HStack>
+                    <Text size="md" fontWeight="$bold" color="$text900">${summary?.totalProfit.toFixed(2)}</Text>
+                  </HStack>
+                  <Divider />
+                  <HStack p="$4" justifyContent="space-between" alignItems="center">
+                    <HStack space="sm" alignItems="center">
+                      <Icon as={TrendingDown} color="$error600" />
+                      <Text size="sm" fontWeight="$medium">Operation Costs</Text>
+                    </HStack>
+                    <Text size="md" fontWeight="$bold" color="$text900">-${expenses.toFixed(2)}</Text>
+                  </HStack>
+                </VStack>
+              </Box>
+            </VStack>
 
-          <Text variant="titleMedium" style={styles.sectionTitle}>Top Performing Products</Text>
-          <Card style={styles.sectionCard} mode="outlined">
-            <Card.Content style={{ padding: 0 }}>
-              {topProducts.length > 0 ? topProducts.map((p, i) => (
-                <View key={i}>
-                    <List.Item
-                        title={p.name}
-                        titleStyle={{ fontWeight: 'bold' }}
-                        description={`${p.totalQuantity} units sold`}
-                        left={props => <AvatarText index={i} name={p.name} theme={theme} />}
-                        right={() => <Text variant="titleMedium" style={styles.bold}>${p.totalRevenue.toFixed(2)}</Text>}
-                    />
-                    {i < topProducts.length - 1 && <Divider />}
-                </View>
-              )) : (
-                <Text style={styles.emptyText}>No product data available</Text>
-              )}
-            </Card.Content>
-          </Card>
+            <VStack space="md">
+              <Heading size="sm" color="$text900" px="$1">TOP PERFORMING PRODUCTS</Heading>
+              <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden">
+                <VStack>
+                  {topProducts.length > 0 ? topProducts.map((p, i) => (
+                    <React.Fragment key={i}>
+                      <HStack p="$4" justifyContent="space-between" alignItems="center">
+                        <HStack space="md" alignItems="center" flex={1}>
+                          <AvatarText index={i} name={p.name} />
+                          <VStack space="xs">
+                            <Text size="sm" fontWeight="$bold" color="$text900">{p.name}</Text>
+                            <Text size="xs" color="$text500">{p.totalQuantity} units sold</Text>
+                          </VStack>
+                        </HStack>
+                        <Text size="md" fontWeight="$bold" color="$primary800">${p.totalRevenue.toFixed(2)}</Text>
+                      </HStack>
+                      {i < topProducts.length - 1 && <Divider />}
+                    </React.Fragment>
+                  )) : (
+                    <Center p="$10">
+                      <Text size="sm" color="$text400">No product data available</Text>
+                    </Center>
+                  )}
+                </VStack>
+              </Box>
+            </VStack>
 
-          <Text variant="titleMedium" style={styles.sectionTitle}>Employee Contributions</Text>
-          <Card style={styles.sectionCard} mode="outlined">
-            <Card.Content style={{ padding: 0 }}>
-              {cashierPerformance.length > 0 ? cashierPerformance.map((c, i) => (
-                <View key={i}>
-                    <List.Item
-                        title={c.employeeName}
-                        description={`${c.saleCount} transactions processed`}
-                        left={props => <List.Icon {...props} icon="account-tie" />}
-                        right={() => <Text variant="titleMedium" style={styles.bold}>${c.totalRevenue.toFixed(2)}</Text>}
-                    />
-                    {i < cashierPerformance.length - 1 && <Divider />}
-                </View>
-              )) : (
-                <Text style={styles.emptyText}>No employee data available</Text>
-              )}
-            </Card.Content>
-          </Card>
+            <VStack space="md">
+              <Heading size="sm" color="$text900" px="$1">EMPLOYEE CONTRIBUTIONS</Heading>
+              <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden">
+                <VStack>
+                  {cashierPerformance.length > 0 ? cashierPerformance.map((c, i) => (
+                    <React.Fragment key={i}>
+                      <HStack p="$4" justifyContent="space-between" alignItems="center">
+                        <HStack space="md" alignItems="center" flex={1}>
+                          <Center w={40} h={40} bg="$backgroundLight100" rounded="$full">
+                            <Icon as={User} color="$text500" />
+                          </Center>
+                          <VStack space="xs">
+                            <Text size="sm" fontWeight="$bold" color="$text900">{c.employeeName}</Text>
+                            <Text size="xs" color="$text500">{c.saleCount} transactions</Text>
+                          </VStack>
+                        </HStack>
+                        <Text size="md" fontWeight="$bold" color="$primary800">${c.totalRevenue.toFixed(2)}</Text>
+                      </HStack>
+                      {i < cashierPerformance.length - 1 && <Divider />}
+                    </React.Fragment>
+                  )) : (
+                    <Center p="$10">
+                      <Text size="sm" color="$text400">No employee data available</Text>
+                    </Center>
+                  )}
+                </VStack>
+              </Box>
+            </VStack>
 
-          <Button
-            mode="contained"
-            style={styles.exportButton}
-            icon="file-download-outline"
-            onPress={() => console.log('Exporting report...')}
-            contentStyle={{ paddingVertical: 8 }}
-          >
-            Export Full Report (PDF/CSV)
-          </Button>
+            <Button
+              size="lg"
+              variant="solid"
+              action="primary"
+              onPress={handleExport}
+              borderRadius={14}
+              bg="$primary800"
+              mt="$4"
+            >
+              <ButtonIcon as={DownloadIcon} mr="$2" />
+              <ButtonText fontWeight="$bold">Generate PDF Report</ButtonText>
+            </Button>
+          </VStack>
         </ScrollView>
       )}
-    </View>
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA'
-  },
-  appbar: {
-    backgroundColor: 'white',
-    elevation: 0,
-  },
-  appbarTitle: {
-    fontWeight: 'bold',
-  },
-  scroll: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  mainStats: {
-    backgroundColor: '#1A237E', // Deep Business Blue
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 24,
-  },
-  revenueBox: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  whiteLabel: {
-    color: 'rgba(255,255,255,0.7)',
-  },
-  revenueText: {
-    color: 'white',
-    fontWeight: '900',
-  },
-  statsDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginBottom: 20,
-  },
-  profitRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  profitItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  expenseText: {
-    color: '#FF8A80',
-    fontWeight: 'bold',
-  },
-  profitText: {
-    fontWeight: 'bold',
-  },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  sectionCard: {
-    marginBottom: 20,
-    borderRadius: 16,
-    backgroundColor: 'white',
-    overflow: 'hidden',
-  },
-  bold: {
-    fontWeight: 'bold',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center'
-  },
-  emptyText: {
-    padding: 20,
-    textAlign: 'center',
-    color: '#999',
-  },
-  exportButton: {
-    marginTop: 8,
-    borderRadius: 12,
-  }
-});
 
 export default AnalyticsScreen;

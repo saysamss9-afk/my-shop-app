@@ -1,11 +1,36 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, useTheme, RadioButton, Card, ActivityIndicator, Chip, Surface, TouchableRipple } from 'react-native-paper';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  Box,
+  VStack,
+  HStack,
+  Heading,
+  Text,
+  Button,
+  ButtonText,
+  ButtonIcon,
+  Input,
+  InputField,
+  InputSlot,
+  InputIcon,
+  FormControl,
+  FormControlLabel,
+  FormControlLabelText,
+  Icon,
+  Center,
+  ArrowLeftIcon,
+  MailIcon,
+  LockIcon,
+  Badge,
+  BadgeText,
+  Spinner,
+  Pressable,
+} from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
+import { Scan } from 'lucide-react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import firestore from '@react-native-firebase/firestore';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type Props = StackScreenProps<RootStackParamList, 'JoinShop'>;
 
@@ -23,10 +48,8 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('SALES');
-  const [showPassword, setShowPassword] = useState(false);
 
   const { register, isLoading, error, isSuccess, user } = useAuth();
-  const theme = useTheme();
 
   const handleVerifyCode = async () => {
     if (!shopCode) return;
@@ -72,238 +95,159 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   }, [isSuccess, user]);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>Join a Shop</Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-              {!shopDetails ? 'Enter your shop code to continue.' : 'Great! Now complete your profile.'}
-          </Text>
-        </View>
+    <Box flex={1} bg="$white">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'android' ? 'height' : 'padding'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
+          <VStack space="md" mt="$8" mb="$8">
+            <Heading size="2xl" color="$text900" fontWeight="$black">Join a Shop</Heading>
+            <Text size="md" color="$text600">
+                {!shopDetails ? 'Enter your shop code to continue.' : 'Great! Now complete your profile.'}
+            </Text>
+          </VStack>
 
-        {!shopDetails ? (
-            <Surface style={styles.section} elevation={0}>
-                <TextInput
-                    label="Shop Code (e.g. SHOP_XYZ)"
-                    value={shopCode}
-                    onChangeText={(text) => setShopCode(text.toUpperCase())}
-                    mode="outlined"
-                    style={styles.input}
-                    autoCapitalize="characters"
-                    left={<TextInput.Icon icon="barcode-scan" />}
-                />
-                <Button
-                    mode="contained"
-                    onPress={handleVerifyCode}
-                    loading={isVerifying}
-                    disabled={!shopCode || isVerifying}
-                    style={styles.button}
-                    contentStyle={styles.buttonContent}
-                >
-                    Verify Shop Code
-                </Button>
-            </Surface>
-        ) : (
-            <View style={styles.signupForm}>
-                <Surface style={styles.shopCard} elevation={1}>
-                    <View style={styles.shopHeader}>
-                        <View>
-                            <Text variant="titleLarge" style={styles.shopName}>{shopDetails.name}</Text>
-                            <Text variant="bodyMedium" style={styles.shopOwner}>Owner: {shopDetails.ownerName}</Text>
-                        </View>
-                        <Chip icon="storefront" style={styles.typeChip}>{shopDetails.type}</Chip>
-                    </View>
-                    <Button
-                        compact
-                        mode="text"
-                        onPress={() => setShopDetails(null)}
-                        style={styles.changeCodeButton}
-                    >
-                        Use different code
-                    </Button>
-                </Surface>
+          {!shopDetails ? (
+              <VStack space="lg">
+                  <FormControl isRequired>
+                    <FormControlLabel>
+                      <FormControlLabelText>Shop Code</FormControlLabelText>
+                    </FormControlLabel>
+                    <Input variant="outline" size="md" borderRadius={12}>
+                      <InputSlot pl="$3">
+                        <Icon as={Scan} size="sm" />
+                      </InputSlot>
+                      <InputField
+                        placeholder="e.g. SHOP_XYZ"
+                        value={shopCode}
+                        onChangeText={(text) => setShopCode(text.toUpperCase())}
+                        autoCapitalize="characters"
+                      />
+                    </Input>
+                  </FormControl>
+                  <Button
+                      size="lg"
+                      onPress={handleVerifyCode}
+                      isDisabled={!shopCode || isVerifying}
+                      borderRadius={12}
+                      bg="$primary800"
+                  >
+                      {isVerifying ? <Spinner color="white" /> : <ButtonText fontWeight="$bold">Verify Shop Code</ButtonText>}
+                  </Button>
+              </VStack>
+          ) : (
+              <VStack space="xl">
+                  <Box bg="$backgroundLight50" p="$5" rounded="$2xl" borderWidth={1} borderColor="$borderLight">
+                      <HStack justifyContent="space-between" alignItems="flex-start" mb="$4">
+                          <VStack space="xs">
+                              <Text size="sm" color="$text500" fontWeight="$bold">SHOP FOUND</Text>
+                              <Heading size="lg" color="$text900">{shopDetails.name}</Heading>
+                              <Text size="sm" color="$text600">Owner: {shopDetails.ownerName}</Text>
+                          </VStack>
+                          <Badge action="info" variant="solid" rounded="$lg">
+                            <BadgeText>{shopDetails.type}</BadgeText>
+                          </Badge>
+                      </HStack>
+                      <Button
+                          variant="link"
+                          action="primary"
+                          onPress={() => setShopDetails(null)}
+                          p="$0"
+                      >
+                          <ButtonText size="sm">Use different code</ButtonText>
+                      </Button>
+                  </Box>
 
-                <Text variant="titleMedium" style={styles.roleLabel}>What is your role?</Text>
-                <View style={styles.roleContainer}>
-                    {['OWNER', 'MANAGER', 'SALES'].map((r) => (
-                        <TouchableRipple
-                            key={r}
-                            onPress={() => setRole(r)}
-                            style={[
-                                styles.roleItem,
-                                role === r && { backgroundColor: theme.colors.primaryContainer, borderColor: theme.colors.primary }
-                            ]}
-                        >
-                            <View style={styles.roleItemContent}>
-                                <RadioButton.Android
-                                    value={r}
-                                    status={role === r ? 'checked' : 'unchecked'}
-                                    onPress={() => setRole(r)}
-                                />
-                                <Text style={[styles.roleText, role === r && { fontWeight: 'bold' }]}>
-                                    {r.charAt(0) + r.slice(1).toLowerCase()}
-                                </Text>
-                            </View>
-                        </TouchableRipple>
-                    ))}
-                </View>
+                  <VStack space="md">
+                    <Text size="sm" fontWeight="$bold" color="$text900">What is your role?</Text>
+                    <HStack space="md">
+                        {['OWNER', 'MANAGER', 'SALES'].map((r) => (
+                            <Pressable
+                                key={r}
+                                flex={1}
+                                onPress={() => setRole(r)}
+                                p="$3"
+                                rounded="$xl"
+                                borderWidth={2}
+                                borderColor={role === r ? '$primary800' : '$borderLight'}
+                                bg={role === r ? '$primary50' : 'transparent'}
+                            >
+                                <Center>
+                                    <Text size="xs" fontWeight="$bold" color={role === r ? '$primary800' : '$text600'}>
+                                        {r}
+                                    </Text>
+                                </Center>
+                            </Pressable>
+                        ))}
+                    </HStack>
+                  </VStack>
 
-                <TextInput
-                    label="Your Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    mode="outlined"
-                    style={styles.input}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    left={<TextInput.Icon icon="email-outline" />}
-                />
+                  <FormControl isRequired>
+                    <FormControlLabel>
+                      <FormControlLabelText>Your Email</FormControlLabelText>
+                    </FormControlLabel>
+                    <Input variant="outline" size="md" borderRadius={12}>
+                      <InputSlot pl="$3">
+                        <InputIcon as={MailIcon} />
+                      </InputSlot>
+                      <InputField
+                        placeholder="email@example.com"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
+                    </Input>
+                  </FormControl>
 
-                <TextInput
-                    label="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    mode="outlined"
-                    style={styles.input}
-                    secureTextEntry={!showPassword}
-                    left={<TextInput.Icon icon="lock-outline" />}
-                    right={
-                        <TextInput.Icon
-                          icon={showPassword ? "eye-off" : "eye"}
-                          onPress={() => setShowPassword(!showPassword)}
-                        />
-                      }
-                />
+                  <FormControl isRequired>
+                    <FormControlLabel>
+                      <FormControlLabelText>Password</FormControlLabelText>
+                    </FormControlLabel>
+                    <Input variant="outline" size="md" borderRadius={12}>
+                      <InputSlot pl="$3">
+                        <InputIcon as={LockIcon} />
+                      </InputSlot>
+                      <InputField
+                        placeholder="Minimum 6 characters"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                      />
+                    </Input>
+                  </FormControl>
 
-                {error && (
-                    <Text style={[styles.error, { color: theme.colors.error }]}>
-                        {error}
-                    </Text>
-                )}
+                  {error && (
+                      <Text size="xs" color="$error600" textAlign="center">
+                          {error}
+                      </Text>
+                  )}
 
-                <Button
-                    mode="contained"
-                    onPress={handleJoin}
-                    loading={isLoading}
-                    disabled={isLoading || !email || !password}
-                    style={styles.button}
-                    contentStyle={styles.buttonContent}
-                >
-                    Create Account & Join
-                </Button>
-            </View>
-        )}
+                  <Button
+                      size="lg"
+                      onPress={handleJoin}
+                      isDisabled={isLoading || !email || !password}
+                      borderRadius={12}
+                      bg="$primary800"
+                  >
+                      {isLoading ? <Spinner color="white" /> : <ButtonText fontWeight="$bold">Create Account & Join</ButtonText>}
+                  </Button>
+              </VStack>
+          )}
 
-        <Button
-          mode="text"
-          onPress={() => navigation.navigate('Login')}
-          style={styles.textButton}
-        >
-          Back to Login
-        </Button>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Button
+            variant="link"
+            action="secondary"
+            onPress={() => navigation.navigate('Login')}
+            mt="$8"
+          >
+            <ButtonText>Back to Login</ButtonText>
+          </Button>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 24,
-    backgroundColor: 'white',
-  },
-  header: {
-    marginTop: 40,
-    marginBottom: 32,
-  },
-  title: {
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  subtitle: {
-    color: '#666',
-    marginTop: 4,
-  },
-  section: {
-    width: '100%',
-    backgroundColor: 'transparent',
-  },
-  shopCard: {
-    backgroundColor: '#F8F9FA',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  shopHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  shopName: {
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  shopOwner: {
-    color: '#666',
-  },
-  typeChip: {
-    backgroundColor: 'white',
-  },
-  changeCodeButton: {
-    alignSelf: 'flex-end',
-  },
-  signupForm: {
-    width: '100%',
-  },
-  roleLabel: {
-    marginBottom: 12,
-    fontWeight: 'bold',
-  },
-  roleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  roleItem: {
-    flex: 1,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
-    paddingVertical: 8,
-  },
-  roleItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  roleText: {
-    fontSize: 12,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  error: {
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  button: {
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  textButton: {
-    marginTop: 24,
-    alignSelf: 'center',
-  },
-});
 
 export default JoinShopScreen;

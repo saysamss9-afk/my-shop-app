@@ -1,172 +1,141 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import { Button, Text, Surface, useTheme, TouchableRipple } from 'react-native-paper';
+import { ScrollView, Dimensions, StatusBar } from 'react-native';
+import {
+  Box,
+  VStack,
+  HStack,
+  Text,
+  Heading,
+  Icon,
+  Center,
+  Pressable,
+  ChevronRightIcon,
+  ArrowRightIcon,
+} from '@gluestack-ui/themed';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import AppIcon from '../../components/common/AppIcon';
 
 type Props = StackScreenProps<RootStackParamList, 'Landing'>;
 
+const { width } = Dimensions.get('window');
+
 const LandingScreen: React.FC<Props> = ({ navigation }) => {
-  const theme = useTheme();
-
   return (
-    <View style={styles.container}>
-      <View style={[styles.backgroundDecoration, { backgroundColor: theme.colors.primary }]} />
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-            <Surface style={styles.logoContainer} elevation={5}>
-                <AppIcon name="store" size={64} color={theme.colors.primary} />
-            </Surface>
-            <Text variant="displaySmall" style={styles.title}>My Shop</Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>Empower your business with smart management</Text>
-        </View>
+    <Box flex={1} bg="$backgroundLight50">
+      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
 
-        <View style={styles.content}>
-            <Surface style={[styles.card, { borderLeftColor: '#673AB7', borderLeftWidth: 8 }]} elevation={2}>
-                <TouchableRipple onPress={() => navigation.navigate('Login')} style={styles.cardRipple}>
-                    <View style={styles.cardInner}>
-                        <View style={[styles.iconBox, { backgroundColor: '#EDE7F6' }]}>
-                            <AppIcon name="login" size={32} color="#673AB7" />
-                        </View>
-                        <View style={styles.cardTextContainer}>
-                            <Text variant="titleLarge" style={styles.cardTitle}>Login</Text>
-                            <Text variant="bodyMedium" style={styles.cardDesc}>Access your shop dashboard</Text>
-                        </View>
-                        <AppIcon name="plus" size={24} color="#ccc" />
-                    </View>
-                </TouchableRipple>
-            </Surface>
+      {/* Premium Hero Section */}
+      <Box
+        bg="$primary800"
+        h={320}
+        borderBottomLeftRadius={40}
+        borderBottomRightRadius={40}
+        justifyContent="center"
+        alignItems="center"
+        pt="$10"
+      >
+        <VStack space="md" alignItems="center" px="$8">
+            <Center
+                w={90}
+                h={90}
+                rounded="$full"
+                bg="$white"
+                shadowColor="$black"
+            >
+                <AppIcon name="store" size={50} color="#1A237E" />
+            </Center>
+            <Heading size="3xl" color="$white" fontWeight="$black" letterSpacing={1}>
+                My Shop
+            </Heading>
+            <Text color="rgba(255, 255, 255, 0.8)" textAlign="center" size="md">
+                The all-in-one platform for smart retail management.
+            </Text>
+        </VStack>
+      </Box>
 
-            <Surface style={[styles.card, { borderLeftColor: '#00BFA5', borderLeftWidth: 8 }]} elevation={2}>
-                <TouchableRipple onPress={() => navigation.navigate('ShopRequest')} style={styles.cardRipple}>
-                    <View style={styles.cardInner}>
-                        <View style={[styles.iconBox, { backgroundColor: '#E0F2F1' }]}>
-                            <AppIcon name="store" size={32} color="#00BFA5" />
-                        </View>
-                        <View style={styles.cardTextContainer}>
-                            <Text variant="titleLarge" style={styles.cardTitle}>Register My Shop</Text>
-                            <Text variant="bodyMedium" style={styles.cardDesc}>Start a new shop journey</Text>
-                        </View>
-                        <AppIcon name="plus" size={24} color="#ccc" />
-                    </View>
-                </TouchableRipple>
-            </Surface>
+      <ScrollView
+        style={{ marginTop: -10, zIndex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, padding: 20 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <VStack space="xl">
+            <VStack space="xs" px="$1">
+              <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase" letterSpacing={1}>
+                Get Started
+              </Text>
+            </VStack>
 
-            <Surface style={[styles.card, { borderLeftColor: '#FF4081', borderLeftWidth: 8 }]} elevation={2}>
-                <TouchableRipple onPress={() => navigation.navigate('JoinShop')} style={styles.cardRipple}>
-                    <View style={styles.cardInner}>
-                        <View style={[styles.iconBox, { backgroundColor: '#FCE4EC' }]}>
-                            <AppIcon name="group" size={32} color="#FF4081" />
-                        </View>
-                        <View style={styles.cardTextContainer}>
-                            <Text variant="titleLarge" style={styles.cardTitle}>Join a Team</Text>
-                            <Text variant="bodyMedium" style={styles.cardDesc}>Join as Owner, Manager or Sales</Text>
-                        </View>
-                        <AppIcon name="plus" size={24} color="#ccc" />
-                    </View>
-                </TouchableRipple>
-            </Surface>
-        </View>
+            <Pressable
+                onPress={() => navigation.navigate('Login')}
+                bg="$white"
+                rounded={24}
+                borderWidth={1}
+                borderColor="$borderLight"
+                shadowColor="$primary800"
+                sx={{
+                  ':active': {
+                    transform: [{ scale: 0.98 }],
+                    bg: '$backgroundLight50'
+                  }
+                }}
+            >
+                <HStack p="$5" alignItems="center" space="md">
+                    <Center w={56} h={56} rounded="$full" bg="$primary50">
+                        <AppIcon name="login" size={28} color="#1A237E" />
+                    </Center>
+                    <VStack flex={1} space="xs">
+                        <Heading size="md" color="$primary800">Sign In</Heading>
+                        <Text size="sm" color="$text500">Log back into your store dashboard</Text>
+                    </VStack>
+                    <Icon as={ChevronRightIcon} color="$text400" />
+                </HStack>
+            </Pressable>
 
-        <View style={styles.footerContainer}>
-            <Text style={styles.footer}>© 2026 My Shop • Smart Business Solutions</Text>
-        </View>
+            <HStack space="md">
+                <Pressable
+                    flex={1}
+                    onPress={() => navigation.navigate('ShopRequest')}
+                    bg="$teal100"
+                    h={140}
+                    rounded={24}
+                    sx={{ ':active': { transform: [{ scale: 0.95 }] } }}
+                >
+                    <Center flex={1} p="$4">
+                        <VStack space="xs" alignItems="center">
+                            <AppIcon name="plus" size={32} color="#00796B" />
+                            <Heading size="xs" color="#004D40">New Shop</Heading>
+                            <Text size="xs" color="#00796B" textAlign="center">Register business</Text>
+                        </VStack>
+                    </Center>
+                </Pressable>
+
+                <Pressable
+                    flex={1}
+                    onPress={() => navigation.navigate('JoinShop')}
+                    bg="$pink100"
+                    h={140}
+                    rounded={24}
+                    sx={{ ':active': { transform: [{ scale: 0.95 }] } }}
+                >
+                    <Center flex={1} p="$4">
+                        <VStack space="xs" alignItems="center">
+                            <AppIcon name="group" size={32} color="#C2185B" />
+                            <Heading size="xs" color="#880E4F">Join Team</Heading>
+                            <Text size="xs" color="#C2185B" textAlign="center">Staff & Managers</Text>
+                        </VStack>
+                    </Center>
+                </Pressable>
+            </HStack>
+
+            <VStack space="xs" mt="$8" alignItems="center">
+                <Text size="xs" color="$text400" fontWeight="$bold">Version 2.0 • Production Ready</Text>
+                <Text size="xs" color="$text300">© 2026 Abijah Shops POS</Text>
+            </VStack>
+        </VStack>
       </ScrollView>
-    </View>
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  backgroundDecoration: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 300,
-    borderBottomLeftRadius: 60,
-    borderBottomRightRadius: 60,
-    opacity: 0.1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 24,
-  },
-  header: {
-    marginTop: 60,
-    marginBottom: 40,
-    alignItems: 'center',
-  },
-  logoContainer: {
-    width: 110,
-    height: 110,
-    borderRadius: 30,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontWeight: '900',
-    color: '#1a1a1a',
-    letterSpacing: -1,
-  },
-  subtitle: {
-    color: '#555',
-    marginTop: 8,
-    textAlign: 'center',
-    fontSize: 16,
-    paddingHorizontal: 10,
-  },
-  content: {
-    flex: 1,
-  },
-  card: {
-    marginBottom: 20,
-    borderRadius: 20,
-    backgroundColor: 'white',
-    overflow: 'hidden',
-  },
-  cardRipple: {
-    padding: 16,
-  },
-  cardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardTextContainer: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  cardTitle: {
-    fontWeight: 'bold',
-    color: '#222',
-  },
-  cardDesc: {
-    color: '#777',
-    marginTop: 2,
-  },
-  footerContainer: {
-    marginTop: 40,
-    alignItems: 'center',
-    paddingBottom: 20,
-  },
-  footer: {
-    textAlign: 'center',
-    color: '#999',
-    fontWeight: '500',
-  },
-});
 
 export default LandingScreen;

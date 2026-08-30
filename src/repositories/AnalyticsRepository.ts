@@ -1,4 +1,4 @@
-import SQLite from 'react-native-sqlite-storage';
+import { SQLiteDatabase } from 'react-native-sqlite-storage';
 
 export interface FinancialSummary {
   totalRevenue: number;
@@ -18,7 +18,7 @@ export interface CashierPerformance {
 }
 
 export class AnalyticsRepository {
-  constructor(private db: SQLite.SQLiteDatabase) {}
+  constructor(private db: SQLiteDatabase) {}
 
   async getFinancialSummary(shopId: string, start: number, end: number): Promise<FinancialSummary> {
     const query = `

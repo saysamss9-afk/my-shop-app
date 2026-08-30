@@ -1,0 +1,1 @@
+const CACHE_NAME="my-shop-v1",ASSETS_TO_CACHE=["/","/index.html","/bundle.web.js","/manifest.json"];self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE_NAME).then(e=>e.addAll(ASSETS_TO_CACHE)))}),self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(t=>t||fetch(e.request)))});

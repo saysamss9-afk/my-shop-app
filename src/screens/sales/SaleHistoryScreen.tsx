@@ -1,16 +1,19 @@
 import React from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import { FlatList, StatusBar } from 'react-native';
 import {
-  Appbar,
-  Card,
+  Box,
+  VStack,
+  HStack,
   Text,
-  List,
-  ActivityIndicator,
-  IconButton,
+  Heading,
+  Icon,
+  Pressable,
+  Center,
+  Spinner,
   Divider,
-  useTheme,
-  Surface
-} from 'react-native-paper';
+} from '@gluestack-ui/themed';
+import { Appbar } from 'react-native-paper';
+import { RefreshCw, RotateCcw } from 'lucide-react-native';
 import { useSales } from '../../hooks/useSales';
 import { Sale } from '../../db/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -18,7 +21,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
   const { sales, isLoading, revertSale, refreshSales } = useSales(shopId);
-  const theme = useTheme();
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -26,148 +28,98 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   };
 
   const renderSale = ({ item }: { item: Sale }) => (
-    <Card style={styles.card} mode="outlined">
-      <List.Item
-        title={`Transaction #${item.id.slice(-6).toUpperCase()}`}
-        titleStyle={styles.saleTitle}
-        description={`${formatDate(item.timestamp)}\nPayment: ${item.paymentMethod}`}
-        left={props => (
-            <View style={styles.iconBox}>
-                <MaterialCommunityIcons name="receipt-text-outline" size={24} color={theme.colors.primary} />
-            </View>
-        )}
-        right={props => (
-          <View style={styles.rightContent}>
-            <Text variant="titleMedium" style={styles.amountText}>${item.totalAmount.toFixed(2)}</Text>
-            <IconButton
-                icon="backup-restore"
-                iconColor={theme.colors.error}
-                size={20}
-                onPress={() => revertSale(item.id)}
-            />
-          </View>
-        )}
-      />
-    </Card>
+    <Box
+      bg="$white"
+      p="$4"
+      rounded="$xl"
+      mb="$3"
+      borderWidth={1}
+      borderColor="$borderLight"
+    >
+      <HStack space="md" alignItems="center">
+        <Center w={48} h={48} rounded="$full" bg="$primary50">
+          <MaterialCommunityIcons name="receipt-text-outline" size={24} color="#1A237E" />
+        </Center>
+        <VStack flex={1} space="xs">
+          <Heading size="xs" color="$text900">
+            Transaction #{item.id.slice(-6).toUpperCase()}
+          </Heading>
+          <Text size="xs" color="$text500">
+            {formatDate(item.timestamp)}
+          </Text>
+          <Text size="xs" fontWeight="$bold" color="$primary800">
+            Payment: {item.paymentMethod}
+          </Text>
+        </VStack>
+        <VStack alignItems="flex-end" space="xs">
+          <Text size="md" fontWeight="$black" color="$text900">
+            ${item.totalAmount.toFixed(2)}
+          </Text>
+          <Pressable onPress={() => revertSale(item.id)} p="$1">
+             <Icon as={RotateCcw} color="$error600" size="sm" />
+          </Pressable>
+        </VStack>
+      </HStack>
+    </Box>
   );
 
   return (
-    <View style={styles.container}>
-      <Appbar.Header style={styles.appbar}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Sales History" titleStyle={styles.appbarTitle} />
-        <Appbar.Action icon="refresh" onPress={refreshSales} />
-      </Appbar.Header>
+    <Box flex={1} bg="$backgroundLight50">
+      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
 
-      <Surface style={styles.statsBar} elevation={1}>
-        <View style={styles.statItem}>
-            <Text variant="labelSmall" style={styles.statLabel}>Total Transactions</Text>
-            <Text variant="titleLarge" style={styles.statValue}>{sales.length}</Text>
-        </View>
-        <Divider style={styles.verticalDivider} />
-        <View style={styles.statItem}>
-            <Text variant="labelSmall" style={styles.statLabel}>Total Volume</Text>
-            <Text variant="titleLarge" style={[styles.statValue, { color: theme.colors.primary }]}>
-                ${sales.reduce((acc, curr) => acc + curr.totalAmount, 0).toFixed(2)}
-            </Text>
-        </View>
-      </Surface>
+      {/* Modern Solid Header */}
+      <Box bg="$primary800">
+        <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
+          <Appbar.BackAction color="white" onPress={() => navigation.goBack()} />
+          <Appbar.Content
+            title="Sales History"
+            titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
+          />
+          <Pressable onPress={refreshSales} p="$3">
+            <Icon as={RefreshCw} color="white" size="sm" />
+          </Pressable>
+        </Appbar.Header>
+      </Box>
+
+      {/* Stats Summary Bar */}
+      <Box bg="$white" px="$5" py="$4" borderBottomWidth={1} borderColor="$borderLight">
+        <HStack space="md" alignItems="center">
+            <VStack flex={1} alignItems="center" space="xs">
+                <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Transactions</Text>
+                <Heading size="md" color="$text900">{sales.length}</Heading>
+            </VStack>
+            <Divider orientation="vertical" h="$10" />
+            <VStack flex={1} alignItems="center" space="xs">
+                <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Total Volume</Text>
+                <Heading size="md" color="$primary800">
+                    ${sales.reduce((acc, curr) => acc + curr.totalAmount, 0).toFixed(2)}
+                </Heading>
+            </VStack>
+        </HStack>
+      </Box>
 
       {isLoading ? (
-        <ActivityIndicator animating={true} style={styles.loader} />
+        <Center flex={1}>
+          <Spinner size="large" color="$primary800" />
+        </Center>
       ) : (
         <FlatList
           data={sales}
           keyExtractor={(item) => item.id}
           renderItem={renderSale}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ padding: 16 }}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
+            <Center mt="$20">
+              <VStack space="md" alignItems="center">
                 <MaterialCommunityIcons name="history" size={64} color="#ccc" />
-                <Text variant="bodyLarge" style={styles.emptyText}>No sales recorded yet</Text>
-            </View>
+                <Text color="$text400">No sales recorded yet.</Text>
+              </VStack>
+            </Center>
           }
         />
       )}
-    </View>
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA'
-  },
-  appbar: {
-    backgroundColor: 'white',
-    elevation: 0,
-  },
-  appbarTitle: {
-    fontWeight: 'bold',
-  },
-  statsBar: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    padding: 16,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statLabel: {
-    color: '#666',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontWeight: 'bold',
-  },
-  verticalDivider: {
-    width: 1,
-    height: '100%',
-  },
-  list: {
-    padding: 16
-  },
-  card: {
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: 'white',
-    borderColor: '#eee',
-  },
-  saleTitle: {
-    fontWeight: 'bold',
-  },
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F0EFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rightContent: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  amountText: {
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center'
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 100,
-  },
-  emptyText: {
-    color: '#999',
-    marginTop: 16,
-  },
-});
 
 export default SaleHistoryScreen;

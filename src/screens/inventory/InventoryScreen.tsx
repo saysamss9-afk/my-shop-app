@@ -1,23 +1,43 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, Dimensions } from 'react-native';
+import { FlatList, ScrollView, StatusBar } from 'react-native';
 import {
-  Appbar,
-  Card,
+  Box,
+  VStack,
+  HStack,
   Text,
-  IconButton,
-  FAB,
-  Portal,
-  Dialog,
+  Heading,
+  Icon,
+  Pressable,
+  Center,
+  Badge,
+  BadgeText,
+  Spinner,
+  Input,
+  InputField,
+  InputSlot,
+  InputIcon,
+  SearchIcon,
   Button,
-  TextInput,
-  Chip,
-  ActivityIndicator,
-  List,
-  useTheme,
-  Surface,
-  Searchbar,
-  Badge
-} from 'react-native-paper';
+  ButtonText,
+  ButtonIcon,
+  Fab,
+  FabIcon,
+  FabLabel,
+  AddIcon,
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  FormControl,
+  FormControlLabel,
+  FormControlLabelText,
+  CloseIcon,
+} from '@gluestack-ui/themed';
+import { Appbar } from 'react-native-paper';
+import { Filter } from 'lucide-react-native';
 import { useInventory } from '../../hooks/useInventory';
 import { Product } from '../../db/types';
 import AppIcon from '../../components/common/AppIcon';
@@ -33,7 +53,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
     generateBarcode,
   } = useInventory(shopId);
 
-  const [visible, setVisible] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -47,8 +67,6 @@ const InventoryScreen = ({ route, navigation }: any) => {
     unit: 'pcs',
     categoryId: null as string | null,
   });
-
-  const theme = useTheme();
 
   const handleSave = async () => {
     if (!newProduct.name || !newProduct.price) return;
@@ -67,7 +85,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
       description: null,
       supplierId: null,
     });
-    setVisible(false);
+    setIsModalOpen(false);
     setNewProduct({
         name: '',
         barcode: '',
@@ -90,211 +108,245 @@ const InventoryScreen = ({ route, navigation }: any) => {
   const renderProduct = ({ item }: { item: Product }) => {
     const isLowStock = item.stockQuantity <= item.minStockLevel;
     return (
-      <Surface style={styles.productCard} elevation={1}>
-        <View style={styles.productInner}>
-            <View style={[styles.iconBox, { backgroundColor: isLowStock ? '#FFF5F5' : '#E8F5E9' }]}>
-                <AppIcon
-                    name={isLowStock ? "package" : "package"}
-                    size={28}
-                    color={isLowStock ? theme.colors.error : '#43A047'}
-                />
-            </View>
-            <View style={styles.productInfo}>
-                <Text variant="titleMedium" style={styles.productName}>{item.name}</Text>
-                <Text variant="bodySmall" style={styles.productStock}>
-                    {item.stockQuantity} {item.unit} in stock
-                </Text>
-            </View>
-            <View style={styles.productPrice}>
-                <Text variant="titleLarge" style={styles.priceValue}>${item.price.toFixed(2)}</Text>
-                {isLowStock && <Badge style={styles.lowBadge}>LOW</Badge>}
-            </View>
-        </View>
-      </Surface>
+      <Box
+        bg="$white"
+        p="$4"
+        rounded="$2xl"
+        mb="$3"
+        borderWidth={1}
+        borderColor="$borderLight"
+        shadowColor="$primary800"
+      >
+        <HStack space="md" alignItems="center">
+          <Center
+            w={54}
+            h={54}
+            rounded={14}
+            bg={isLowStock ? '$error50' : '$success50'}
+          >
+            <AppIcon
+              name="package"
+              size={28}
+              color={isLowStock ? '#D32F2F' : '#388E3C'}
+            />
+          </Center>
+          <VStack flex={1} space="xs">
+            <Heading size="sm" color="$text900">
+              {item.name}
+            </Heading>
+            <Text size="xs" color="$text500">
+              {item.stockQuantity} {item.unit} in stock
+            </Text>
+          </VStack>
+          <VStack alignItems="flex-end" space="xs">
+            <Text size="lg" fontWeight="$black" color="$text900">
+              ${item.price.toFixed(2)}
+            </Text>
+            {isLowStock && (
+              <Badge action="error" variant="solid" size="sm" rounded="$lg">
+                <BadgeText fontWeight="$bold">LOW STOCK</BadgeText>
+              </Badge>
+            )}
+          </VStack>
+        </HStack>
+      </Box>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <Appbar.Header style={styles.appbar} elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Stock Inventory" titleStyle={styles.appbarTitle} />
-        <IconButton
-            icon={showLowStockOnly ? "filter-remove" : "filter"}
-            iconColor={showLowStockOnly ? theme.colors.error : theme.colors.primary}
-            onPress={toggleLowStockFilter}
-        />
-      </Appbar.Header>
+    <Box flex={1} bg="$backgroundLight50">
+      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
 
-      <View style={styles.searchSection}>
-        <Searchbar
+      {/* Modern Solid Header */}
+      <Box bg="$primary800">
+        <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
+          <Appbar.BackAction color="white" onPress={() => navigation.goBack()} />
+          <Appbar.Content
+            title="Stock Inventory"
+            titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
+          />
+          <Pressable onPress={toggleLowStockFilter} p="$3">
+            <Icon
+              as={Filter}
+              color={showLowStockOnly ? '$error400' : 'white'}
+              size="md"
+            />
+          </Pressable>
+        </Appbar.Header>
+      </Box>
+
+      {/* Search Section */}
+      <Box p="$5" bg="$white" borderBottomWidth={1} borderColor="$borderLight">
+        <Input variant="outline" size="md" borderRadius={12}>
+          <InputSlot pl="$3">
+            <InputIcon as={SearchIcon} color="$primary800" />
+          </InputSlot>
+          <InputField
             placeholder="Search by name or code..."
-            onChangeText={setSearchQuery}
             value={searchQuery}
-            style={styles.searchbar}
-            iconColor={theme.colors.primary}
-        />
-      </View>
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+             <InputSlot pr="$3" onPress={() => setSearchQuery('')}>
+               <InputIcon as={CloseIcon} />
+             </InputSlot>
+          )}
+        </Input>
+      </Box>
 
       {isLoading ? (
-        <ActivityIndicator style={styles.loader} color={theme.colors.primary} />
+        <Center flex={1}>
+          <Spinner size="large" color="$primary800" />
+        </Center>
       ) : (
         <FlatList
           data={filteredProducts}
           keyExtractor={(item) => item.id}
           renderItem={renderProduct}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           ListEmptyComponent={
-            <View style={styles.empty}>
-                <AppIcon name="package" size={80} color="#ccc" />
-                <Text variant="bodyLarge" style={{ color: '#999', marginTop: 16 }}>No items found</Text>
-            </View>
+            <Center mt="$20">
+              <VStack space="md" alignItems="center">
+                <Icon as={SearchIcon} size="xl" color="$text300" />
+                <Text color="$text400">No items found in inventory.</Text>
+              </VStack>
+            </Center>
           }
         />
       )}
 
       {(userRole === 'OWNER' || userRole === 'MANAGER') && (
-        <FAB
-          icon="plus"
-          label="Add Product"
-          style={styles.fab}
-          onPress={() => setVisible(true)}
-          color="white"
-        />
+        <Fab
+          size="lg"
+          placement="bottom right"
+          onPress={() => setIsModalOpen(true)}
+          bg="$primary800"
+          m="$4"
+          sx={{
+            ':active': {
+                bg: '$primary900'
+            }
+          }}
+        >
+          <FabIcon as={AddIcon} mr="$2" />
+          <FabLabel fontWeight="$bold">Add Product</FabLabel>
+        </Fab>
       )}
 
-      <Portal>
-        <Dialog visible={visible} onDismiss={() => setVisible(false)} style={styles.dialog}>
-          <Dialog.Title>Add New Product</Dialog.Title>
-          <Dialog.ScrollArea style={{ maxHeight: 400, paddingHorizontal: 16 }}>
+      {/* Add Product Modal */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="lg">
+        <ModalBackdrop />
+        <ModalContent rounded="$3xl">
+          <ModalHeader>
+            <Heading size="lg">New Product</Heading>
+            <ModalCloseButton>
+              <Icon as={CloseIcon} />
+            </ModalCloseButton>
+          </ModalHeader>
+          <ModalBody>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <TextInput
-                label="Product Name"
-                value={newProduct.name}
-                onChangeText={text => setNewProduct({ ...newProduct, name: text })}
-                style={styles.input}
-                mode="outlined"
-              />
-              <View style={styles.row}>
-                <TextInput
-                  label="Barcode"
-                  value={newProduct.barcode}
-                  onChangeText={text => setNewProduct({ ...newProduct, barcode: text })}
-                  style={[styles.input, { flex: 1 }]}
-                  mode="outlined"
-                />
-                <IconButton icon="barcode-scan" onPress={() => setNewProduct({ ...newProduct, barcode: generateBarcode() })} />
-              </View>
+              <VStack space="lg" py="$4">
+                <FormControl isRequired>
+                  <FormControlLabel mb="$1">
+                    <FormControlLabelText>Product Name</FormControlLabelText>
+                  </FormControlLabel>
+                  <Input borderRadius={10}>
+                    <InputField
+                      value={newProduct.name}
+                      onChangeText={text => setNewProduct({ ...newProduct, name: text })}
+                    />
+                  </Input>
+                </FormControl>
 
-              <View style={styles.row}>
-                <TextInput
-                  label="Retail Price"
-                  value={newProduct.price}
-                  keyboardType="numeric"
-                  onChangeText={text => setNewProduct({ ...newProduct, price: text })}
-                  style={[styles.input, { flex: 1, marginRight: 8 }]}
-                  mode="outlined"
-                />
-                <TextInput
-                  label="Cost Price"
-                  value={newProduct.costPrice}
-                  keyboardType="numeric"
-                  onChangeText={text => setNewProduct({ ...newProduct, costPrice: text })}
-                  style={[styles.input, { flex: 1 }]}
-                  mode="outlined"
-                />
-              </View>
+                <FormControl>
+                  <FormControlLabel mb="$1">
+                    <FormControlLabelText>Barcode</FormControlLabelText>
+                  </FormControlLabel>
+                  <HStack space="md">
+                    <Input flex={1} borderRadius={10}>
+                      <InputField
+                        value={newProduct.barcode}
+                        onChangeText={text => setNewProduct({ ...newProduct, barcode: text })}
+                      />
+                    </Input>
+                    <Button
+                        variant="outline"
+                        action="secondary"
+                        onPress={() => setNewProduct({ ...newProduct, barcode: generateBarcode() })}
+                    >
+                        <ButtonIcon as={SearchIcon} />
+                    </Button>
+                  </HStack>
+                </FormControl>
 
-              <View style={styles.row}>
-                <TextInput
-                  label="Initial Stock"
-                  value={newProduct.stockQuantity}
-                  keyboardType="numeric"
-                  onChangeText={text => setNewProduct({ ...newProduct, stockQuantity: text })}
-                  style={[styles.input, { flex: 1, marginRight: 8 }]}
-                  mode="outlined"
-                />
-                <TextInput
-                  label="Min Level"
-                  value={newProduct.minStockLevel}
-                  keyboardType="numeric"
-                  onChangeText={text => setNewProduct({ ...newProduct, minStockLevel: text })}
-                  style={[styles.input, { flex: 1 }]}
-                  mode="outlined"
-                />
-              </View>
+                <HStack space="md">
+                  <FormControl isRequired flex={1}>
+                    <FormControlLabel mb="$1">
+                      <FormControlLabelText>Retail Price</FormControlLabelText>
+                    </FormControlLabel>
+                    <Input borderRadius={10}>
+                      <InputField
+                        value={newProduct.price}
+                        keyboardType="numeric"
+                        onChangeText={text => setNewProduct({ ...newProduct, price: text })}
+                      />
+                    </Input>
+                  </FormControl>
+                  <FormControl flex={1}>
+                    <FormControlLabel mb="$1">
+                      <FormControlLabelText>Cost Price</FormControlLabelText>
+                    </FormControlLabel>
+                    <Input borderRadius={10}>
+                      <InputField
+                        value={newProduct.costPrice}
+                        keyboardType="numeric"
+                        onChangeText={text => setNewProduct({ ...newProduct, costPrice: text })}
+                      />
+                    </Input>
+                  </FormControl>
+                </HStack>
+
+                <HStack space="md">
+                  <FormControl isRequired flex={1}>
+                    <FormControlLabel mb="$1">
+                      <FormControlLabelText>Initial Stock</FormControlLabelText>
+                    </FormControlLabel>
+                    <Input borderRadius={10}>
+                      <InputField
+                        value={newProduct.stockQuantity}
+                        keyboardType="numeric"
+                        onChangeText={text => setNewProduct({ ...newProduct, stockQuantity: text })}
+                      />
+                    </Input>
+                  </FormControl>
+                  <FormControl flex={1}>
+                    <FormControlLabel mb="$1">
+                      <FormControlLabelText>Min Level</FormControlLabelText>
+                    </FormControlLabel>
+                    <Input borderRadius={10}>
+                      <InputField
+                        value={newProduct.minStockLevel}
+                        keyboardType="numeric"
+                        onChangeText={text => setNewProduct({ ...newProduct, minStockLevel: text })}
+                      />
+                    </Input>
+                  </FormControl>
+                </HStack>
+              </VStack>
             </ScrollView>
-          </Dialog.ScrollArea>
-          <Dialog.Actions>
-            <Button onPress={() => setVisible(false)}>Cancel</Button>
-            <Button mode="contained" onPress={handleSave} style={{ borderRadius: 12 }}>Save</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </View>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" action="secondary" onPress={() => setIsModalOpen(false)} mr="$3" borderRadius="$lg">
+              <ButtonText>Cancel</ButtonText>
+            </Button>
+            <Button action="primary" onPress={handleSave} borderRadius="$lg" bg="$primary800">
+              <ButtonText>Save Product</ButtonText>
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  appbar: { backgroundColor: 'white' },
-  appbarTitle: { fontWeight: 'bold' },
-  searchSection: { padding: 16, backgroundColor: 'white' },
-  searchbar: { elevation: 0, backgroundColor: '#F1F3F4', borderRadius: 12 },
-  list: { padding: 16 },
-  productCard: {
-    marginBottom: 12,
-    borderRadius: 20,
-    backgroundColor: 'white',
-    overflow: 'hidden',
-  },
-  productInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  iconBox: {
-    width: 54,
-    height: 54,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  productName: {
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  productStock: {
-    color: '#666',
-  },
-  productPrice: {
-    alignItems: 'flex-end',
-  },
-  priceValue: {
-    fontWeight: '900',
-    color: '#333',
-  },
-  lowBadge: {
-    backgroundColor: '#FF5252',
-    marginTop: 4,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#673AB7',
-    borderRadius: 18,
-  },
-  loader: { flex: 1, justifyContent: 'center' },
-  empty: { alignItems: 'center', marginTop: 100 },
-  input: { marginBottom: 12 },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  dialog: { borderRadius: 24 },
-});
 
 export default InventoryScreen;
