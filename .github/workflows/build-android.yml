@@ -20,7 +20,7 @@ jobs:
           cache: 'gradle'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build Android Release
         run: |
