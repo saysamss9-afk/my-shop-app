@@ -5,6 +5,7 @@ module.exports = {
     '@babel/preset-typescript'
   ],
   plugins: [
+    '@babel/plugin-transform-class-static-block',
     'react-native-web',
     ['react-native-reanimated/plugin', { processNestedWorklets: true }]
   ],
