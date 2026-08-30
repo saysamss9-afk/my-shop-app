@@ -94,7 +94,7 @@ android {
         }
         user {
             dimension "app"
-            applicationId "com.abijahshops.user"
+            applicationId "com.abijahshops"
         }
     }
     signingConfigs {

@@ -37,4 +37,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: admin-apk
-          path: android/app/build/outputs/apk/admin/release/app-admin-release.apk
+          path: android/app/build/outputs/apk/admin/release/*.apk
