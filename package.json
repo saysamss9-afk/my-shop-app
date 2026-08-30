@@ -97,11 +97,30 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "icon-user.png"
+      "icon-user.png",
+      "!android",
+      "!src",
+      "!ios",
+      "!scripts",
+      "!*.gradle",
+      "!*.bat"
     ],
+    "asar": true,
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "icon-user.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true
     }
   }
 }

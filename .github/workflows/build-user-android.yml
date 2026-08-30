@@ -1,4 +1,4 @@
-name: Build Android Production APK
+name: Build Android User APK
 
 on:
   push:
@@ -23,27 +23,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Android Admin Release
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleAdminRelease --no-daemon
-
       - name: Build Android User Release
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleUserRelease --no-daemon
-
-      - name: Upload Admin APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: admin-apk
-          path: android/app/build/outputs/apk/admin/release/app-admin-release.apk
 
       - name: Upload User APK
         uses: actions/upload-artifact@v4
