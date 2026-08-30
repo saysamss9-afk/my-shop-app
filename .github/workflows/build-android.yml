@@ -22,14 +22,25 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Android Release
+      - name: Build Android Admin Release
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleAdminRelease --no-daemon
 
-      - name: Upload Artifact
+      - name: Build Android User Release
+        run: |
+          cd android
+          ./gradlew assembleUserRelease --no-daemon
+
+      - name: Upload Admin APK
         uses: actions/upload-artifact@v4
         with:
-          name: production-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: admin-apk
+          path: android/app/build/outputs/apk/admin/release/app-admin-release.apk
+
+      - name: Upload User APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-apk
+          path: android/app/build/outputs/apk/user/release/app-user-release.apk

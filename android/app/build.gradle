@@ -80,11 +80,22 @@ android {
 
     namespace "com.abijahshops.admin"
     defaultConfig {
-        applicationId "com.abijahshops.admin"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+    }
+
+    flavorDimensions "app"
+    productFlavors {
+        admin {
+            dimension "app"
+            applicationId "com.abijahshops.admin"
+        }
+        user {
+            dimension "app"
+            applicationId "com.abijahshops.user"
+        }
     }
     signingConfigs {
         debug {
