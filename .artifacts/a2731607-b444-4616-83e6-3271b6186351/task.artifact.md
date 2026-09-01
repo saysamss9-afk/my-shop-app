@@ -1,3 +1,3 @@
-- [ ] Updating `package.json` with missing Gluestack dependencies
-- [ ] Updating `webpack.config.js` with improved module resolution and transpilation
-- [ ] Verification
+- [x] Simplify Firestore Security Rules in `firestore.rules`
+- [x] Update `AdminDashboardScreen.tsx` with `onAuthStateChanged` and Shops list implementation
+- [x] Verification

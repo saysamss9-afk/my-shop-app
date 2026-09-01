@@ -6,36 +6,56 @@ const CopyPlugin = require('copy-webpack-plugin');
 const appDirectory = path.resolve(__dirname);
 
 const babelLoaderConfiguration = {
-  test: /\.(tsx|ts|js|jsx)$/,
+  test: /\.(tsx|ts|js|jsx|mjs)$/,
   include: [
     path.resolve(appDirectory, 'index.web.js'),
     path.resolve(appDirectory, 'App.tsx'),
     path.resolve(appDirectory, 'src'),
-    path.resolve(appDirectory, 'node_modules/react-native-paper'),
-    path.resolve(appDirectory, 'node_modules/react-native-vector-icons'),
-    path.resolve(appDirectory, 'node_modules/react-native-safe-area-context'),
-    path.resolve(appDirectory, 'node_modules/react-native-screens'),
-    path.resolve(appDirectory, 'node_modules/react-native-reanimated'),
-    path.resolve(appDirectory, 'node_modules/react-native-svg'),
-    path.resolve(appDirectory, 'node_modules/react-native'),
-    path.resolve(appDirectory, 'node_modules/@react-native-firebase'),
-    path.resolve(appDirectory, 'node_modules/@gluestack-ui'),
-    path.resolve(appDirectory, 'node_modules/@gluestack-style'),
-    path.resolve(appDirectory, 'node_modules/@expo/html-elements'),
-    path.resolve(appDirectory, 'node_modules/lucide-react-native'),
-    path.resolve(appDirectory, 'node_modules/@react-native/assets-registry'),
-    path.resolve(appDirectory, 'node_modules/@react-native-aria'),
+    (inputPath) => {
+      const normalizedPath = inputPath.replace(/\\/g, '/');
+      return normalizedPath.includes('node_modules/@gluestack-ui') ||
+             normalizedPath.includes('node_modules/@gluestack-style') ||
+             normalizedPath.includes('node_modules/@react-native-aria') ||
+             normalizedPath.includes('node_modules/@legendapp') ||
+             normalizedPath.includes('node_modules/react-native') ||
+             normalizedPath.includes('node_modules/@react-native') ||
+             normalizedPath.includes('node_modules/@react-native-firebase') ||
+             normalizedPath.includes('node_modules/lucide-react-native') ||
+             normalizedPath.includes('node_modules/react-native-svg') ||
+             normalizedPath.includes('node_modules/react-native-reanimated') ||
+             normalizedPath.includes('node_modules/react-native-paper') ||
+             normalizedPath.includes('node_modules/react-native-vector-icons') ||
+             normalizedPath.includes('node_modules/react-native-safe-area-context') ||
+             normalizedPath.includes('node_modules/react-native-screens') ||
+             normalizedPath.includes('node_modules/@expo/html-elements') ||
+             normalizedPath.includes('node_modules/@react-native/assets-registry');
+    }
   ],
   use: {
     loader: 'babel-loader',
     options: {
-      cacheDirectory: false,
+      cacheDirectory: true,
+      babelrc: false,
+      configFile: false,
       presets: [
-        'module:@react-native/babel-preset',
+        ['module:@react-native/babel-preset', { useTransformReactJSX: true }],
+        ['@babel/preset-react', { runtime: 'automatic' }],
+        '@babel/preset-typescript',
+        '@babel/preset-flow',
       ],
-      plugins: ['react-native-web'],
+      plugins: [
+        'react-native-web',
+        '@babel/plugin-transform-class-static-block',
+        ['react-native-reanimated/plugin', { processNestedWorklets: true }],
+      ],
     },
   },
+};
+
+const mjsLoaderConfiguration = {
+  test: /\.mjs$/,
+  include: /node_modules/,
+  type: 'javascript/auto',
 };
 
 const imageLoaderConfiguration = {
@@ -59,6 +79,7 @@ module.exports = {
   module: {
     rules: [
       babelLoaderConfiguration,
+      mjsLoaderConfiguration,
       imageLoaderConfiguration,
       {
         test: /\.css$/,
@@ -77,6 +98,7 @@ module.exports = {
     }),
     new webpack.ProvidePlugin({
       React: 'react',
+      process: 'process/browser.js',
     }),
     new CopyPlugin({
       patterns: [
@@ -89,6 +111,10 @@ module.exports = {
   resolve: {
     alias: {
       'react-native$': 'react-native-web',
+      'lucide-react-native$': 'lucide-react',
+      '@gluestack-ui/button': path.resolve(appDirectory, 'node_modules/@gluestack-ui/button/lib/index.jsx'),
+      '@gluestack-ui/themed': path.resolve(appDirectory, 'node_modules/@gluestack-ui/themed/build/index.js'),
+      '@gluestack-ui/config': path.resolve(appDirectory, 'node_modules/@gluestack-ui/config/build/gluestack-ui.config.js'),
       'react-native-sqlite-storage': path.resolve(appDirectory, 'src/web-mocks.js'),
       'react-native-print': path.resolve(appDirectory, 'src/web-mocks.js'),
       'react-native-vision-camera': path.resolve(appDirectory, 'src/web-mocks.js'),
@@ -96,7 +122,12 @@ module.exports = {
       '@react-native-vector-icons/material-design-icons': path.resolve(appDirectory, 'src/web-mocks.js'),
       '@expo/vector-icons/MaterialCommunityIcons': path.resolve(appDirectory, 'src/web-mocks.js'),
     },
-    extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.jsx', '.jsx', '.web.js', '.js', '.mjs'],
+    extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.jsx', '.jsx', '.web.js', '.js', '.mjs', '.json'],
+    modules: [path.resolve(appDirectory, 'node_modules'), 'node_modules'],
+    mainFields: ['browser', 'module', 'main'],
+    fallback: {
+      process: require.resolve('process/browser'),
+    },
   },
   devServer: {
     historyApiFallback: true,
@@ -104,6 +135,12 @@ module.exports = {
       directory: path.resolve(appDirectory, 'dist'),
     },
     port: 3000,
-    hot: true,
+    hot: false,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+      },
+    },
   },
 };

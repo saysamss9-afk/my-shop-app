@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FlatList, Linking, Alert, Share, Clipboard, SectionList, ScrollView, StatusBar } from 'react-native';
+import { FlatList, Linking, Alert, Share, Clipboard, SectionList, ScrollView, StatusBar, Platform } from 'react-native';
 import {
   Box,
   VStack,
@@ -42,6 +42,7 @@ import {
   FormControlLabel,
   FormControlLabelText,
   CloseIcon,
+  ArrowLeftIcon,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
 import { User, MapPin } from 'lucide-react-native';
@@ -66,10 +67,8 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('requests');
-
-  // Edit Modal State
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingRequest, setEditingRequest] = useState<any>(null);
+  const [editingRequest, setEditingRequest] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     ownerName: '',
     whatsappNumber: '',
@@ -78,35 +77,144 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     location: ''
   });
 
-  useEffect(() => {
-    const unsubscribeReq = firebase.firestore().collection('shop_requests')
-      .where('status', 'in', ['PENDING', 'REVIEWING'])
-      .onSnapshot(snapshot => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-        data.sort((a: any, b: any) => {
-            if (a.status === b.status) return 0;
-            return a.status === 'PENDING' ? -1 : 1;
-        });
-        setRequests(data);
-        if (viewMode === 'requests') setLoading(false);
-      }, error => {
-        console.error(error);
-        setLoading(false);
-      });
+  const handleDeleteRequest = (id: string) => {
+    const confirmDelete = Platform.OS === 'web'
+      ? window.confirm("Are you sure you want to delete this shop request?")
+      : true;
 
-    const unsubscribeShops = firebase.firestore().collection('registered_shops')
-      .orderBy('createdAt', 'desc')
-      .onSnapshot(snapshot => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setShops(data);
-        if (viewMode === 'shops') setLoading(false);
-      });
-
-    return () => {
-      unsubscribeReq();
-      unsubscribeShops();
+    const deleteFn = async () => {
+      setProcessing(id);
+      try {
+        await firebase.firestore().collection('shop_requests').doc(id).delete();
+        if (Platform.OS === 'web') window.alert("Request deleted successfully");
+      } catch (e: any) {
+        Alert.alert("Error", e.message);
+      } finally {
+        setProcessing(null);
+      }
     };
-  }, [viewMode]);
+
+    if (Platform.OS === 'web') {
+      if (confirmDelete) deleteFn();
+    } else {
+      Alert.alert("Delete Request", "Are you sure?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: deleteFn }
+      ]);
+    }
+  };
+
+  const handleDeleteShop = (id: string) => {
+    const confirmDelete = Platform.OS === 'web'
+      ? window.confirm("Are you sure you want to permanently delete this shop and all its data?")
+      : true;
+
+    const deleteFn = async () => {
+      setProcessing(id);
+      try {
+        await firebase.firestore().collection('registered_shops').doc(id).delete();
+        if (Platform.OS === 'web') window.alert("Shop record deleted");
+      } catch (e: any) {
+        Alert.alert("Error", e.message);
+      } finally {
+        setProcessing(null);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (confirmDelete) deleteFn();
+    } else {
+      Alert.alert("Delete Shop", "This cannot be undone. Proceed?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: deleteFn }
+      ]);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribeAuth = firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        navigation.replace('Landing');
+        return;
+      }
+
+      if (user.uid !== "l2JP5nnzVSP6gd8aSDEqI60Tbfl2") {
+        navigation.replace('Landing');
+        return;
+      }
+
+      // If we are here, user is Admin. Start listeners.
+      const unsubscribeReq = firebase.firestore().collection('shop_requests')
+        .where('status', 'in', ['PENDING', 'REVIEWING'])
+        .onSnapshot(snapshot => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+          data.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+          setRequests(data);
+          setLoading(false);
+        }, error => {
+          console.error("AdminDashboard: Error fetching shop_requests:", error);
+          setLoading(false);
+        });
+
+      const unsubscribeShops = firebase.firestore().collection('registered_shops')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snapshot => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setShops(data);
+        }, error => {
+          console.error("AdminDashboard: Error fetching registered_shops:", error);
+        });
+
+      return () => {
+        unsubscribeReq();
+        unsubscribeShops();
+      };
+    });
+
+    return () => unsubscribeAuth();
+  }, [navigation]);
+
+  const renderShopItem = ({ item }: { item: any }) => (
+    <Box bg="$white" p="$5" rounded="$3xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+      <HStack justifyContent="space-between" alignItems="flex-start">
+        <VStack flex={1} space="xs">
+          <Heading size="md" color="$text900">{item.name}</Heading>
+          <Text size="xs" color="$text500" textTransform="uppercase" letterSpacing={1}>{item.type}</Text>
+
+          <Pressable onPress={() => copyToClipboard(item.id)} mt="$2">
+            <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$xl" alignSelf="flex-start">
+              <Text size="sm" fontWeight="$bold" color="$primary600" style={{ letterSpacing: 1 }}>
+                {item.id}
+              </Text>
+              <Icon as={CopyIcon} size="xs" color="$primary600" />
+            </HStack>
+          </Pressable>
+        </VStack>
+
+        <HStack space="xs">
+            <Button variant="outline" size="sm" action="positive" p="$2" rounded="$full" onPress={() => openWhatsApp(item.whatsappNumber, item.name, item.id)}>
+                <ButtonIcon as={PhoneIcon} />
+            </Button>
+            <Button variant="outline" size="sm" action="negative" p="$2" rounded="$full" onPress={() => handleDeleteShop(item.id)}>
+                <ButtonIcon as={TrashIcon} color="$error600" />
+            </Button>
+        </HStack>
+      </HStack>
+
+      <Box h={1} bg="$backgroundLight100" my="$4" />
+
+      <VStack space="sm">
+        <HStack space="sm" alignItems="center">
+          <Icon as={User} size="xs" color="$text400" />
+          <Text size="sm" color="$text700">{item.ownerName}</Text>
+        </HStack>
+        <HStack space="sm" alignItems="center">
+          <Icon as={PhoneIcon} size="xs" color="$text400" />
+          <Text size="sm" color="$text700">{item.whatsappNumber}</Text>
+        </HStack>
+      </VStack>
+    </Box>
+  );
 
   const handleApprove = async (request: any) => {
     setProcessing(request.id);
@@ -122,24 +230,29 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         location: request.location,
         ownerName: request.ownerName,
         whatsappNumber: request.whatsappNumber,
-        createdAt: Date.now()
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
       await firebase.firestore().collection('shop_requests').doc(request.id).update({
         status: 'APPROVED',
         shopId: shopId,
-        approvedAt: Date.now()
+        approvedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      Alert.alert(
-        'Shop Created Successfully',
-        `Shop Code: ${shopId}\n\nShare this code with the owner.`,
-        [
-          { text: "Copy Code", onPress: () => Clipboard.setString(shopId) },
-          { text: "Share WhatsApp", onPress: () => openWhatsApp(request.whatsappNumber, request.shopName, shopId) },
-          { text: "Done", style: "cancel" }
-        ]
-      );
+      if (Platform.OS === 'web') {
+        window.alert(`Shop Created Successfully!\n\nShop Code: ${shopId}\n\nCopy this code and share it with the owner.`);
+        navigator.clipboard.writeText(shopId);
+      } else {
+        Alert.alert(
+          'Shop Created Successfully',
+          `Shop Code: ${shopId}\n\nShare this code with the owner.`,
+          [
+            { text: "Copy Code", onPress: () => Clipboard.setString(shopId) },
+            { text: "Share WhatsApp", onPress: () => openWhatsApp(request.whatsappNumber, request.shopName, shopId) },
+            { text: "Done", style: "cancel" }
+          ]
+        );
+      }
     } catch (e: any) {
       console.error(e);
       Alert.alert('Approval failed', e.message);
@@ -188,8 +301,16 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   };
 
   const copyToClipboard = (text: string) => {
-    Clipboard.setString(text);
-    Alert.alert("Copied", "Shop code copied to clipboard");
+    if (Platform.OS === 'web') {
+      navigator.clipboard.writeText(text).then(() => {
+        window.alert("Copied to clipboard: " + text);
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    } else {
+      Clipboard.setString(text);
+      Alert.alert("Copied", "Shop code copied to clipboard");
+    }
   };
 
   const filteredRequests = useMemo(() => {
@@ -261,6 +382,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         <Button variant="outline" size="sm" action="positive" onPress={() => openWhatsApp(item.whatsappNumber, item.shopName)} borderRadius="$lg">
           <ButtonIcon as={PhoneIcon} />
         </Button>
+        <Button variant="outline" size="sm" action="negative" onPress={() => handleDeleteRequest(item.id)} borderRadius="$lg">
+          <ButtonIcon as={TrashIcon} color="$error600" />
+        </Button>
         <Box flex={1} />
         <Button size="sm" action="primary" onPress={() => handleApprove(item)} isDisabled={!!processing} borderRadius="$lg" bg="$primary800">
           {processing === item.id ? <Spinner color="white" size="small" /> : <ButtonText fontWeight="$bold">Approve</ButtonText>}
@@ -276,6 +400,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       {/* Modern Solid Header */}
       <Box bg="$primary800">
         <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
+          <Pressable onPress={() => navigation.replace('Login')} p="$2">
+            <Icon as={ArrowLeftIcon} color="white" />
+          </Pressable>
           <Appbar.Content
             title="Admin Control"
             titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
@@ -339,13 +466,13 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         </Center>
       ) : (
         <FlatList
-          data={viewMode === 'requests' ? filteredRequests : []}
+          data={viewMode === 'requests' ? filteredRequests : shops.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 20 }}
-          renderItem={renderRequestItem}
+          renderItem={viewMode === 'requests' ? renderRequestItem : renderShopItem}
           ListEmptyComponent={
             <Center mt="$20">
-              <Text color="$text400">Nothing found in the queue.</Text>
+              <Text color="$text400">Nothing found in the {viewMode === 'requests' ? 'queue' : 'database'}.</Text>
             </Center>
           }
         />

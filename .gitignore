@@ -41,3 +41,7 @@ ios/Pods/
 .env.test.local
 .env.production.local
 local.properties
+
+# Custom
+.gradle_home/
+.artifacts/

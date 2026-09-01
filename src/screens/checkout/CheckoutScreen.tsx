@@ -34,7 +34,7 @@ import {
   ModalFooter,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
-import { Wallet, Scan } from 'lucide-react-native';
+import { Wallet, Scan, ArrowLeft } from 'lucide-react-native';
 import { useCheckout } from '../../hooks/useCheckout';
 import { useInventory } from '../../hooks/useInventory';
 import AppIcon from '../../components/common/AppIcon';
@@ -60,7 +60,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.barcode && p.barcode === searchQuery)
+    (p.barcode && p.barcode.includes(searchQuery))
   );
 
   const handleCameraScan = async (barcode: string) => {
@@ -77,21 +77,25 @@ const CheckoutScreen = ({ route, navigation }: any) => {
   };
 
   return (
-    <Box flex={1} bg="$backgroundLight50">
-      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+    <Box flex={1} bg="$surfaceLavender">
+      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
 
-      {/* Modern Solid Header */}
-      <Box bg="$primary800">
-        <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
-          <Appbar.BackAction color="white" onPress={() => navigation.goBack()} />
-          <Appbar.Content
-            title="Point of Sale"
-            titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
-          />
-          <Pressable onPress={() => setIsScannerVisible(true)} p="$3">
-            <Icon as={Scan} color="white" size="md" />
+      {/* Modern Header */}
+      <Box px="$2" pt="$2" pb="$4">
+        <HStack justifyContent="space-between" alignItems="center">
+          <HStack space="md" alignItems="center">
+            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
+              <Icon as={ArrowLeft} color="$text900" />
+            </Pressable>
+            <VStack>
+              <Heading size="lg" color="$text900" fontWeight="$black">Checkout</Heading>
+              <Text size="xs" color="$text500">Scan or search items</Text>
+            </VStack>
+          </HStack>
+          <Pressable onPress={() => setIsScannerVisible(true)} p="$3" bg="$white" rounded="$full">
+            <Icon as={Scan} color="$primary600" size="md" />
           </Pressable>
-        </Appbar.Header>
+        </HStack>
       </Box>
 
       {/* Scanner Native Modal */}
@@ -131,25 +135,26 @@ const CheckoutScreen = ({ route, navigation }: any) => {
       </RNModal>
 
       {/* Search Section */}
-      <Box p="$5" bg="$white" borderBottomWidth={1} borderColor="$borderLight" zIndex={10}>
-        <Input variant="outline" size="md" borderRadius={12}>
-          <InputSlot pl="$3">
-            <InputIcon as={SearchIcon} color="$primary800" />
+      <Box px="$5" pb="$4" zIndex={10}>
+        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.04)' }}>
+          <InputSlot pl="$4">
+            <InputIcon as={SearchIcon} color="$primary600" />
           </InputSlot>
           <InputField
-            placeholder="Search products to add..."
+            placeholder="Type name or barcode manually..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            placeholderTextColor="$text400"
           />
           {searchQuery.length > 0 && (
-             <InputSlot pr="$3" onPress={() => setSearchQuery('')}>
+             <InputSlot pr="$4" onPress={() => setSearchQuery('')}>
                <InputIcon as={CloseIcon} />
              </InputSlot>
           )}
         </Input>
 
         {searchQuery.length > 0 && (
-          <Box position="absolute" top={75} left={20} right={20} bg="$white" rounded="$xl" borderWidth={1} borderColor="$borderLight" shadowColor="$black">
+          <Box position="absolute" top={55} left={20} right={20} bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
             <VStack>
               {filteredProducts.slice(0, 5).map((item, index) => (
                 <React.Fragment key={item.id}>
@@ -164,9 +169,12 @@ const CheckoutScreen = ({ route, navigation }: any) => {
                     <HStack justifyContent="space-between" alignItems="center">
                       <VStack space="xs">
                           <Text fontWeight="$bold" color="$text900">{item.name}</Text>
-                          <Text size="xs" color="$text500">Stock: {item.stockQuantity} • ${item.price.toFixed(2)}</Text>
+                          <Text size="xs" color="$text500">
+                            Stock: {item.stockQuantity} • ${item.price.toFixed(2)}
+                            {item.barcode ? ` • ${item.barcode}` : ''}
+                          </Text>
                       </VStack>
-                      <Icon as={AddIcon} color="$primary800" />
+                      <Icon as={AddIcon} color="$primary600" />
                     </HStack>
                   </Pressable>
                   {index < Math.min(filteredProducts.length, 5) - 1 && <Divider />}

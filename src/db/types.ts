@@ -24,6 +24,8 @@ export interface Product {
   barcode: string | null;
   bulkBarcode: string | null;
   bulkQuantity: number;
+  bulkPrice: number;
+  bulkStockQuantity: number;
   price: number;
   costPrice: number;
   stockQuantity: number;
@@ -109,6 +111,7 @@ export interface SaleItem {
   productId: string;
   quantity: number;
   priceAtSale: number;
+  isBulk: number;
 }
 
 export interface AuditLog {

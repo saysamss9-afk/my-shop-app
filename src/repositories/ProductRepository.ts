@@ -6,14 +6,14 @@ export class ProductRepository {
 
   async insertProduct(product: Product) {
     const query = `
-      INSERT OR REPLACE INTO Product(id, shopId, categoryId, name, description, barcode, bulkBarcode, bulkQuantity, price, costPrice, stockQuantity, minStockLevel, unit, supplierId, syncStatus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT OR REPLACE INTO Product(id, shopId, categoryId, name, description, barcode, bulkBarcode, bulkQuantity, bulkPrice, bulkStockQuantity, price, costPrice, stockQuantity, minStockLevel, unit, supplierId, syncStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `;
     const params = [
       product.id, product.shopId, product.categoryId, product.name, product.description,
-      product.barcode, product.bulkBarcode, product.bulkQuantity, product.price,
-      product.costPrice, product.stockQuantity, product.minStockLevel, product.unit,
-      product.supplierId
+      product.barcode, product.bulkBarcode, product.bulkQuantity, product.bulkPrice,
+      product.bulkStockQuantity, product.price, product.costPrice, product.stockQuantity,
+      product.minStockLevel, product.unit, product.supplierId
     ];
     await this.db.executeSql(query, params);
   }
@@ -43,8 +43,9 @@ export class ProductRepository {
     await this.db.executeSql(query, [id]);
   }
 
-  async updateStock(productId: string, change: number) {
-    const query = 'UPDATE Product SET stockQuantity = stockQuantity + ? WHERE id = ?';
+  async updateStock(productId: string, change: number, isBulk: boolean = false) {
+    const column = isBulk ? 'bulkStockQuantity' : 'stockQuantity';
+    const query = `UPDATE Product SET ${column} = ${column} + ? WHERE id = ?`;
     await this.db.executeSql(query, [change, productId]);
   }
 

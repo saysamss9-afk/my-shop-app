@@ -33,6 +33,8 @@ export const createTables = async (db: SQLiteDatabase) => {
         barcode TEXT,
         bulkBarcode TEXT,
         bulkQuantity REAL NOT NULL DEFAULT 1.0,
+        bulkPrice REAL NOT NULL DEFAULT 0.0,
+        bulkStockQuantity REAL NOT NULL DEFAULT 0.0,
         price REAL NOT NULL,
         costPrice REAL NOT NULL DEFAULT 0.0,
         stockQuantity REAL NOT NULL,
@@ -125,6 +127,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         productId TEXT NOT NULL,
         quantity REAL NOT NULL,
         priceAtSale REAL NOT NULL,
+        isBulk INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (saleId) REFERENCES Sale(id),
         FOREIGN KEY (productId) REFERENCES Product(id)
     );`,

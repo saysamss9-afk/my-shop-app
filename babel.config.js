@@ -2,7 +2,8 @@ module.exports = {
   presets: [
     ['module:@react-native/babel-preset', { useTransformReactJSX: true }],
     ['@babel/preset-react', { runtime: 'automatic' }],
-    '@babel/preset-typescript'
+    '@babel/preset-typescript',
+    '@babel/preset-flow'
   ],
   plugins: [
     '@babel/plugin-transform-class-static-block',

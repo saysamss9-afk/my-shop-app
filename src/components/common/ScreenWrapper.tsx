@@ -23,14 +23,20 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       flex={1}
       pt={withHeader ? 0 : insets.top}
       pb={insets.bottom}
-      bg="$backgroundLight50"
+      bg="$surfaceLavender"
+      style={{
+        background: 'linear-gradient(180deg, #F3ECFF 0%, #E7DBFF 100%)',
+      }}
     >
       <StatusBar
-        barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}
+        barStyle="dark-content"
         backgroundColor="transparent"
         translucent
       />
-      {children}
+
+      <Box flex={1} px="$6" pt="$4">
+        {children}
+      </Box>
     </Box>
   );
 

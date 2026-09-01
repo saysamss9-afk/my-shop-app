@@ -7,19 +7,27 @@ export const config = createConfig({
     ...defaultExternalConfig.tokens,
     colors: {
       ...defaultExternalConfig.tokens.colors,
-      primary0: '#E8EAF6',
-      primary50: '#C5CAE9',
-      primary100: '#9FA8DA',
-      primary200: '#7986CB',
-      primary300: '#5C6BC0',
-      primary400: '#3F51B5',
-      primary500: '#3949AB',
-      primary600: '#303F9F',
-      primary700: '#283593',
-      primary800: '#1A237E', // Brand Deep Indigo
-      primary900: '#12195E',
-      secondary0: '#E0F7FA',
-      secondary800: '#00E5FF', // Brand Electric Cyan
+      // Palette derived from reference image
+      primary0: '#FBF7FF',
+      primary50: '#F3ECFF',
+      primary100: '#E7DBFF',
+      primary200: '#D2BFFF',
+      primary300: '#B99CFF',
+      primary400: '#A079FF',
+      primary500: '#8956FF',
+      primary600: '#6E3BE6', // Main Purple
+      primary700: '#5A2ECC',
+      primary800: '#4A23B3',
+      primary900: '#2D1B66',
+      // Pink Accent
+      secondary500: '#FF4081',
+      secondary600: '#F50057',
+      // Surface & shadow tokens
+      surfaceLavender: '#F3ECFF',
+      surfaceGradientStart: '#F3ECFF',
+      surfaceGradientEnd: '#E7DBFF',
+      cardBg: '#FFFFFF',
+      shadowSoft: 'rgba(72, 52, 129, 0.08)',
     },
   },
 });

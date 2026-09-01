@@ -33,12 +33,12 @@ export const useAuth = () => {
     }
   }, []);
 
-  const register = useCallback(async (email: string, pass: string, shopId?: string, role?: string) => {
+  const register = useCallback(async (email: string, pass: string, shopId?: string, role?: string, name?: string, phoneNumber?: string, ghanaCard?: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const result = await authRepository.signUp(email, pass);
-      if (shopId && role) {
-        await authRepository.linkUserToShop(result.user.uid, email, shopId, role);
+      if (shopId && role && name && phoneNumber) {
+        await authRepository.linkUserToShop(result.user.uid, email, shopId, role, name, phoneNumber, ghanaCard);
       }
       setState({
         isLoading: false,
@@ -69,8 +69,8 @@ export const useAuth = () => {
     });
   }, []);
 
-  const linkUserToShop = useCallback(async (uid: string, email: string, shopId: string, role: string) => {
-    return await authRepository.linkUserToShop(uid, email, shopId, role);
+  const linkUserToShop = useCallback(async (uid: string, email: string, shopId: string, role: string, name: string, phoneNumber: string, ghanaCard?: string) => {
+    return await authRepository.linkUserToShop(uid, email, shopId, role, name, phoneNumber, ghanaCard);
   }, []);
 
   return {

@@ -1,24 +1,46 @@
-# Fix Gluestack UI Module Resolution Error
+# Modern Minimalist UI Transformation
 
-The application is failing with `Cannot find module '@gluestack-ui/button'` at runtime in the web environment. This is caused by Webpack failing to resolve the individual component packages that `@gluestack-ui/themed` depends on.
+Transform the app's UI to match the modern, minimalist m-banking design provided in the reference image. This involves updating the color palette, typography, border radii, and overall layout components.
+
+## User Review Required
+
+> [!IMPORTANT]
+> This change will significantly alter the visual appearance of the app. The primary color will shift from Deep Indigo to a vibrant Purple, and the overall layout will become more "card-heavy" with large rounded corners.
 
 ## Proposed Changes
 
-### [Component Name] Webpack Configuration
+### Global Styling & Theming
 
-#### [MODIFY] [webpack.config.js](file:///C:/Users/Administrator/My%20Shop/webpack.config.js)
-- Update `babelLoaderConfiguration.include` to use a more robust regex-based approach for `@gluestack-ui` and `@gluestack-style` packages.
-- Add `react-native-svg` to the transpilation list.
-- Simplify aliases to avoid pointing to specific files unless absolutely necessary, or provide a comprehensive list for all Gluestack components.
-- Add `resolve.mainFields` to prioritize `module` and `main`.
+#### [MODIFY] [App.tsx](file:///C:/Users/Administrator/My%20Shop/App.tsx)
+- Update the React Native Paper theme to use the new purple/pink palette.
+- Increase the global `roundness` to 20+.
+- Set the default background color to a soft lavender (`#F3ECFF`).
 
-### [Component Name] Package Configuration
+#### [MODIFY] [gluestack-ui.config.ts](file:///C:/Users/Administrator/My%20Shop/src/gluestack-ui.config.ts)
+- Refine color tokens to match the reference image exactly.
+- Add specific tokens for "surface" backgrounds and "card" styling.
 
-#### [MODIFY] [package.json](file:///C:/Users/Administrator/My%20Shop/package.json)
-- Add missing `@gluestack-ui/*` component packages that are likely to be used by `@gluestack-ui/themed`.
+### Core Components
+
+#### [MODIFY] [ScreenWrapper.tsx](file:///C:/Users/Administrator/My%20Shop/src/components/common/ScreenWrapper.tsx)
+- Ensure the wrapper provides the correct background color and padding consistency.
+
+### Feature Screens
+
+#### [MODIFY] [DashboardScreen.tsx](file:///C:/Users/Administrator/My%20Shop/src/screens/dashboard/DashboardScreen.tsx)
+- Re-style the header to match the "Welcome" section in the image.
+- Implement the "Primary Actions" as a grid of rounded cards with soft shadows.
+- Update the "Hero Insight Card" to match the gradient/vibrant style shown in the reference.
+- Apply consistent spacing and typography (larger, bolder headings).
+
+#### [MODIFY] [LoginScreen.tsx](file:///C:/Users/Administrator/My%20Shop/src/screens/auth/LoginScreen.tsx)
+- Update the login form to use the new card-based styling and rounded inputs.
 
 ## Verification Plan
 
 ### Manual Verification
-- The user will run `npm run dev` and verify that the application loads without the "Cannot find module" error.
-- Verify that the Dashboard screen (which uses many Gluestack components) renders correctly.
+- Deploy the app to the web/emulator.
+- Verify that the background color is a soft lavender.
+- Check that all buttons and cards have large, consistent border radii.
+- Ensure icons have the correct tinted backgrounds as per the design.
+- Verify readability of text against the new background colors.

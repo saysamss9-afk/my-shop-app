@@ -14,19 +14,23 @@ service cloud.firestore {
     }
 
     // Helper to get current user's employee record
-    function getEmployee() {
+    function getEmployeeData() {
       return get(/databases/$(database)/documents/employees/$(request.auth.uid)).data;
+    }
+
+    function employeeExists() {
+      return exists(/databases/$(database)/documents/employees/$(request.auth.uid));
     }
 
     // Check if user is staff of a shop
     function isStaff(shopId) {
-      return isAuthenticated() && (isAppOwner() || getEmployee().shopId == shopId);
+      return isAuthenticated() && (isAppOwner() || (employeeExists() && getEmployeeData().shopId == shopId));
     }
 
     // Check if user is Manager or Owner of a shop
     function isManager(shopId) {
-      let employee = getEmployee();
-      return isAuthenticated() && (isAppOwner() || (employee.shopId == shopId && (employee.role == "OWNER" || employee.role == "MANAGER")));
+      return isAuthenticated() && (isAppOwner() || (employeeExists() && getEmployeeData().shopId == shopId &&
+             (getEmployeeData().role == "OWNER" || getEmployeeData().role == "MANAGER")));
     }
 
     // --- Collection Rules ---
@@ -36,7 +40,9 @@ service cloud.firestore {
       // Anyone authenticated can read to verify a join code
       allow read: if isAuthenticated();
       // Only the App Owner can create new registered shops
-      allow create: if isAppOwner();
+      allow create: if isAppOwnegit add .
+                                git commit -m "Save changes"
+                                git push origin mainr();
       // Only the owner of the shop or App Owner can update metadata
       allow update: if isAppOwner() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow delete: if isAppOwner();

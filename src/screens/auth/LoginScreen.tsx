@@ -20,6 +20,7 @@ import {
   FormControlErrorIcon,
   FormControlErrorText,
   Icon,
+  Pressable,
   Center,
   ArrowLeftIcon,
   EyeIcon,
@@ -27,11 +28,13 @@ import {
   AlertCircleIcon,
   MailIcon,
   LockIcon,
+  Spinner,
 } from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
 import { ShieldCheck } from 'lucide-react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
 
 type Props = StackScreenProps<RootStackParamList, 'Login'>;
 
@@ -69,146 +72,117 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <Box flex={1} bg="$white">
-      <StatusBar barStyle="dark-content" backgroundColor="white" />
+    <ScreenWrapper scrollable>
+      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
+        <VStack space="xl" py="$6">
           {/* Top Bar */}
-          <Box mt="$4">
-            <Button
-              variant="link"
-              action="primary"
-              onPress={() => navigation.goBack()}
-              p="$0"
-              justifyContent="flex-start"
-            >
-              <ButtonIcon as={ArrowLeftIcon} size="xl" />
-            </Button>
-          </Box>
+          <HStack alignItems="center">
+            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
+              <Icon as={ArrowLeftIcon} size="md" color="$primary600" />
+            </Pressable>
+          </HStack>
 
           {/* Header Section */}
-          <VStack space="md" mt="$8" alignItems="center">
-            <Center
-              w={80}
-              h={80}
-              rounded="$full"
-              bg="$primary50"
-              shadowColor="$primary800"
-            >
-              <Icon as={ShieldCheck} size="xl" color="$primary800" />
-            </Center>
-            <Heading size="2xl" color="$text900" textAlign="center" fontWeight="$black">
+          <VStack space="xs" mt="$4">
+            <Heading size="2xl" color="$text900" fontWeight="$black">
               Welcome Back
             </Heading>
-            <Text size="md" color="$text600" textAlign="center">
-              Enter your credentials to access your store
+            <Text size="md" color="$text500">
+              Sign in to continue managing your shop.
             </Text>
           </VStack>
 
-          {/* Form Section */}
-          <VStack space="lg" mt="$10">
-            <FormControl isRequired isInvalid={!!error}>
-              <FormControlLabel mb="$1">
-                <FormControlLabelText>Email Address</FormControlLabelText>
-              </FormControlLabel>
-              <Input variant="outline" size="md" borderRadius={12}>
-                <InputSlot pl="$3">
-                  <InputIcon as={MailIcon} color="$primary800" />
-                </InputSlot>
-                <InputField
-                  placeholder="name@example.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                />
-              </Input>
-            </FormControl>
+          {/* Form Card */}
+          <Box
+            bg="$white"
+            p="$6"
+            rounded="$3xl"
+            style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}
+          >
+            <VStack space="lg">
+              <FormControl isRequired isInvalid={!!error}>
+                <FormControlLabel mb="$1">
+                  <FormControlLabelText size="sm">Email Address</FormControlLabelText>
+                </FormControlLabel>
+                <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
+                  <InputSlot pl="$3">
+                    <InputIcon as={MailIcon} color="$primary600" />
+                  </InputSlot>
+                  <InputField
+                    placeholder="name@example.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                  />
+                </Input>
+              </FormControl>
 
-            <FormControl isRequired isInvalid={!!error}>
-              <FormControlLabel mb="$1">
-                <FormControlLabelText>Password</FormControlLabelText>
-              </FormControlLabel>
-              <Input variant="outline" size="md" borderRadius={12}>
-                <InputSlot pl="$3">
-                  <InputIcon as={LockIcon} color="$primary800" />
-                </InputSlot>
-                <InputField
-                  placeholder="Enter password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <InputSlot pr="$3" onPress={handleState}>
-                  <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />
-                </InputSlot>
-              </Input>
-              {error && (
-                <FormControlError mt="$2">
-                  <FormControlErrorIcon as={AlertCircleIcon} />
-                  <FormControlErrorText>{error}</FormControlErrorText>
-                </FormControlError>
-              )}
-            </FormControl>
+              <FormControl isRequired isInvalid={!!error}>
+                <FormControlLabel mb="$1">
+                  <FormControlLabelText size="sm">Password</FormControlLabelText>
+                </FormControlLabel>
+                <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
+                  <InputSlot pl="$3">
+                    <InputIcon as={LockIcon} color="$primary600" />
+                  </InputSlot>
+                  <InputField
+                    placeholder="Enter password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <InputSlot pr="$3" onPress={handleState}>
+                    <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />
+                  </InputSlot>
+                </Input>
+                {error && (
+                  <FormControlError mt="$2">
+                    <FormControlErrorIcon as={AlertCircleIcon} />
+                    <FormControlErrorText>{error}</FormControlErrorText>
+                  </FormControlError>
+                )}
+              </FormControl>
 
-            <Button
-              size="lg"
-              variant="solid"
-              action="primary"
-              isDisabled={isLoading}
-              onPress={() => login(email, password)}
-              mt="$4"
-              borderRadius={14}
-              bg="$primary800"
-              sx={{
-                ':active': {
-                  bg: '$primary900',
-                },
-              }}
-            >
-              {isLoading ? (
-                <ButtonText>Logging in...</ButtonText>
-              ) : (
-                <ButtonText fontWeight="$bold">Login to Dashboard</ButtonText>
-              )}
-            </Button>
-
-            <HStack alignItems="center" space="md" my="$4">
-              <Box flex={1} h={1} bg="$borderLight" />
-              <Text size="xs" color="$text400" fontWeight="$bold">
-                OR
-              </Text>
-              <Box flex={1} h={1} bg="$borderLight" />
-            </HStack>
-
-            <Button
-              size="lg"
-              variant="outline"
-              action="secondary"
-              onPress={() => navigation.navigate('Register')}
-              borderRadius={14}
-              borderColor="$primary800"
-            >
-              <ButtonText color="$primary800" fontWeight="$bold">
-                Create Owner Account
-              </ButtonText>
-            </Button>
-          </VStack>
-
-          {/* Footer */}
-          <Box mt="auto" pt="$10" pb="$2" alignItems="center">
-            <Text size="xs" color="$text300" fontWeight="$bold" letterSpacing={1}>
-              SECURE POINT OF SALE ENVIRONMENT
-            </Text>
+              <Button
+                size="lg"
+                onPress={() => login(email, password)}
+                isDisabled={isLoading}
+                mt="$4"
+                borderRadius={20}
+                bg="$primary600"
+                style={{ height: 56 }}
+              >
+                {isLoading ? (
+                  <Spinner color="white" />
+                ) : (
+                  <ButtonText fontWeight="$black">Sign In</ButtonText>
+                )}
+              </Button>
+            </VStack>
           </Box>
-        </ScrollView>
+
+          {/* Footer Actions */}
+          <VStack space="md" alignItems="center" mt="$4">
+            <Pressable onPress={() => navigation.navigate('Register')}>
+              <HStack space="xs">
+                <Text size="sm" color="$text500">Don't have an account?</Text>
+                <Text size="sm" color="$primary600" fontWeight="$bold">Register</Text>
+              </HStack>
+            </Pressable>
+
+            <Box h={1} w="50%" bg="$borderLight" my="$2" />
+
+            <Text size="xs" color="$text300" fontWeight="$bold" letterSpacing={1.5}>
+              SECURE POS ENVIRONMENT
+            </Text>
+          </VStack>
+        </VStack>
       </KeyboardAvoidingView>
-    </Box>
+    </ScreenWrapper>
   );
 };
 

@@ -16,20 +16,20 @@ const theme = {
   colors: {
     ...MD3LightTheme.colors,
     ...LightTheme.colors,
-    primary: '#1A237E', // Professional Deep Indigo
-    primaryContainer: '#E8EAF6',
-    secondary: '#00E5FF', // Electric Cyan
-    secondaryContainer: '#E0F7FA',
-    tertiary: '#FF4081', // Pink Accent
-    tertiaryContainer: '#FCE4EC',
-    background: '#F8F9FA',
+    primary: '#6E3BE6', // Vibrant Purple
+    primaryContainer: '#F3ECFF',
+    secondary: '#FF4081', // Pink Accent
+    secondaryContainer: '#FFEAF6',
+    tertiary: '#00E5FF', // Cyan
+    tertiaryContainer: '#E0F7FA',
+    background: '#F3ECFF', // Lavender Background
     surface: '#FFFFFF',
     error: '#D32F2F',
     success: '#388E3C',
     warning: '#FBC02D',
     info: '#0288D1',
   },
-  roundness: 12,
+  roundness: 24,
 };
 
 const App = () => {

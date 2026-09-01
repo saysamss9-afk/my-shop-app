@@ -80,22 +80,11 @@ android {
 
     namespace "com.abijahshops.admin"
     defaultConfig {
+        applicationId "com.abijahshops"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
-    }
-
-    flavorDimensions "app"
-    productFlavors {
-        admin {
-            dimension "app"
-            applicationId "com.abijahshops.admin"
-        }
-        user {
-            dimension "app"
-            applicationId "com.abijahshops"
-        }
     }
     signingConfigs {
         debug {
@@ -115,6 +104,7 @@ android {
                 signingConfig signingConfigs.debug
             }
             minifyEnabled enableProguardInReleaseBuilds
+            shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
@@ -153,5 +143,9 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+project.ext.vectoricons = [
+    iconFontNames: [ 'MaterialCommunityIcons.ttf' ]
+]
 
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"

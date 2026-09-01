@@ -12,6 +12,7 @@ import InventoryScreen from '../screens/inventory/InventoryScreen';
 import CheckoutScreen from '../screens/checkout/CheckoutScreen';
 import SaleHistoryScreen from '../screens/sales/SaleHistoryScreen';
 import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
+import StaffManagementScreen from '../screens/admin/StaffManagementScreen';
 
 export type RootStackParamList = {
   Landing: undefined;
@@ -26,6 +27,7 @@ export type RootStackParamList = {
   Checkout: { shopId: string; employeeId: string };
   SaleHistory: { shopId: string };
   Analytics: { shopId: string };
+  StaffManagement: { shopId: string };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -50,6 +52,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="SaleHistory" component={SaleHistoryScreen} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+      <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
     </Stack.Navigator>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import {
   Box,
   VStack,
@@ -25,7 +25,10 @@ import {
   MenuItemLabel,
   Spinner,
   Pressable,
+  CheckCircleIcon,
+  Center,
 } from '@gluestack-ui/themed';
+import SilkyButton from '../../components/common/SilkyButton';
 import { StackScreenProps } from '@react-navigation/stack';
 import { User, MapPin } from 'lucide-react-native';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -51,10 +54,12 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   const [shopType, setShopType] = useState('');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const shopRepo = new ShopRepository();
 
   const handleSubmit = async () => {
+    console.log('ShopRequestScreen: Attempting to submit registration...');
     if (!ownerName || !whatsappNumber || !shopName || !shopType || !location) {
       Alert.alert("Error", "Please fill in all required fields.");
       return;
@@ -69,16 +74,28 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
         shopType,
         location,
       });
-      Alert.alert(
-        "Request Submitted",
-        "Your request has been received. Our team will contact you on WhatsApp with your unique shop code shortly.",
-        [{ text: "Great!", onPress: () => navigation.navigate('Landing') }]
-      );
+      console.log('ShopRequestScreen: Submission successful!');
+
+      if (Platform.OS === 'web') {
+        setShowSuccess(true);
+      } else {
+        Alert.alert(
+          "Request Submitted",
+          "Your request has been received. Our team will contact you on WhatsApp with your unique shop code shortly.",
+          [{ text: "OK", onPress: () => navigation.navigate('Landing') }]
+        );
+      }
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      console.error('ShopRequestScreen: Submission error:', e);
+      Alert.alert("Error", e.message || "Failed to submit request. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuccessClose = () => {
+    setShowSuccess(false);
+    navigation.navigate('Landing');
   };
 
   return (
@@ -191,16 +208,9 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                 </Input>
               </FormControl>
 
-              <Button
-                size="lg"
-                onPress={handleSubmit}
-                isDisabled={loading}
-                borderRadius={14}
-                bg="$primary800"
-                mt="$4"
-              >
-                {loading ? <Spinner color="white" /> : <ButtonText fontWeight="$bold">Submit Registration</ButtonText>}
-              </Button>
+              <SilkyButton onPress={handleSubmit} loading={loading} disabled={loading}>
+                Submit Registration
+              </SilkyButton>
             </VStack>
           </Box>
 
@@ -212,8 +222,32 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
           </HStack>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Robust Success Modal for Web */}
+      <Modal
+        transparent={true}
+        visible={showSuccess}
+        animationType="fade"
+      >
+        <Box flex={1} bg="rgba(0,0,0,0.5)" justifyContent="center" alignItems="center" p="$4">
+          <Box bg="$white" p="$8" rounded="$3xl" w="100%" maxWidth={400} alignItems="center">
+            <Center w={80} h={80} rounded="$full" bg="$success100" mb="$4">
+              <Icon as={CheckCircleIcon} size="xl" color="$success600" />
+            </Center>
+            <Heading size="lg" textAlign="center" mb="$2">Request Submitted!</Heading>
+            <Text textAlign="center" color="$text600" mb="$6">
+              Your request has been received. Our team will contact you on WhatsApp with your unique shop code shortly.
+            </Text>
+            <SilkyButton onPress={handleSuccessClose}>
+              Back to Start
+            </SilkyButton>
+          </Box>
+        </Box>
+      </Modal>
     </Box>
   );
 };
+
+export default ShopRequestScreen;
 
 export default ShopRequestScreen;

@@ -18,14 +18,15 @@ export class SaleRepository {
 
       for (const item of items) {
         const itemQuery = `
-          INSERT INTO SaleItem(id, saleId, productId, quantity, priceAtSale)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO SaleItem(id, saleId, productId, quantity, priceAtSale, isBulk)
+          VALUES (?, ?, ?, ?, ?, ?)
         `;
-        const itemParams = [item.id, item.saleId, item.productId, item.quantity, item.priceAtSale];
+        const itemParams = [item.id, item.saleId, item.productId, item.quantity, item.priceAtSale, item.isBulk];
         await tx.executeSql(itemQuery, itemParams);
 
-        // Update stock
-        const stockQuery = 'UPDATE Product SET stockQuantity = stockQuantity - ? WHERE id = ?';
+        // Update stock based on whether it's bulk or unit
+        const column = item.isBulk === 1 ? 'bulkStockQuantity' : 'stockQuantity';
+        const stockQuery = `UPDATE Product SET ${column} = ${column} - ? WHERE id = ?`;
         await tx.executeSql(stockQuery, [item.quantity, item.productId]);
       }
     });
@@ -76,7 +77,8 @@ export class SaleRepository {
       const [itemsResults] = await tx.executeSql(itemsQuery, [saleId]);
       for (let i = 0; i < itemsResults.rows.length; i++) {
         const item = itemsResults.rows.item(i);
-        const restoreStockQuery = 'UPDATE Product SET stockQuantity = stockQuantity + ? WHERE id = ?';
+        const column = item.isBulk === 1 ? 'bulkStockQuantity' : 'stockQuantity';
+        const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ? WHERE id = ?`;
         await tx.executeSql(restoreStockQuery, [item.quantity, item.productId]);
       }
     });
