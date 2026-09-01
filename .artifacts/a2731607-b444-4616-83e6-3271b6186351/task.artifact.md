@@ -1,0 +1,3 @@
+- [ ] Updating `package.json` with missing Gluestack dependencies
+- [ ] Updating `webpack.config.js` with improved module resolution and transpilation
+- [ ] Verification
