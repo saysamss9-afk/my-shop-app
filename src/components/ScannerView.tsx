@@ -11,6 +11,15 @@ interface ScannerViewProps {
   isActive: boolean;
 }
 
+export const requestCameraPermissionSafely = async (): Promise<'granted' | 'denied' | 'not-required'> => {
+  if (typeof Camera?.requestCameraPermission !== 'function') {
+    return 'not-required';
+  }
+
+  const status = await Camera.requestCameraPermission();
+  return status === 'granted' ? 'granted' : 'denied';
+};
+
 export const ScannerView: React.FC<ScannerViewProps> = ({ onScan, isActive }) => {
   const device = useCameraDevice('back');
   const [hasPermission, setHasPermission] = useState(false);
@@ -18,10 +27,18 @@ export const ScannerView: React.FC<ScannerViewProps> = ({ onScan, isActive }) =>
   const flashAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    let isCancelled = false;
+
     (async () => {
-      const status = await Camera.requestCameraPermission();
-      setHasPermission(status === 'granted');
+      const status = await requestCameraPermissionSafely();
+      if (!isCancelled) {
+        setHasPermission(status === 'granted');
+      }
     })();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const triggerFeedback = () => {

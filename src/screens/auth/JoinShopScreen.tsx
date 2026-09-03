@@ -51,33 +51,10 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [ghanaCard, setGhanaCard] = useState('');
+  const [country, setCountry] = useState('Ghana');
   const [role, setRole] = useState('SALES');
 
   const { register, isLoading, error, isSuccess, user } = useAuth();
-
-  const formatGhanaCard = (text: string) => {
-    // Remove all non-alphanumeric characters
-    let cleaned = text.replace(/[^A-Z0-9]/ig, '').toUpperCase();
-
-    // Ensure it starts with GHA
-    if (cleaned.length > 0 && !cleaned.startsWith('GHA')) {
-        cleaned = 'GHA' + cleaned;
-    }
-    if (cleaned.length === 0) cleaned = 'GHA';
-
-    // Apply hyphens: GHA-123456789-0
-    let formatted = cleaned;
-    if (cleaned.length > 3) {
-        formatted = cleaned.slice(0, 3) + '-' + cleaned.slice(3);
-    }
-    if (cleaned.length > 12) {
-        formatted = formatted.slice(0, 13) + '-' + formatted.slice(13, 14);
-    }
-
-    // Limit to GHA-XXXXXXXXX-X (15 chars total)
-    return formatted.slice(0, 15);
-  };
 
   const handleVerifyCode = async () => {
     if (!shopCode) return;
@@ -109,18 +86,13 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleJoin = async () => {
     if (!shopDetails) return;
-    if (!name || !phoneNumber || !email || !password) {
+    if (!name || !phoneNumber || !email || !password || !country) {
       Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
 
-    if (ghanaCard.length > 3 && ghanaCard.length < 15) {
-        Alert.alert('Invalid Card', 'Please enter a complete Ghana Card number (e.g. GHA-123456789-0)');
-        return;
-    }
-
     try {
-      await register(email, password, shopCode, role, name, phoneNumber, ghanaCard === 'GHA' ? '' : ghanaCard);
+      await register(email, password, shopCode, role, name, phoneNumber, country);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -243,14 +215,13 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
                             </Input>
                         </FormControl>
 
-                        <FormControl>
-                            <FormControlLabel mb="$1"><FormControlLabelText size="sm">Ghana Card (Optional)</FormControlLabelText></FormControlLabel>
+                        <FormControl isRequired>
+                            <FormControlLabel mb="$1"><FormControlLabelText size="sm">Country</FormControlLabelText></FormControlLabel>
                             <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
                                 <InputField
-                                    placeholder="GHA-000000000-0"
-                                    value={ghanaCard}
-                                    onChangeText={(t) => setGhanaCard(formatGhanaCard(t))}
-                                    onFocus={() => { if(!ghanaCard) setGhanaCard('GHA-'); }}
+                                    placeholder="e.g. Ghana, Nigeria, Kenya"
+                                    value={country}
+                                    onChangeText={setCountry}
                                 />
                             </Input>
                         </FormControl>

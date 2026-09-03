@@ -42,6 +42,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
     expenses,
     topProducts,
     cashierPerformance,
+    currency,
     isLoading,
     loadAnalytics
   } = useAnalytics(shopId);
@@ -63,14 +64,14 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
                     <hr/>
                     <div style="margin: 20px 0;">
                         <h2>Financial Summary</h2>
-                        <p>Total Revenue: <b>$${summary?.totalRevenue.toFixed(2)}</b></p>
-                        <p>Total Expenses: <b>$${expenses.toFixed(2)}</b></p>
-                        <p>Net Profit: <b>$${netProfit.toFixed(2)}</b></p>
+                        <p>Total Revenue: <b>${currency}${summary?.totalRevenue.toFixed(2)}</b></p>
+                        <p>Total Expenses: <b>${currency}${expenses.toFixed(2)}</b></p>
+                        <p>Net Profit: <b>${currency}${netProfit.toFixed(2)}</b></p>
                     </div>
                     <hr/>
                     <h2>Top Products</h2>
                     <ul>
-                        ${topProducts.map(p => `<li>${p.name}: ${p.totalQuantity} units - $${p.totalRevenue.toFixed(2)}</li>`).join('')}
+                        ${topProducts.map(p => `<li>${p.name}: ${p.totalQuantity} units - ${currency}${p.totalRevenue.toFixed(2)}</li>`).join('')}
                     </ul>
                 </body>
             </html>
@@ -106,11 +107,11 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {/* Main Financial Surface */}
-          <Box bg="$primary800" p="$6" rounded="$3xl" mb="$6" shadowColor="$black">
+          <Box bg="$primary800" p="$6" rounded="$3xl" mb="$6" style={{ ...platformShadow({ offsetY: 10, radius: 20, color: 'rgba(0,0,0,0.18)' }) }}>
             <VStack space="md" alignItems="center">
                 <Text size="sm" color="rgba(255,255,255,0.7)" fontWeight="$bold" textTransform="uppercase">Total Revenue</Text>
                 <Heading size="3xl" color="$white" fontWeight="$black">
-                  ${summary?.totalRevenue.toFixed(2) || '0.00'}
+                  {currency}{summary?.totalRevenue.toFixed(2) || '0.00'}
                 </Heading>
             </VStack>
 
@@ -119,12 +120,12 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
             <HStack space="md" justifyContent="space-between">
                 <VStack flex={1} alignItems="center" space="xs">
                     <Text size="xs" color="rgba(255,255,255,0.7)" fontWeight="$bold">EXPENSES</Text>
-                    <Text size="md" color="$error300" fontWeight="$bold">-${expenses.toFixed(2)}</Text>
+                    <Text size="md" color="$error300" fontWeight="$bold">-{currency}{expenses.toFixed(2)}</Text>
                 </VStack>
                 <VStack flex={1} alignItems="center" space="xs">
                     <Text size="xs" color="rgba(255,255,255,0.7)" fontWeight="$bold">NET PROFIT</Text>
                     <Text size="lg" color={netProfit >= 0 ? '$success400' : '$error400'} fontWeight="$black">
-                        ${netProfit.toFixed(2)}
+                        {currency}{netProfit.toFixed(2)}
                     </Text>
                 </VStack>
             </HStack>
@@ -140,7 +141,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
                       <Icon as={TrendingUp} color="$success600" />
                       <Text size="sm" fontWeight="$medium">Gross Profit</Text>
                     </HStack>
-                    <Text size="md" fontWeight="$bold" color="$text900">${summary?.totalProfit.toFixed(2)}</Text>
+                    <Text size="md" fontWeight="$bold" color="$text900">{currency}{summary?.totalProfit.toFixed(2)}</Text>
                   </HStack>
                   <Divider />
                   <HStack p="$4" justifyContent="space-between" alignItems="center">
@@ -148,7 +149,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
                       <Icon as={TrendingDown} color="$error600" />
                       <Text size="sm" fontWeight="$medium">Operation Costs</Text>
                     </HStack>
-                    <Text size="md" fontWeight="$bold" color="$text900">-${expenses.toFixed(2)}</Text>
+                    <Text size="md" fontWeight="$bold" color="$text900">-{currency}{expenses.toFixed(2)}</Text>
                   </HStack>
                 </VStack>
               </Box>
@@ -168,7 +169,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
                             <Text size="xs" color="$text500">{p.totalQuantity} units sold</Text>
                           </VStack>
                         </HStack>
-                        <Text size="md" fontWeight="$bold" color="$primary800">${p.totalRevenue.toFixed(2)}</Text>
+                        <Text size="md" fontWeight="$bold" color="$primary800">{currency}{p.totalRevenue.toFixed(2)}</Text>
                       </HStack>
                       {i < topProducts.length - 1 && <Divider />}
                     </React.Fragment>
@@ -197,7 +198,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
                             <Text size="xs" color="$text500">{c.saleCount} transactions</Text>
                           </VStack>
                         </HStack>
-                        <Text size="md" fontWeight="$bold" color="$primary800">${c.totalRevenue.toFixed(2)}</Text>
+                        <Text size="md" fontWeight="$bold" color="$primary800">{currency}{c.totalRevenue.toFixed(2)}</Text>
                       </HStack>
                       {i < cashierPerformance.length - 1 && <Divider />}
                     </React.Fragment>

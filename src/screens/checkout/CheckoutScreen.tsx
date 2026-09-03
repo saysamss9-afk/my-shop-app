@@ -39,12 +39,14 @@ import { useCheckout } from '../../hooks/useCheckout';
 import { useInventory } from '../../hooks/useInventory';
 import AppIcon from '../../components/common/AppIcon';
 import { ScannerView } from '../../components/ScannerView';
+import { getButtonHeight, platformShadow } from '../../utils/platformStyles';
 
 const CheckoutScreen = ({ route, navigation }: any) => {
   const { shopId, employeeId } = route.params;
   const {
     cart,
     total,
+    currency,
     isLoading,
     addToCart,
     removeFromCart,
@@ -125,8 +127,8 @@ const CheckoutScreen = ({ route, navigation }: any) => {
                             <BadgeText>{cart.length}</BadgeText>
                         </Badge>
                     </HStack>
-                    <Heading size="xl" color="$primary800">Total: ${total.toFixed(2)}</Heading>
-                    <Button size="lg" w="$full" onPress={() => setIsScannerVisible(false)} borderRadius="$xl" bg="$primary800">
+                    <Heading size="xl" color="$primary800">Total: {currency}{total.toFixed(2)}</Heading>
+                    <Button size="lg" w="$full" onPress={() => setIsScannerVisible(false)} borderRadius="$xl" bg="$primary800" style={{ height: getButtonHeight(52) }}>
                         <ButtonText fontWeight="$bold">Done Scanning</ButtonText>
                     </Button>
                 </VStack>
@@ -136,7 +138,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
 
       {/* Search Section */}
       <Box px="$5" pb="$4" zIndex={10}>
-        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.04)' }}>
+        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...platformShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
           <InputSlot pl="$4">
             <InputIcon as={SearchIcon} color="$primary600" />
           </InputSlot>
@@ -154,7 +156,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         </Input>
 
         {searchQuery.length > 0 && (
-          <Box position="absolute" top={55} left={20} right={20} bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+          <Box position="absolute" top={55} left={20} right={20} bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ ...platformShadow({ offsetY: 10, radius: 24, color: 'rgba(0,0,0,0.08)' }) }}>
             <VStack>
               {filteredProducts.slice(0, 5).map((item, index) => (
                 <React.Fragment key={item.id}>
@@ -170,7 +172,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
                       <VStack space="xs">
                           <Text fontWeight="$bold" color="$text900">{item.name}</Text>
                           <Text size="xs" color="$text500">
-                            Stock: {item.stockQuantity} • ${item.price.toFixed(2)}
+                            Stock: {item.stockQuantity} • {currency}{item.price.toFixed(2)}
                             {item.barcode ? ` • ${item.barcode}` : ''}
                           </Text>
                       </VStack>
@@ -203,20 +205,20 @@ const CheckoutScreen = ({ route, navigation }: any) => {
                   <HStack space="md" alignItems="center">
                       <VStack flex={1} space="xs">
                           <Text fontWeight="$bold" color="$text900">{item.product.name}</Text>
-                          <Text size="xs" color="$text500">${item.product.price.toFixed(2)} / unit</Text>
+                          <Text size="xs" color="$text500">{currency}{item.product.price.toFixed(2)} / unit</Text>
                       </VStack>
                       <HStack alignItems="center" space="sm" bg="$backgroundLight50" p="$1" rounded="$lg">
-                          <Pressable p="$1" onPress={() => updateQuantity(item.product.id, item.quantity - 1)}>
+                          <Pressable p="$1" onPress={() => updateQuantity(item.product.id, item.quantity - 1, item.isBulk)}>
                               <Icon as={RemoveIcon} size="xs" />
                           </Pressable>
                           <Text fontWeight="$bold" minWidth={20} textAlign="center">{item.quantity}</Text>
-                          <Pressable p="$1" onPress={() => updateQuantity(item.product.id, item.quantity + 1)}>
+                          <Pressable p="$1" onPress={() => updateQuantity(item.product.id, item.quantity + 1, item.isBulk)}>
                               <Icon as={AddIcon} size="xs" />
                           </Pressable>
                       </HStack>
                       <VStack alignItems="flex-end" minWidth={70}>
-                          <Text fontWeight="$bold" color="$primary800">${(item.product.price * item.quantity).toFixed(2)}</Text>
-                          <Pressable onPress={() => removeFromCart(item.product.id)} mt="$1">
+                          <Text fontWeight="$bold" color="$primary800">{currency}{(item.product.price * item.quantity).toFixed(2)}</Text>
+                          <Pressable onPress={() => removeFromCart(item.product.id, item.isBulk)} mt="$1">
                               <Icon as={TrashIcon} size="sm" color="$error600" />
                           </Pressable>
                       </VStack>
@@ -235,16 +237,16 @@ const CheckoutScreen = ({ route, navigation }: any) => {
       </VStack>
 
       {/* Checkout Footer */}
-      <Box position="absolute" bottom={0} left={0} right={0} p="$5" bg="$white" borderTopLeftRadius="$3xl" borderTopRightRadius="$3xl" shadowColor="$black">
+      <Box position="absolute" bottom={0} left={0} right={0} p="$5" bg="$white" borderTopLeftRadius="$3xl" borderTopRightRadius="$3xl" style={{ ...platformShadow({ offsetY: -8, radius: 24, color: 'rgba(0,0,0,0.08)' }) }}>
         <VStack space="lg">
             <VStack space="xs">
                 <HStack justifyContent="space-between" alignItems="center">
                     <Text size="sm" color="$text500">Subtotal</Text>
-                    <Text size="sm" color="$text900">${total.toFixed(2)}</Text>
+                    <Text size="sm" color="$text900">{currency}{total.toFixed(2)}</Text>
                 </HStack>
                 <HStack justifyContent="space-between" alignItems="center">
                     <Heading size="lg" color="$text900">Total Amount</Heading>
-                    <Heading size="xl" color="$primary800">${total.toFixed(2)}</Heading>
+                    <Heading size="xl" color="$primary800">{currency}{total.toFixed(2)}</Heading>
                 </HStack>
             </VStack>
             <Button
@@ -276,7 +278,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
               <VStack space="xl" py="$6" alignItems="center">
                 <VStack space="xs" alignItems="center">
                     <Text size="sm" color="$text500">Amount Due</Text>
-                    <Heading size="3xl" color="$primary800" fontWeight="$black">${total.toFixed(2)}</Heading>
+                    <Heading size="3xl" color="$primary800" fontWeight="$black">{currency}{total.toFixed(2)}</Heading>
                 </VStack>
                 <Divider />
                 <HStack space="md" alignItems="center" bg="$backgroundLight50" p="$4" rounded="$xl" w="$full">

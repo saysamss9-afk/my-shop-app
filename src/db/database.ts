@@ -15,7 +15,10 @@ export const createTables = async (db: SQLiteDatabase) => {
         name TEXT NOT NULL,
         companyName TEXT,
         address TEXT,
-        ownerId TEXT NOT NULL
+        ownerId TEXT NOT NULL,
+        country TEXT,
+        currency TEXT DEFAULT '$',
+        lastSynced INTEGER DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS Category (
         id TEXT PRIMARY KEY,

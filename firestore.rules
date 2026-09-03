@@ -24,13 +24,13 @@ service cloud.firestore {
 
     // Check if user is staff of a shop
     function isStaff(shopId) {
-      return isAuthenticated() && (isAppOwner() || (employeeExists() && getEmployeeData().shopId == shopId));
+      return isAuthenticated() && (isAppOwner() || request.auth.token.shopId == shopId);
     }
 
     // Check if user is Manager or Owner of a shop
     function isManager(shopId) {
-      return isAuthenticated() && (isAppOwner() || (employeeExists() && getEmployeeData().shopId == shopId &&
-             (getEmployeeData().role == "OWNER" || getEmployeeData().role == "MANAGER")));
+      return isAuthenticated() && (isAppOwner() || (request.auth.token.shopId == shopId &&
+             (request.auth.token.role == "OWNER" || request.auth.token.role == "MANAGER")));
     }
 
     // --- Collection Rules ---
@@ -40,9 +40,7 @@ service cloud.firestore {
       // Anyone authenticated can read to verify a join code
       allow read: if isAuthenticated();
       // Only the App Owner can create new registered shops
-      allow create: if isAppOwnegit add .
-                                git commit -m "Save changes"
-                                git push origin mainr();
+      allow create: if isAppOwner();
       // Only the owner of the shop or App Owner can update metadata
       allow update: if isAppOwner() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
       allow delete: if isAppOwner();

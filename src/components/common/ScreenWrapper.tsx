@@ -1,7 +1,8 @@
 import React from 'react';
-import { ScrollView, StatusBar, Platform } from 'react-native';
+import { ScrollView, StatusBar } from 'react-native';
 import { Box } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getResponsivePadding } from '../../utils/platformStyles';
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   contentContainerStyle,
 }) => {
   const insets = useSafeAreaInsets();
+  const horizontalPadding = getResponsivePadding(24);
 
   const content = (
     <Box
@@ -34,7 +36,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         translucent
       />
 
-      <Box flex={1} px="$6" pt="$4">
+      <Box flex={1} px={horizontalPadding} pt="$4">
         {children}
       </Box>
     </Box>

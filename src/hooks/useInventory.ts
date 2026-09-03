@@ -10,6 +10,7 @@ export const useInventory = (shopId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [currency, setCurrency] = useState('$');
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -21,6 +22,11 @@ export const useInventory = (shopId: string) => {
 
       const allProducts = await productRepo.getProductsByShop(shopId);
       const allCategories = await categoryRepo.getCategoriesByShop(shopId);
+
+      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
+      if (shopResults[0].rows.length > 0) {
+        setCurrency(shopResults[0].rows.item(0).currency || '$');
+      }
 
       setProducts(allProducts);
       setCategories(allCategories);
@@ -67,6 +73,7 @@ export const useInventory = (shopId: string) => {
   return {
     products: filteredProducts,
     categories,
+    currency,
     isLoading,
     error,
     showLowStockOnly,

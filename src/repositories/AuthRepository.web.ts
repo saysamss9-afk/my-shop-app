@@ -11,7 +11,7 @@ export class AuthRepository {
     return { user: result.user };
   }
 
-  async linkUserToShop(uid: string, email: string, shopId: string, role: string, name: string, phoneNumber: string, ghanaCard?: string) {
+  async linkUserToShop(uid: string, email: string, shopId: string, role: string, name: string, phoneNumber: string, country?: string) {
     await firebase.firestore().collection('employees').doc(uid).set({
       uid,
       email,
@@ -19,7 +19,7 @@ export class AuthRepository {
       role,
       name,
       phoneNumber,
-      ghanaCard: ghanaCard || null,
+      country: country || null,
       joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
   }

@@ -9,6 +9,7 @@ export const useAnalytics = (shopId: string) => {
   const [cashierPerformance, setCashierPerformance] = useState<CashierPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currency, setCurrency] = useState('$');
 
   const loadAnalytics = useCallback(async (start: number, end: number) => {
     setIsLoading(true);
@@ -16,6 +17,11 @@ export const useAnalytics = (shopId: string) => {
     try {
       const db = await getDBConnection();
       const analyticsRepo = new AnalyticsRepository(db);
+
+      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
+      if (shopResults[0].rows.length > 0) {
+        setCurrency(shopResults[0].rows.item(0).currency || '$');
+      }
 
       const [s, e, tp, cp] = await Promise.all([
         analyticsRepo.getFinancialSummary(shopId, start, end),
@@ -46,6 +52,7 @@ export const useAnalytics = (shopId: string) => {
     expenses,
     topProducts,
     cashierPerformance,
+    currency,
     isLoading,
     error,
     loadAnalytics,

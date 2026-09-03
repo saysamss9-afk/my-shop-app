@@ -34,8 +34,11 @@ import {
   FormControl,
   FormControlLabel,
   FormControlLabelText,
+  FormControlHelper,
+  FormControlHelperText,
   CloseIcon,
   ArrowLeftIcon,
+  Divider,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
 import { Filter, Camera } from 'lucide-react-native';
@@ -43,11 +46,14 @@ import { useInventory } from '../../hooks/useInventory';
 import { Product } from '../../db/types';
 import AppIcon from '../../components/common/AppIcon';
 import { ScannerView } from '../../components/ScannerView';
+import { getButtonHeight, platformShadow } from '../../utils/platformStyles';
 
 const InventoryScreen = ({ route, navigation }: any) => {
   const { shopId, userRole } = route.params;
   const {
     products,
+    categories,
+    currency,
     isLoading,
     showLowStockOnly,
     addProduct,
@@ -56,6 +62,8 @@ const InventoryScreen = ({ route, navigation }: any) => {
   } = useInventory(shopId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
+  const [entryMode, setEntryMode] = useState<'UNIT' | 'BULK'>('UNIT');
   const [searchQuery, setSearchQuery] = useState('');
   const [scanTarget, setScanTarget] = useState<'unit' | 'bulk' | null>(null);
 
@@ -75,7 +83,12 @@ const InventoryScreen = ({ route, navigation }: any) => {
   });
 
   const handleSave = async () => {
-    if (!newProduct.name || !newProduct.price) return;
+    const isUnitMode = entryMode === 'UNIT';
+    const hasRequiredFields = isUnitMode
+      ? (newProduct.name && newProduct.price)
+      : (newProduct.name && newProduct.bulkPrice);
+
+    if (!hasRequiredFields) return;
 
     await addProduct({
       name: newProduct.name,
@@ -135,7 +148,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         mb="$4"
         borderWidth={1}
         borderColor="$borderLight"
-        style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+        style={{ ...platformShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
       >
         <HStack space="md" alignItems="center">
           <Center
@@ -160,7 +173,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
                         <BadgeText size="xxs">UNIT</BadgeText>
                     </Badge>
                     <Text size="xs" color="$text500">
-                    {item.stockQuantity} {item.unit} @ ${item.price.toFixed(2)}
+                    {item.stockQuantity} {item.unit} @ {currency}{item.price.toFixed(2)}
                     </Text>
                 </HStack>
                 <HStack space="xs" alignItems="center">
@@ -168,14 +181,14 @@ const InventoryScreen = ({ route, navigation }: any) => {
                         <BadgeText size="xxs">BULK</BadgeText>
                     </Badge>
                     <Text size="xs" color="$text500">
-                    {item.bulkStockQuantity} cartons @ ${item.bulkPrice.toFixed(2)}
+                    {item.bulkStockQuantity} cartons @ {currency}{item.bulkPrice.toFixed(2)}
                     </Text>
                 </HStack>
             </VStack>
           </VStack>
           <VStack alignItems="flex-end" space="xs">
             <Text size="md" fontWeight="$black" color="$text900">
-              ${item.price.toFixed(2)}
+              {currency}{item.price.toFixed(2)}
             </Text>
             {isLowStock && (
               <Badge action="error" variant="outline" size="sm" rounded="$lg">
@@ -221,7 +234,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
 
       {/* Search Section */}
       <Box px="$5" pb="$4">
-        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.04)' }}>
+        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...platformShadow({ offsetY: 4, radius: 16, color: 'rgba(0,0,0,0.04)' }) }}>
           <InputSlot pl="$4">
             <InputIcon as={SearchIcon} color="$primary600" />
           </InputSlot>
@@ -266,22 +279,102 @@ const InventoryScreen = ({ route, navigation }: any) => {
         <Fab
           size="lg"
           placement="bottom right"
-          onPress={() => setIsModalOpen(true)}
+          onPress={() => setIsSelectionModalOpen(true)}
           bg="$primary600"
           m="$6"
-          style={{ boxShadow: '0 10px 30px rgba(110,59,230,0.3)' }}
+          style={{ ...platformShadow({ offsetY: 10, radius: 26, color: 'rgba(110,59,230,0.28)' }) }}
         >
           <FabIcon as={AddIcon} mr="$2" />
           <FabLabel fontWeight="$black">New Product</FabLabel>
         </Fab>
       )}
 
+      {/* Selection Modal */}
+      <Modal
+        isOpen={isSelectionModalOpen}
+        onClose={() => setIsSelectionModalOpen(false)}
+        size="md"
+      >
+        <ModalBackdrop />
+        <ModalContent rounded="$3xl">
+          <ModalHeader borderBottomWidth={0}>
+            <Heading size="lg" fontWeight="$black">Choose Entry Type</Heading>
+            <ModalCloseButton>
+              <Icon as={CloseIcon} />
+            </ModalCloseButton>
+          </ModalHeader>
+          <ModalBody pb="$6">
+            <VStack space="md">
+              <Pressable
+                onPress={() => {
+                  setEntryMode('UNIT');
+                  setIsSelectionModalOpen(false);
+                  setIsModalOpen(true);
+                }}
+              >
+                {({ pressed }: any) => (
+                  <Box
+                    p="$4"
+                    rounded="$2xl"
+                    bg={pressed ? '$backgroundLight100' : '$white'}
+                    borderWidth={1}
+                    borderColor="$borderLight"
+                    style={{ transform: [{ scale: pressed ? 0.98 : 1 }] }}
+                  >
+                    <HStack space="md" alignItems="center">
+                      <Center w={48} h={48} bg="$primary50" rounded="$xl">
+                        <AppIcon name="package" size={24} color="#6E3BE6" />
+                      </Center>
+                      <VStack flex={1}>
+                        <Text fontWeight="$bold" color="$text900">Single Unit Item</Text>
+                        <Text size="xs" color="$text500">Retail items sold individually (e.g. 1 can of soda)</Text>
+                      </VStack>
+                    </HStack>
+                  </Box>
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setEntryMode('BULK');
+                  setIsSelectionModalOpen(false);
+                  setIsModalOpen(true);
+                }}
+              >
+                {({ pressed }: any) => (
+                  <Box
+                    p="$4"
+                    rounded="$2xl"
+                    bg={pressed ? '$backgroundLight100' : '$white'}
+                    borderWidth={1}
+                    borderColor="$borderLight"
+                    style={{ transform: [{ scale: pressed ? 0.98 : 1 }] }}
+                  >
+                    <HStack space="md" alignItems="center">
+                      <Center w={48} h={48} bg="$warning50" rounded="$xl">
+                        <AppIcon name="layers" size={24} color="#F59E0B" />
+                      </Center>
+                      <VStack flex={1}>
+                        <Text fontWeight="$bold" color="$text900">Carton / Bulk Item</Text>
+                        <Text size="xs" color="$text500">Items sold in packs or cartons (e.g. 1 case of soda)</Text>
+                      </VStack>
+                    </HStack>
+                  </Box>
+                )}
+              </Pressable>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       {/* Add Product Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="lg">
         <ModalBackdrop />
         <ModalContent rounded="$3xl">
           <ModalHeader>
-            <Heading size="lg" fontWeight="$black">Add New Item</Heading>
+            <Heading size="lg" fontWeight="$black">
+              {entryMode === 'UNIT' ? 'Add New Unit Item' : 'Add New Bulk Item'}
+            </Heading>
             <ModalCloseButton>
               <Icon as={CloseIcon} />
             </ModalCloseButton>
@@ -302,152 +395,174 @@ const InventoryScreen = ({ route, navigation }: any) => {
                   </Input>
                 </FormControl>
 
-                <FormControl>
-                  <FormControlLabel mb="$1">
-                    <FormControlLabelText size="sm">Barcode / Code (Type or Scan)</FormControlLabelText>
-                  </FormControlLabel>
-                  <HStack space="sm">
-                    <Input flex={1} borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="Manual barcode entry..."
-                        value={newProduct.barcode}
-                        onChangeText={text => setNewProduct({ ...newProduct, barcode: text })}
-                      />
-                    </Input>
-                    <Button
-                        variant="outline"
-                        action="primary"
-                        onPress={() => setScanTarget('unit')}
-                        borderRadius={16}
-                        borderColor="$primary600"
-                        px="$3"
-                    >
-                        <Icon as={Camera} color="$primary600" size="sm" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        action="primary"
-                        onPress={() => setNewProduct({ ...newProduct, barcode: generateBarcode() })}
-                        borderRadius={16}
-                        borderColor="$primary600"
-                    >
-                        <ButtonText size="xs" color="$primary600">Auto</ButtonText>
-                    </Button>
-                  </HStack>
-                  <Text size="xxs" color="$text400" mt="$1">You can type the barcode manually or use the scanner.</Text>
-                </FormControl>
+                {entryMode === 'UNIT' ? (
+                  <>
+                    <FormControl>
+                      <FormControlLabel mb="$1">
+                        <FormControlLabelText size="sm">Barcode / Code (Type or Scan)</FormControlLabelText>
+                      </FormControlLabel>
+                      <HStack space="sm">
+                        <Input flex={1} borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                            placeholder="Manual barcode entry..."
+                            value={newProduct.barcode}
+                            onChangeText={text => setNewProduct({ ...newProduct, barcode: text })}
+                          />
+                        </Input>
+                        <Button
+                            variant="outline"
+                            action="primary"
+                            onPress={() => setScanTarget('unit')}
+                            borderRadius={16}
+                            borderColor="$primary600"
+                            px="$3"
+                        >
+                            <Icon as={Camera} color="$primary600" size="sm" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            action="primary"
+                            onPress={() => setNewProduct({ ...newProduct, barcode: generateBarcode() })}
+                            borderRadius={16}
+                            borderColor="$primary600"
+                        >
+                            <ButtonText size="xs" color="$primary600">Auto</ButtonText>
+                        </Button>
+                      </HStack>
+                    </FormControl>
 
-                <HStack space="md">
-                  <FormControl isRequired flex={1}>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Unit Price</FormControlLabelText>
-                    </FormControlLabel>
-                    <Input borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="0.00"
-                        value={newProduct.price}
-                        keyboardType="numeric"
-                        onChangeText={text => setNewProduct({ ...newProduct, price: text })}
-                      />
-                    </Input>
-                  </FormControl>
-                  <FormControl isRequired flex={1}>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Carton Price</FormControlLabelText>
-                    </FormControlLabel>
-                    <Input borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="0.00"
-                        value={newProduct.bulkPrice}
-                        keyboardType="numeric"
-                        onChangeText={text => setNewProduct({ ...newProduct, bulkPrice: text })}
-                      />
-                    </Input>
-                  </FormControl>
-                </HStack>
+                    <HStack space="md">
+                      <FormControl isRequired flex={1}>
+                        <FormControlLabel mb="$1">
+                          <FormControlLabelText size="sm">Unit Price</FormControlLabelText>
+                        </FormControlLabel>
+                        <Input borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                            placeholder="0.00"
+                            value={newProduct.price}
+                            keyboardType="numeric"
+                            onChangeText={text => setNewProduct({ ...newProduct, price: text })}
+                          />
+                        </Input>
+                      </FormControl>
+                      <FormControl isRequired flex={1}>
+                        <FormControlLabel mb="$1">
+                          <FormControlLabelText size="sm">Unit Stock</FormControlLabelText>
+                        </FormControlLabel>
+                        <Input borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                            placeholder="0"
+                            value={newProduct.stockQuantity}
+                            keyboardType="numeric"
+                            onChangeText={text => setNewProduct({ ...newProduct, stockQuantity: text })}
+                          />
+                        </Input>
+                      </FormControl>
+                    </HStack>
 
-                <HStack space="md">
-                  <FormControl isRequired flex={1}>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Unit Stock</FormControlLabelText>
-                    </FormControlLabel>
-                    <Input borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="0"
-                        value={newProduct.stockQuantity}
-                        keyboardType="numeric"
-                        onChangeText={text => setNewProduct({ ...newProduct, stockQuantity: text })}
-                      />
-                    </Input>
-                  </FormControl>
-                  <FormControl isRequired flex={1}>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Carton Stock</FormControlLabelText>
-                    </FormControlLabel>
-                    <Input borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="0"
-                        value={newProduct.bulkStockQuantity}
-                        keyboardType="numeric"
-                        onChangeText={text => setNewProduct({ ...newProduct, bulkStockQuantity: text })}
-                      />
-                    </Input>
-                  </FormControl>
-                </HStack>
+                    <HStack space="md">
+                      <FormControl flex={1}>
+                        <FormControlLabel mb="$1">
+                          <FormControlLabelText size="sm">Cost Price</FormControlLabelText>
+                        </FormControlLabel>
+                        <Input borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                            placeholder="0.00"
+                            value={newProduct.costPrice}
+                            keyboardType="numeric"
+                            onChangeText={text => setNewProduct({ ...newProduct, costPrice: text })}
+                          />
+                        </Input>
+                      </FormControl>
+                      <FormControl flex={1}>
+                        <FormControlLabel mb="$1">
+                          <FormControlLabelText size="sm">Min Stock Level</FormControlLabelText>
+                        </FormControlLabel>
+                        <Input borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                            placeholder="5"
+                            value={newProduct.minStockLevel}
+                            keyboardType="numeric"
+                            onChangeText={text => setNewProduct({ ...newProduct, minStockLevel: text })}
+                          />
+                        </Input>
+                      </FormControl>
+                    </HStack>
 
-                <HStack space="md">
-                  <FormControl flex={1}>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Units per Carton</FormControlLabelText>
-                    </FormControlLabel>
-                    <Input borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="12"
-                        value={newProduct.bulkQuantity}
-                        keyboardType="numeric"
-                        onChangeText={text => setNewProduct({ ...newProduct, bulkQuantity: text })}
-                      />
-                    </Input>
-                  </FormControl>
-                  <FormControl flex={1}>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Cost Price</FormControlLabelText>
-                    </FormControlLabel>
-                    <Input borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="0.00"
-                        value={newProduct.costPrice}
-                        keyboardType="numeric"
-                        onChangeText={text => setNewProduct({ ...newProduct, costPrice: text })}
-                      />
-                    </Input>
-                  </FormControl>
-                </HStack>
+                  </>
+                ) : (
+                  <>
+                    <FormControl>
+                      <FormControlLabel mb="$1">
+                        <FormControlLabelText size="sm">Carton Barcode (Type or Scan)</FormControlLabelText>
+                      </FormControlLabel>
+                      <HStack space="sm">
+                        <Input flex={1} borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                              placeholder="Scan or type carton barcode..."
+                              value={newProduct.bulkBarcode}
+                              onChangeText={text => setNewProduct({ ...newProduct, bulkBarcode: text })}
+                          />
+                        </Input>
+                        <Button
+                            variant="outline"
+                            action="primary"
+                            onPress={() => setScanTarget('bulk')}
+                            borderRadius={16}
+                            borderColor="$primary600"
+                            px="$3"
+                        >
+                            <Icon as={Camera} color="$primary600" size="sm" />
+                        </Button>
+                      </HStack>
+                    </FormControl>
 
-                <FormControl>
-                  <FormControlLabel mb="$1">
-                    <FormControlLabelText size="sm">Carton Barcode</FormControlLabelText>
-                  </FormControlLabel>
-                  <HStack space="sm">
-                    <Input flex={1} borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                          placeholder="Scan or type carton barcode..."
-                          value={newProduct.bulkBarcode}
-                          onChangeText={text => setNewProduct({ ...newProduct, bulkBarcode: text })}
-                      />
-                    </Input>
-                    <Button
-                        variant="outline"
-                        action="primary"
-                        onPress={() => setScanTarget('bulk')}
-                        borderRadius={16}
-                        borderColor="$primary600"
-                        px="$3"
-                    >
-                        <Icon as={Camera} color="$primary600" size="sm" />
-                    </Button>
-                  </HStack>
-                </FormControl>
+                    <HStack space="md">
+                      <FormControl isRequired flex={1}>
+                        <FormControlLabel mb="$1">
+                          <FormControlLabelText size="sm">Carton Price</FormControlLabelText>
+                        </FormControlLabel>
+                        <Input borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                            placeholder="0.00"
+                            value={newProduct.bulkPrice}
+                            keyboardType="numeric"
+                            onChangeText={text => setNewProduct({ ...newProduct, bulkPrice: text })}
+                          />
+                        </Input>
+                      </FormControl>
+                      <FormControl isRequired flex={1}>
+                        <FormControlLabel mb="$1">
+                          <FormControlLabelText size="sm">Carton Stock</FormControlLabelText>
+                        </FormControlLabel>
+                        <Input borderRadius={16} bg="$backgroundLight50">
+                          <InputField
+                            placeholder="0"
+                            value={newProduct.bulkStockQuantity}
+                            keyboardType="numeric"
+                            onChangeText={text => setNewProduct({ ...newProduct, bulkStockQuantity: text })}
+                          />
+                        </Input>
+                      </FormControl>
+                    </HStack>
+
+                    <FormControl isRequired>
+                      <FormControlLabel mb="$1">
+                        <FormControlLabelText size="sm">Units per Carton</FormControlLabelText>
+                      </FormControlLabel>
+                      <Input borderRadius={16} bg="$backgroundLight50">
+                        <InputField
+                          placeholder="12"
+                          value={newProduct.bulkQuantity}
+                          keyboardType="numeric"
+                          onChangeText={text => setNewProduct({ ...newProduct, bulkQuantity: text })}
+                        />
+                      </Input>
+                    </FormControl>
+
+                  </>
+                )}
+
               </VStack>
             </ScrollView>
           </ModalBody>
@@ -455,7 +570,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
             <Button variant="outline" action="secondary" onPress={() => setIsModalOpen(false)} mr="$3" borderRadius={16}>
               <ButtonText>Cancel</ButtonText>
             </Button>
-            <Button action="primary" onPress={handleSave} borderRadius={16} bg="$primary600" style={{ height: 50 }}>
+            <Button action="primary" onPress={handleSave} borderRadius={16} bg="$primary600" style={{ height: getButtonHeight(50) }}>
               <ButtonText fontWeight="$bold">Add to Inventory</ButtonText>
             </Button>
           </ModalFooter>

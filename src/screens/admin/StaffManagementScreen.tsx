@@ -80,10 +80,10 @@ const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text size="sm" color="$primary600" fontWeight="$medium">{item.phoneNumber || 'No phone'}</Text>
           </Pressable>
         </HStack>
-        {item.ghanaCard && (
+        {item.country && (
           <HStack space="sm" alignItems="center">
             <Icon as={CreditCard} size="xs" color="$text400" />
-            <Text size="sm" color="$text700">Ghana Card: {item.ghanaCard}</Text>
+            <Text size="sm" color="$text700">Country: {item.country}</Text>
           </HStack>
         )}
       </VStack>

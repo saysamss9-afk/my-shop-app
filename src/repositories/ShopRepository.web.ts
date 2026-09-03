@@ -6,6 +6,8 @@ export interface ShopRequest {
   location: string;
   ownerName: string;
   whatsappNumber: string;
+  country: string;
+  currency: string;
   status: 'PENDING' | 'REVIEWING' | 'APPROVED' | 'REJECTED';
   createdAt: any;
 }

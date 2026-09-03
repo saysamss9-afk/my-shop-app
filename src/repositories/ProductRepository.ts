@@ -52,6 +52,7 @@ export class ProductRepository {
   async getLowStockCount(shopId: string): Promise<number> {
     const query = 'SELECT COUNT(*) as count FROM Product WHERE shopId = ? AND stockQuantity <= minStockLevel';
     const results = await this.db.executeSql(query, [shopId]);
-    return results[0].rows.item(0).count;
+    const row = results?.[0]?.rows?.item?.(0) ?? null;
+    return Number(row?.count ?? 0);
   }
 }

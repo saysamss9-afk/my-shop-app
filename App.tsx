@@ -5,6 +5,8 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import { GluestackUIProvider } from '@gluestack-ui/themed';
 import { config } from './src/gluestack-ui.config';
 import AppNavigator from './src/navigation/AppNavigator';
+import ErrorBoundary from './src/components/common/ErrorBoundary';
+import OfflineBanner from './src/components/common/OfflineBanner';
 
 const { LightTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
@@ -36,13 +38,16 @@ const App = () => {
   console.log('App.tsx: Rendering root App component');
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <GluestackUIProvider config={config}>
-        <PaperProvider theme={theme}>
-          <NavigationContainer theme={theme}>
-            <AppNavigator />
-          </NavigationContainer>
-        </PaperProvider>
-      </GluestackUIProvider>
+      <ErrorBoundary>
+        <GluestackUIProvider config={config}>
+          <PaperProvider theme={theme}>
+            <OfflineBanner />
+            <NavigationContainer theme={theme}>
+              <AppNavigator />
+            </NavigationContainer>
+          </PaperProvider>
+        </GluestackUIProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 };

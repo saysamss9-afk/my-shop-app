@@ -20,7 +20,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { sales, isLoading, revertSale, refreshSales } = useSales(shopId);
+  const { sales, isLoading, currency, revertSale, refreshSales } = useSales(shopId);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -53,7 +53,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         </VStack>
         <VStack alignItems="flex-end" space="xs">
           <Text size="md" fontWeight="$black" color="$text900">
-            ${item.totalAmount.toFixed(2)}
+            {currency}{item.totalAmount.toFixed(2)}
           </Text>
           <Pressable onPress={() => revertSale(item.id)} p="$1">
              <Icon as={RotateCcw} color="$error600" size="sm" />
@@ -92,7 +92,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
             <VStack flex={1} alignItems="center" space="xs">
                 <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Total Volume</Text>
                 <Heading size="md" color="$primary800">
-                    ${sales.reduce((acc, curr) => acc + curr.totalAmount, 0).toFixed(2)}
+                    {currency}{sales.reduce((acc, curr) => acc + curr.totalAmount, 0).toFixed(2)}
                 </Heading>
             </VStack>
         </HStack>

@@ -47,12 +47,23 @@ const SHOP_TYPES = [
   'Other'
 ];
 
+const CURRENCIES = [
+  { label: 'GHS (Ghana Cedi)', value: 'GH₵' },
+  { label: 'USD (US Dollar)', value: '$' },
+  { label: 'NGN (Nigeria Naira)', value: '₦' },
+  { label: 'KES (Kenya Shilling)', value: 'KSh' },
+  { label: 'EUR (Euro)', value: '€' },
+  { label: 'GBP (Pound)', value: '£' },
+];
+
 const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   const [ownerName, setOwnerName] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [shopName, setShopName] = useState('');
   const [shopType, setShopType] = useState('');
   const [location, setLocation] = useState('');
+  const [country, setCountry] = useState('Ghana');
+  const [currency, setCurrency] = useState('GH₵');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -60,7 +71,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSubmit = async () => {
     console.log('ShopRequestScreen: Attempting to submit registration...');
-    if (!ownerName || !whatsappNumber || !shopName || !shopType || !location) {
+    if (!ownerName || !whatsappNumber || !shopName || !shopType || !location || !country || !currency) {
       Alert.alert("Error", "Please fill in all required fields.");
       return;
     }
@@ -73,6 +84,8 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
         shopName,
         shopType,
         location,
+        country,
+        currency,
       });
       console.log('ShopRequestScreen: Submission successful!');
 
@@ -121,7 +134,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
             </VStack>
           </VStack>
 
-          <Box bg="$white" p="$6" rounded="$3xl" borderWidth={1} borderColor="$borderLight" shadowColor="$primary800">
+          <Box bg="$white" p="$6" rounded="$3xl" borderWidth={1} borderColor="$borderLight" style={{ ...platformShadow({ offsetY: 6, radius: 18, color: 'rgba(110,59,230,0.08)' }) }}>
             <VStack space="lg">
               <FormControl isRequired>
                 <FormControlLabel>
@@ -186,6 +199,41 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                   {SHOP_TYPES.map(type => (
                     <MenuItem key={type} textValue={type} onPress={() => setShopType(type)}>
                       <MenuItemLabel size="sm">{type}</MenuItemLabel>
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </VStack>
+
+              <FormControl isRequired>
+                <FormControlLabel>
+                  <FormControlLabelText>Country</FormControlLabelText>
+                </FormControlLabel>
+                <Input variant="outline" size="md" borderRadius={12}>
+                  <InputField
+                    placeholder="e.g. Ghana, Nigeria"
+                    value={country}
+                    onChangeText={setCountry}
+                  />
+                </Input>
+              </FormControl>
+
+              <VStack space="xs">
+                <Text size="sm" fontWeight="$bold" color="$text900">Store Currency</Text>
+                <Menu
+                  trigger={({ ...triggerProps }) => (
+                    <Pressable {...triggerProps} borderWidth={1} borderColor="$borderLight" p="$3" rounded="$lg">
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <Text size="sm" color={currency ? '$text900' : '$text400'}>
+                          {CURRENCIES.find(c => c.value === currency)?.label || 'Select Currency'}
+                        </Text>
+                        <Icon as={ChevronDownIcon} />
+                      </HStack>
+                    </Pressable>
+                  )}
+                >
+                  {CURRENCIES.map(c => (
+                    <MenuItem key={c.value} textValue={c.label} onPress={() => setCurrency(c.value)}>
+                      <MenuItemLabel size="sm">{c.label}</MenuItemLabel>
                     </MenuItem>
                   ))}
                 </Menu>

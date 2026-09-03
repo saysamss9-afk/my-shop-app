@@ -13,6 +13,7 @@ export enum SyncStatus {
 export class SyncManager {
   private status: SyncStatus = SyncStatus.Idle;
   private lastSynced: number = 0;
+  private readonly BATCH_LIMIT = 500;
 
   constructor(
     private productRepo: ProductRepository,
@@ -36,106 +37,150 @@ export class SyncManager {
       console.error('Sync failed:', error);
       this.status = SyncStatus.Error;
     } finally {
-      this.status = SyncStatus.Idle;
+      setTimeout(() => {
+        if (this.status !== SyncStatus.Syncing) {
+          this.status = SyncStatus.Idle;
+        }
+      }, 3000);
     }
   }
 
   private async syncSales() {
     const unsynced = await this.saleRepo.getUnsyncedSales();
-    for (const sale of unsynced) {
-      try {
-        if (sale.isReverted === 1) {
-          await firebase.firestore()
-            .collection('shops')
-            .doc(sale.shopId)
-            .collection('sales')
-            .doc(sale.id)
-            .delete();
-        } else {
-          const items = await this.saleRepo.getItemsForSale(sale.id);
-          const saleData = {
-            id: sale.id,
-            shopId: sale.shopId,
-            employeeId: sale.employeeId,
-            timestamp: sale.timestamp,
-            totalAmount: sale.totalAmount,
-            isReverted: sale.isReverted === 1,
-            items: items.map(item => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              priceAtSale: item.priceAtSale
-            }))
-          };
+    if (unsynced.length === 0) return;
 
-          await firebase.firestore()
-            .collection('shops')
-            .doc(sale.shopId)
-            .collection('sales')
-            .doc(sale.id)
-            .set(saleData);
-        }
-        await this.saleRepo.markSaleSynced(sale.id);
-      } catch (e) {
-        console.error(`Failed to sync sale ${sale.id}`, e);
+    let batch = firebase.firestore().batch();
+    let count = 0;
+    const syncedIds: string[] = [];
+
+    for (const sale of unsynced) {
+      const saleRef = firebase.firestore().collection('shops').doc(sale.shopId).collection('sales').doc(sale.id);
+
+      if (sale.isReverted === 1) {
+        batch.delete(saleRef);
+      } else {
+        const items = await this.saleRepo.getItemsForSale(sale.id);
+        const saleData = {
+          id: sale.id,
+          shopId: sale.shopId,
+          employeeId: sale.employeeId,
+          timestamp: sale.timestamp,
+          totalAmount: sale.totalAmount,
+          isReverted: sale.isReverted === 1,
+          items: items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            priceAtSale: item.priceAtSale
+          }))
+        };
+        batch.set(saleRef, saleData);
       }
+
+      count++;
+      syncedIds.push(sale.id);
+
+      if (count === this.BATCH_LIMIT) {
+        await batch.commit();
+        for (const id of syncedIds) await this.saleRepo.markSaleSynced(id);
+        batch = firebase.firestore().batch();
+        count = 0;
+        syncedIds.length = 0;
+      }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+      for (const id of syncedIds) await this.saleRepo.markSaleSynced(id);
     }
   }
 
   private async syncProducts() {
     const unsynced = await this.productRepo.getUnsyncedProducts();
+    if (unsynced.length === 0) return;
+
+    let batch = firebase.firestore().batch();
+    let count = 0;
+    const syncedIds: string[] = [];
+
     for (const product of unsynced) {
-      try {
-        const productData = {
-          id: product.id,
-          shopId: product.shopId,
-          name: product.name,
-          description: product.description,
-          barcode: product.barcode,
-          bulkBarcode: product.bulkBarcode,
-          bulkQuantity: product.bulkQuantity,
-          price: product.price,
-          costPrice: product.costPrice,
-          stockQuantity: product.stockQuantity,
-          unit: product.unit,
-          supplierId: product.supplierId
-        };
+      const productRef = firebase.firestore().collection('shops').doc(product.shopId).collection('products').doc(product.id);
 
-        await firebase.firestore()
-          .collection('shops')
-          .doc(product.shopId)
-          .collection('products')
-          .doc(product.id)
-          .set(productData);
+      const productData = {
+        id: product.id,
+        shopId: product.shopId,
+        name: product.name,
+        description: product.description,
+        barcode: product.barcode,
+        bulkBarcode: product.bulkBarcode,
+        bulkQuantity: product.bulkQuantity,
+        price: product.price,
+        costPrice: product.costPrice,
+        stockQuantity: product.stockQuantity,
+        unit: product.unit,
+        supplierId: product.supplierId
+      };
 
-        await this.productRepo.markProductSynced(product.id);
-      } catch (e) {
-        console.error(`Failed to sync product ${product.id}`, e);
+      batch.set(productRef, productData);
+      count++;
+      syncedIds.push(product.id);
+
+      if (count === this.BATCH_LIMIT) {
+        await batch.commit();
+        for (const id of syncedIds) await this.productRepo.markProductSynced(id);
+        batch = firebase.firestore().batch();
+        count = 0;
+        syncedIds.length = 0;
       }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+      for (const id of syncedIds) await this.productRepo.markProductSynced(id);
     }
   }
 
   private async syncSuppliers() {
     const unsynced = await this.supplierRepo.getUnsyncedSuppliers();
+    if (unsynced.length === 0) return;
+
+    let batch = firebase.firestore().batch();
+    let count = 0;
+    const syncedIds: string[] = [];
+
     for (const supplier of unsynced) {
-      try {
-        const supplierData = {
-          id: supplier.id,
-          shopId: supplier.shopId,
-          name: supplier.name,
-          contactInfo: supplier.contactInfo
-        };
+      const supplierRef = firebase.firestore().collection('shops').doc(supplier.shopId).collection('suppliers').doc(supplier.id);
 
-        await firebase.firestore()
-          .collection('shops')
-          .doc(supplier.shopId)
-          .collection('suppliers')
-          .doc(supplier.id)
-          .set(supplierData);
+      const supplierData = {
+        id: supplier.id,
+        shopId: supplier.shopId,
+        name: supplier.name,
+        contactInfo: supplier.contactInfo
+      };
 
-        await this.supplierRepo.markSupplierSynced(supplier.id);
-      } catch (e) {
-        console.error(`Failed to sync supplier ${supplier.id}`, e);
+      batch.set(supplierRef, supplierData);
+      count++;
+      syncedIds.push(supplier.id);
+
+      if (count === this.BATCH_LIMIT) {
+        await batch.commit();
+        for (const id of syncedIds) await this.supplierRepo.markSupplierSynced(id);
+        batch = firebase.firestore().batch();
+        count = 0;
+        syncedIds.length = 0;
       }
     }
+
+    if (count > 0) {
+      await batch.commit();
+      for (const id of syncedIds) await this.supplierRepo.markSupplierSynced(id);
+    }
+  }
+
+  getStatus() {
+    return this.status;
+  }
+
+  getLastSynced() {
+    return this.lastSynced;
   }
 }

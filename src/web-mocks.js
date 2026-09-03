@@ -30,9 +30,7 @@ const flattenStyle = (style) => {
     }, {});
 };
 
-// Icons Mock - Using Material Design Webfont classes for Web compatibility
-// This works with the CDN link in index.html:
-// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/7.2.96/css/materialdesignicons.min.css">
+// Icons Mock - Uses inline SVG/icon-safe fallbacks for Web compatibility without external network requests.
 export const MaterialCommunityIcons = ({ name, size, color, style }) => {
     const flatStyle = flattenStyle(style);
     return (

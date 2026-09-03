@@ -153,7 +153,7 @@
 
 /**
  * @license React
- * react-dom.production.min.js
+ * react-dom.development.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -163,7 +163,7 @@
 
 /**
  * @license React
- * react.production.min.js
+ * react-jsx-runtime.development.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -173,7 +173,7 @@
 
 /**
  * @license React
- * scheduler.production.min.js
+ * scheduler.development.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -183,12 +183,33 @@
 
 /**
  * @license React
- * use-sync-external-store-shim.production.js
+ * use-sync-external-store-shim.development.js
  *
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license lucide-react v1.37.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * Checks if an event is supported in the current execution environment.
+ *
+ * NOTE: This will not work correctly for non-generic events such as `change`,
+ * `reset`, `load`, `error`, and `select`.
+ *
+ * Borrows from Modernizr.
+ *
+ * @param {string} eventNameSuffix Event name, e.g. "click".
+ * @return {boolean} True if the event is supported.
+ * @internal
+ * @license Modernizr 3.0.0pre (Custom Build) | MIT
  */
 
 /** @license
@@ -203,7 +224,7 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 /** @license React v16.13.1
- * react-is.production.min.js
+ * react-is.development.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
  *

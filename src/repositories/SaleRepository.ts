@@ -24,10 +24,17 @@ export class SaleRepository {
         const itemParams = [item.id, item.saleId, item.productId, item.quantity, item.priceAtSale, item.isBulk];
         await tx.executeSql(itemQuery, itemParams);
 
-        // Update stock based on whether it's bulk or unit
         const column = item.isBulk === 1 ? 'bulkStockQuantity' : 'stockQuantity';
-        const stockQuery = `UPDATE Product SET ${column} = ${column} - ? WHERE id = ?`;
-        await tx.executeSql(stockQuery, [item.quantity, item.productId]);
+        const stockQuery = `SELECT ${column} AS availableStock FROM Product WHERE id = ?`;
+        const [stockResult] = await tx.executeSql(stockQuery, [item.productId]);
+        const availableStock = Number(stockResult?.rows?.item?.(0)?.availableStock ?? 0);
+
+        if (availableStock < item.quantity) {
+          throw new Error(`Insufficient stock for sale item: requested ${item.quantity}, available ${availableStock}.`);
+        }
+
+        const decrementStockQuery = `UPDATE Product SET ${column} = ${column} - ? WHERE id = ?`;
+        await tx.executeSql(decrementStockQuery, [item.quantity, item.productId]);
       }
     });
   }

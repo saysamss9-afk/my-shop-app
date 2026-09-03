@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, ViewStyle, TextStyle, Platform } from 'react-native';
 import { Button, useTheme } from 'react-native-paper';
 
 interface CustomButtonProps {
@@ -56,13 +56,17 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 12,
   },
-  containedButton: {
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
+  containedButton: Platform.OS === 'web'
+    ? {
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+      }
+    : {
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
   content: {
     height: 48,
     paddingHorizontal: 16,

@@ -74,7 +74,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     whatsappNumber: '',
     shopName: '',
     shopType: '',
-    location: ''
+    location: '',
+    country: '',
+    currency: ''
   });
 
   const handleDeleteRequest = (id: string) => {
@@ -230,6 +232,8 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         location: request.location,
         ownerName: request.ownerName,
         whatsappNumber: request.whatsappNumber,
+        country: request.country || 'Ghana',
+        currency: request.currency || 'GH₵',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
@@ -268,7 +272,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       whatsappNumber: request.whatsappNumber,
       shopName: request.shopName,
       shopType: request.shopType,
-      location: request.location
+      location: request.location,
+      country: request.country || 'Ghana',
+      currency: request.currency || 'GH₵'
     });
     setIsEditDialogOpen(true);
   };
@@ -343,7 +349,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   }, [shops, searchQuery]);
 
   const renderRequestItem = ({ item }: { item: any }) => (
-    <Box bg="$white" p="$4" rounded="$2xl" mb="$4" borderWidth={1} borderColor="$borderLight" shadowColor="$primary800">
+    <Box bg="$white" p="$4" rounded="$2xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ ...platformShadow({ offsetY: 6, radius: 18, color: 'rgba(110,59,230,0.06)' }) }}>
       <HStack justifyContent="space-between" alignItems="flex-start">
         <VStack flex={1}>
           <Heading size="md" color="$text900">{item.shopName}</Heading>
@@ -371,8 +377,15 @@ const AdminDashboardScreen = ({ navigation }: any) => {
           <Center w="$6" h="$6" rounded="$full" bg="$backgroundLight100">
             <Icon as={MapPin} size="xs" color="$text500" />
           </Center>
-          <Text size="xs" color="$text600" flexShrink={1}>{item.location}</Text>
+          <Text size="xs" color="$text600" flexShrink={1}>{item.location} ({item.country})</Text>
         </HStack>
+        {item.currency && (
+          <HStack space="sm" alignItems="center">
+             <Badge action="info" variant="outline" size="sm">
+                <BadgeText size="xxs">Currency: {item.currency}</BadgeText>
+             </Badge>
+          </HStack>
+        )}
       </VStack>
 
       <HStack space="md">
@@ -424,7 +437,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
             bg={viewMode === 'requests' ? '$white' : 'transparent'}
             p="$2"
             rounded="$lg"
-            shadowColor="$primary800"
+            style={{ ...platformShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
           >
             <Center>
               <Text size="sm" fontWeight="$bold" color={viewMode === 'requests' ? '$primary800' : '$text500'}>
@@ -438,7 +451,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
             bg={viewMode === 'shops' ? '$white' : 'transparent'}
             p="$2"
             rounded="$lg"
-            shadowColor="$primary800"
+            style={{ ...platformShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
           >
             <Center>
               <Text size="sm" fontWeight="$bold" color={viewMode === 'shops' ? '$primary800' : '$text500'}>

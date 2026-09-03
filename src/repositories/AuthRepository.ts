@@ -10,7 +10,7 @@ export class AuthRepository {
     return await auth().createUserWithEmailAndPassword(email, pass);
   }
 
-  async linkUserToShop(uid: string, email: string, shopId: string, role: string, name: string, phoneNumber: string, ghanaCard?: string) {
+  async linkUserToShop(uid: string, email: string, shopId: string, role: string, name: string, phoneNumber: string, country?: string) {
     await firestore().collection('employees').doc(uid).set({
       uid,
       email,
@@ -18,7 +18,7 @@ export class AuthRepository {
       role,
       name,
       phoneNumber,
-      ghanaCard: ghanaCard || null,
+      country: country || null,
       joinedAt: firestore.FieldValue.serverTimestamp(),
     });
   }

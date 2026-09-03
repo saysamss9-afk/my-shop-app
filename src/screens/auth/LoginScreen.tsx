@@ -35,6 +35,7 @@ import { ShieldCheck } from 'lucide-react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import { getButtonHeight, platformShadow } from '../../utils/platformStyles';
 
 type Props = StackScreenProps<RootStackParamList, 'Login'>;
 
@@ -101,7 +102,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             bg="$white"
             p="$6"
             rounded="$3xl"
-            style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}
+            style={{ ...platformShadow({ offsetY: 8, radius: 24, color: 'rgba(0,0,0,0.05)' }) }}
           >
             <VStack space="lg">
               <FormControl isRequired isInvalid={!!error}>
@@ -154,7 +155,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 mt="$4"
                 borderRadius={20}
                 bg="$primary600"
-                style={{ height: 56 }}
+                style={{ height: getButtonHeight(56) }}
               >
                 {isLoading ? (
                   <Spinner color="white" />
