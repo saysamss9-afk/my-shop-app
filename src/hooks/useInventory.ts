@@ -51,12 +51,19 @@ export const useInventory = (shopId: string) => {
         shopId,
         syncStatus: 0,
       };
+
+      // 1. Write to local database (Offline-first)
       await productRepo.insertProduct(newProduct);
-      await loadData();
+
+      // 2. Update local state immediately for instant UI feedback
+      setProducts(prev => [newProduct, ...prev]);
+
+      // 3. Silently refresh categories or other metadata if needed,
+      // but don't call loadData() with isLoading=true
     } catch (e: any) {
       setError(e.message);
     }
-  }, [shopId, loadData]);
+  }, [shopId]);
 
   const toggleLowStockFilter = () => {
     setShowLowStockOnly(!showLowStockOnly);

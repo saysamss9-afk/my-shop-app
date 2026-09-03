@@ -41,7 +41,7 @@ import {
   Divider,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
-import { Filter, Camera } from 'lucide-react-native';
+import { Filter, Camera, CloudOff, CheckCircle2 } from 'lucide-react-native';
 import { useInventory } from '../../hooks/useInventory';
 import { Product } from '../../db/types';
 import AppIcon from '../../components/common/AppIcon';
@@ -164,9 +164,16 @@ const InventoryScreen = ({ route, navigation }: any) => {
             />
           </Center>
           <VStack flex={1} space="xs">
-            <Heading size="sm" color="$text900" fontWeight="$bold">
-              {item.name}
-            </Heading>
+            <HStack space="xs" alignItems="center">
+                <Heading size="sm" color="$text900" fontWeight="$bold">
+                {item.name}
+                </Heading>
+                {item.syncStatus === 0 ? (
+                    <Icon as={CloudOff} size="xs" color="$amber600" />
+                ) : (
+                    <Icon as={CheckCircle2} size="xs" color="$success600" />
+                )}
+            </HStack>
             <VStack space="xxs">
                 <HStack space="xs" alignItems="center">
                     <Badge action="info" variant="solid" size="sm" rounded="$full">
