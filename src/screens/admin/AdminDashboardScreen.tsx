@@ -1,64 +1,28 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { FlatList, Linking, Alert, Share, Clipboard, SectionList, ScrollView, StatusBar, Platform } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { FlatList, Linking, Alert, Clipboard, StatusBar, Platform } from 'react-native';
 import {
   Box,
   VStack,
   HStack,
   Text,
-  Heading,
-  Icon,
-  Pressable,
   Center,
-  Badge,
-  BadgeText,
   Spinner,
   Input,
   InputField,
   InputSlot,
   InputIcon,
   SearchIcon,
-  Button,
-  ButtonText,
-  ButtonIcon,
-  MailIcon,
-  PhoneIcon,
-  CopyIcon,
-  ShareIcon,
-  TrashIcon,
-  CheckIcon,
-  EditIcon,
-  ChevronDownIcon,
-  Menu,
-  MenuItem,
-  MenuItemLabel,
-  Modal,
-  ModalBackdrop,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
-  FormControl,
-  FormControlLabel,
-  FormControlLabelText,
-  CloseIcon,
-  ArrowLeftIcon,
+  Pressable,
 } from '@gluestack-ui/themed';
-import { Appbar } from 'react-native-paper';
-import { User, MapPin } from 'lucide-react-native';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import { platformShadow } from '../../utils/platformStyles';
 
-const SHOP_TYPES = [
-  'Provision',
-  'Supermarket',
-  'Electrical',
-  'Spare Parts',
-  'Clothing',
-  'Pharmacy',
-  'Hardware',
-  'Other'
-];
+// Sub-components
+import AdminHeader from './components/AdminHeader';
+import ShopRequestItem from './components/ShopRequestItem';
+import RegisteredShopItem from './components/RegisteredShopItem';
+import EditRequestModal from './components/EditRequestModal';
 
 const AdminDashboardScreen = ({ navigation }: any) => {
   const [requests, setRequests] = useState<any[]>([]);
@@ -145,7 +109,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         return;
       }
 
-      // If we are here, user is Admin. Start listeners.
+      // Admin authenticated. Start listeners.
       const unsubscribeReq = firebase.firestore().collection('shop_requests')
         .where('status', 'in', ['PENDING', 'REVIEWING'])
         .onSnapshot(snapshot => {
@@ -175,48 +139,6 @@ const AdminDashboardScreen = ({ navigation }: any) => {
 
     return () => unsubscribeAuth();
   }, [navigation]);
-
-  const renderShopItem = ({ item }: { item: any }) => (
-    <Box bg="$white" p="$5" rounded="$3xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-      <HStack justifyContent="space-between" alignItems="flex-start">
-        <VStack flex={1} space="xs">
-          <Heading size="md" color="$text900">{item.name}</Heading>
-          <Text size="xs" color="$text500" textTransform="uppercase" letterSpacing={1}>{item.type}</Text>
-
-          <Pressable onPress={() => copyToClipboard(item.id)} mt="$2">
-            <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$xl" alignSelf="flex-start">
-              <Text size="sm" fontWeight="$bold" color="$primary600" style={{ letterSpacing: 1 }}>
-                {item.id}
-              </Text>
-              <Icon as={CopyIcon} size="xs" color="$primary600" />
-            </HStack>
-          </Pressable>
-        </VStack>
-
-        <HStack space="xs">
-            <Button variant="outline" size="sm" action="positive" p="$2" rounded="$full" onPress={() => openWhatsApp(item.whatsappNumber, item.name, item.id)}>
-                <ButtonIcon as={PhoneIcon} />
-            </Button>
-            <Button variant="outline" size="sm" action="negative" p="$2" rounded="$full" onPress={() => handleDeleteShop(item.id)}>
-                <ButtonIcon as={TrashIcon} color="$error600" />
-            </Button>
-        </HStack>
-      </HStack>
-
-      <Box h={1} bg="$backgroundLight100" my="$4" />
-
-      <VStack space="sm">
-        <HStack space="sm" alignItems="center">
-          <Icon as={User} size="xs" color="$text400" />
-          <Text size="sm" color="$text700">{item.ownerName}</Text>
-        </HStack>
-        <HStack space="sm" alignItems="center">
-          <Icon as={PhoneIcon} size="xs" color="$text400" />
-          <Text size="sm" color="$text700">{item.whatsappNumber}</Text>
-        </HStack>
-      </VStack>
-    </Box>
-  );
 
   const handleApprove = async (request: any) => {
     setProcessing(request.id);
@@ -328,107 +250,43 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   }, [requests, searchQuery]);
 
   const filteredShops = useMemo(() => {
-    const filtered = shops.filter(s =>
+    return shops.filter(s =>
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    const groups: { [key: string]: any[] } = {};
-    filtered.forEach(shop => {
-      if (!groups[shop.type]) {
-        groups[shop.type] = [];
-      }
-      groups[shop.type].push(shop);
-    });
-
-    return Object.keys(groups).map(type => ({
-      title: type,
-      data: groups[type]
-    })).sort((a, b) => a.title.localeCompare(b.title));
   }, [shops, searchQuery]);
 
-  const renderRequestItem = ({ item }: { item: any }) => (
-    <Box bg="$white" p="$4" rounded="$2xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ ...platformShadow({ offsetY: 6, radius: 18, color: 'rgba(110,59,230,0.06)' }) }}>
-      <HStack justifyContent="space-between" alignItems="flex-start">
-        <VStack flex={1}>
-          <Heading size="md" color="$text900">{item.shopName}</Heading>
-          <Text size="xs" color="$text500" textTransform="uppercase">{item.shopType}</Text>
-        </VStack>
-        <Badge size="sm" variant="solid" action={item.status === 'REVIEWING' ? 'info' : 'warning'} rounded="$lg">
-          <BadgeText size="xs" fontWeight="$bold">{item.status === 'REVIEWING' ? 'REVISIT' : 'NEW REQUEST'}</BadgeText>
-        </Badge>
-      </HStack>
+  const renderReqItem = useCallback(({ item }: any) => (
+    <ShopRequestItem
+        item={item}
+        processing={processing}
+        onEdit={handleEditRequest}
+        onWhatsApp={openWhatsApp}
+        onDelete={handleDeleteRequest}
+        onApprove={handleApprove}
+    />
+  ), [processing]);
 
-      <VStack space="sm" mt="$4" mb="$6">
-        <HStack space="sm" alignItems="center">
-          <Center w="$6" h="$6" rounded="$full" bg="$primary50">
-            <Icon as={User} size="xs" color="$primary800" />
-          </Center>
-          <Text size="sm">{item.ownerName}</Text>
-        </HStack>
-        <HStack space="sm" alignItems="center">
-          <Center w="$6" h="$6" rounded="$full" bg="$success50">
-            <Icon as={PhoneIcon} size="xs" color="$success600" />
-          </Center>
-          <Text size="sm">{item.whatsappNumber}</Text>
-        </HStack>
-        <HStack space="sm" alignItems="center">
-          <Center w="$6" h="$6" rounded="$full" bg="$backgroundLight100">
-            <Icon as={MapPin} size="xs" color="$text500" />
-          </Center>
-          <Text size="xs" color="$text600" flexShrink={1}>{item.location} ({item.country})</Text>
-        </HStack>
-        {item.currency && (
-          <HStack space="sm" alignItems="center">
-             <Badge action="info" variant="outline" size="sm">
-                <BadgeText size="xxs">Currency: {item.currency}</BadgeText>
-             </Badge>
-          </HStack>
-        )}
-      </VStack>
-
-      <HStack space="md">
-        <Button variant="outline" size="sm" action="secondary" onPress={() => handleEditRequest(item)} borderRadius="$lg">
-          <ButtonIcon as={EditIcon} />
-        </Button>
-        <Button variant="outline" size="sm" action="positive" onPress={() => openWhatsApp(item.whatsappNumber, item.shopName)} borderRadius="$lg">
-          <ButtonIcon as={PhoneIcon} />
-        </Button>
-        <Button variant="outline" size="sm" action="negative" onPress={() => handleDeleteRequest(item.id)} borderRadius="$lg">
-          <ButtonIcon as={TrashIcon} color="$error600" />
-        </Button>
-        <Box flex={1} />
-        <Button size="sm" action="primary" onPress={() => handleApprove(item)} isDisabled={!!processing} borderRadius="$lg" bg="$primary800">
-          {processing === item.id ? <Spinner color="white" size="small" /> : <ButtonText fontWeight="$bold">Approve</ButtonText>}
-        </Button>
-      </HStack>
-    </Box>
-  );
+  const renderActiveShopItem = useCallback(({ item }: any) => (
+    <RegisteredShopItem
+        item={item}
+        onCopy={copyToClipboard}
+        onWhatsApp={openWhatsApp}
+        onDelete={handleDeleteShop}
+    />
+  ), []);
 
   return (
     <ScreenWrapper withHeader>
       <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
 
-      {/* Modern Solid Header */}
-      <Box bg="$primary800">
-        <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
-          <Pressable onPress={() => navigation.replace('Login')} p="$2">
-            <Icon as={ArrowLeftIcon} color="white" />
-          </Pressable>
-          <Appbar.Content
-            title="Admin Control"
-            titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
-            subtitle={viewMode === 'requests' ? "Registration Queue" : "Network Overview"}
-            subtitleStyle={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}
-          />
-          <Pressable onPress={() => firebase.auth().signOut()} p="$3">
-            <Icon as={CheckIcon} color="white" />
-          </Pressable>
-        </Appbar.Header>
-      </Box>
+      <AdminHeader
+        viewMode={viewMode}
+        onBack={() => navigation.replace('Login')}
+        onSignOut={() => firebase.auth().signOut()}
+      />
 
-      {/* Top Actions Section */}
       <VStack space="md" p="$5" bg="$white" borderBottomWidth={1} borderColor="$borderLight">
         <HStack space="md" bg="$backgroundLight50" p="$1" rounded="$xl">
           <Pressable
@@ -479,10 +337,10 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         </Center>
       ) : (
         <FlatList
-          data={viewMode === 'requests' ? filteredRequests : shops.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))}
+          data={viewMode === 'requests' ? filteredRequests : filteredShops}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 20 }}
-          renderItem={viewMode === 'requests' ? renderRequestItem : renderShopItem}
+          renderItem={viewMode === 'requests' ? renderReqItem : renderActiveShopItem}
           ListEmptyComponent={
             <Center mt="$20">
               <Text color="$text400">Nothing found in the {viewMode === 'requests' ? 'queue' : 'database'}.</Text>
@@ -491,100 +349,14 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         />
       )}
 
-      {/* Shop List for 'shops' mode would go here, simplified for now */}
-
-      {/* Edit Modal */}
-      <Modal isOpen={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)} size="lg">
-        <ModalBackdrop />
-        <ModalContent rounded="$3xl">
-          <ModalHeader>
-            <Heading size="lg">Refine Request</Heading>
-            <ModalCloseButton>
-              <Icon as={CloseIcon} />
-            </ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <VStack space="lg" py="$4">
-                <FormControl isRequired>
-                  <FormControlLabel mb="$1">
-                    <FormControlLabelText>Owner Name</FormControlLabelText>
-                  </FormControlLabel>
-                  <Input borderRadius={10}>
-                    <InputField
-                      value={editForm.ownerName}
-                      onChangeText={(text) => setEditForm(prev => ({ ...prev, ownerName: text }))}
-                    />
-                  </Input>
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormControlLabel mb="$1">
-                    <FormControlLabelText>WhatsApp Number</FormControlLabelText>
-                  </FormControlLabel>
-                  <Input borderRadius={10}>
-                    <InputField
-                      value={editForm.whatsappNumber}
-                      onChangeText={(text) => setEditForm(prev => ({ ...prev, whatsappNumber: text }))}
-                      keyboardType="phone-pad"
-                    />
-                  </Input>
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormControlLabel mb="$1">
-                    <FormControlLabelText>Shop Name</FormControlLabelText>
-                  </FormControlLabel>
-                  <Input borderRadius={10}>
-                    <InputField
-                      value={editForm.shopName}
-                      onChangeText={(text) => setEditForm(prev => ({ ...prev, shopName: text }))}
-                    />
-                  </Input>
-                </FormControl>
-
-                <Menu
-                  trigger={({ ...triggerProps }) => (
-                    <Pressable {...triggerProps} borderWidth={1} borderColor="$borderLight" p="$3" rounded="$lg">
-                      <HStack justifyContent="space-between" alignItems="center">
-                        <Text size="sm">Type: {editForm.shopType || 'Select'}</Text>
-                        <Icon as={ChevronDownIcon} />
-                      </HStack>
-                    </Pressable>
-                  )}
-                >
-                  {SHOP_TYPES.map(type => (
-                    <MenuItem key={type} textValue={type} onPress={() => setEditForm(prev => ({ ...prev, shopType: type }))}>
-                      <MenuItemLabel size="sm">{type}</MenuItemLabel>
-                    </MenuItem>
-                  ))}
-                </Menu>
-
-                <FormControl>
-                  <FormControlLabel mb="$1">
-                    <FormControlLabelText>Location</FormControlLabelText>
-                  </FormControlLabel>
-                  <Input borderRadius={10}>
-                    <InputField
-                      value={editForm.location}
-                      onChangeText={(text) => setEditForm(prev => ({ ...prev, location: text }))}
-                      multiline
-                    />
-                  </Input>
-                </FormControl>
-              </VStack>
-            </ScrollView>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="outline" action="secondary" onPress={() => setIsEditDialogOpen(false)} mr="$3" borderRadius="$lg">
-              <ButtonText>Cancel</ButtonText>
-            </Button>
-            <Button action="primary" onPress={saveEdit} borderRadius="$lg" bg="$primary800">
-              {processing === editingRequest?.id ? <Spinner color="white" /> : <ButtonText>Save Changes</ButtonText>}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <EditRequestModal
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        onSave={saveEdit}
+        processing={processing === editingRequest?.id}
+      />
     </ScreenWrapper>
   );
 };

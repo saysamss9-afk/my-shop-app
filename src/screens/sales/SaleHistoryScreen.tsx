@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, StatusBar } from 'react-native';
 import {
   Box,
@@ -13,55 +13,25 @@ import {
   Divider,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
-import { RefreshCw, RotateCcw } from 'lucide-react-native';
+import { RefreshCw } from 'lucide-react-native';
 import { useSales } from '../../hooks/useSales';
 import { Sale } from '../../db/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+// Sub-components
+import SaleHistoryItem from './components/SaleHistoryItem';
 
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
   const { sales, isLoading, currency, revertSale, refreshSales } = useSales(shopId);
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const renderSale = ({ item }: { item: Sale }) => (
-    <Box
-      bg="$white"
-      p="$4"
-      rounded="$xl"
-      mb="$3"
-      borderWidth={1}
-      borderColor="$borderLight"
-    >
-      <HStack space="md" alignItems="center">
-        <Center w={48} h={48} rounded="$full" bg="$primary50">
-          <MaterialCommunityIcons name="receipt-text-outline" size={24} color="#1A237E" />
-        </Center>
-        <VStack flex={1} space="xs">
-          <Heading size="xs" color="$text900">
-            Transaction #{item.id.slice(-6).toUpperCase()}
-          </Heading>
-          <Text size="xs" color="$text500">
-            {formatDate(item.timestamp)}
-          </Text>
-          <Text size="xs" fontWeight="$bold" color="$primary800">
-            Payment: {item.paymentMethod}
-          </Text>
-        </VStack>
-        <VStack alignItems="flex-end" space="xs">
-          <Text size="md" fontWeight="$black" color="$text900">
-            {currency}{item.totalAmount.toFixed(2)}
-          </Text>
-          <Pressable onPress={() => revertSale(item.id)} p="$1">
-             <Icon as={RotateCcw} color="$error600" size="sm" />
-          </Pressable>
-        </VStack>
-      </HStack>
-    </Box>
-  );
+  const renderItem = useCallback(({ item }: { item: Sale }) => (
+    <SaleHistoryItem
+        item={item}
+        currency={currency}
+        onRevert={revertSale}
+    />
+  ), [currency, revertSale]);
 
   return (
     <Box flex={1} bg="$backgroundLight50">
@@ -106,7 +76,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         <FlatList
           data={sales}
           keyExtractor={(item) => item.id}
-          renderItem={renderSale}
+          renderItem={renderItem}
           contentContainerStyle={{ padding: 16 }}
           ListEmptyComponent={
             <Center mt="$20">

@@ -86,6 +86,21 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    flavorDimensions "app"
+    productFlavors {
+        user {
+            dimension "app"
+            applicationIdSuffix ".user"
+            versionNameSuffix "-user"
+        }
+        admin {
+            dimension "app"
+            applicationIdSuffix ".admin"
+            versionNameSuffix "-admin"
+        }
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
