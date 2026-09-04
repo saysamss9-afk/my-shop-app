@@ -78,16 +78,29 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.abijahshops.admin"
+    namespace "com.abijahshops"
     defaultConfig {
-        applicationId "com.abijahshops.admin"
+        applicationId "com.abijahshops"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
     }
 
-            // Use debug signing for release builds on CI until production keys are set up
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
             if (file('debug.keystore').exists()) {
                 signingConfig signingConfigs.debug
             }

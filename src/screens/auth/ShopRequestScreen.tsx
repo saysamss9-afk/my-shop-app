@@ -33,6 +33,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { User, MapPin } from 'lucide-react-native';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { ShopRepository } from '../../repositories/ShopRepository';
+import { platformShadow } from '../../utils/platformStyles';
 
 type Props = StackScreenProps<RootStackParamList, 'ShopRequest'>;
 
