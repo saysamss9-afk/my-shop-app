@@ -7,6 +7,7 @@ import { config } from './src/gluestack-ui.config';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import OfflineBanner from './src/components/common/OfflineBanner';
+import { SyncProvider } from './src/sync/SyncContext';
 
 const { LightTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
@@ -37,14 +38,16 @@ const theme = {
 const App = () => {
   console.log('App.tsx: Rendering root App component');
   return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+    <SafeAreaProvider>
       <ErrorBoundary>
         <GluestackUIProvider config={config}>
           <PaperProvider theme={theme}>
-            <OfflineBanner />
-            <NavigationContainer theme={theme}>
-              <AppNavigator />
-            </NavigationContainer>
+            <SyncProvider>
+              <OfflineBanner />
+              <NavigationContainer theme={theme}>
+                <AppNavigator />
+              </NavigationContainer>
+            </SyncProvider>
           </PaperProvider>
         </GluestackUIProvider>
       </ErrorBoundary>

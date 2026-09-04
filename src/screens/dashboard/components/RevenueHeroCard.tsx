@@ -13,12 +13,13 @@ import { platformShadow } from '../../../utils/platformStyles';
 
 interface Props {
   shopId: string;
+  shopName: string;
   revenue: number;
   currency: string;
   lastSynced: number;
 }
 
-const RevenueHeroCard: React.FC<Props> = ({ shopId, revenue, currency, lastSynced }) => {
+const RevenueHeroCard: React.FC<Props> = ({ shopId, shopName, revenue, currency, lastSynced }) => {
   return (
     <Box
       bg="$primary600"
@@ -42,6 +43,7 @@ const RevenueHeroCard: React.FC<Props> = ({ shopId, revenue, currency, lastSynce
         </HStack>
         <HStack justifyContent="space-between" alignItems="center" mt="$4">
           <VStack>
+             <Text color="white" size="xs" opacity={0.7}>Shop: {shopName}</Text>
              <Text color="white" size="xs" opacity={0.7}>Shop ID: {shopId}</Text>
              {lastSynced > 0 && (
                <Text color="white" size="xs" opacity={0.7}>

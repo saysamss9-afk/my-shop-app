@@ -1,6 +1,8 @@
 if (typeof __DEV__ === 'undefined') {
   global.__DEV__ = true;
 }
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 import './src/firebase-config'; // MUST BE FIRST
 import { AppRegistry } from 'react-native';
 import App from './App';

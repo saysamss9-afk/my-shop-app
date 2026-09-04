@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { Sale } from '../db/types';
+import { useSync } from '../sync/SyncContext';
 
 export const useSales = (shopId: string) => {
+  const { triggerSync } = useSync();
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export const useSales = (shopId: string) => {
       const db = await getDBConnection();
       const saleRepo = new SaleRepository(db);
       await saleRepo.revertSale(saleId);
+      triggerSync(); // Trigger background sync
       await loadSales();
     } catch (e: any) {
       setError(e.message);

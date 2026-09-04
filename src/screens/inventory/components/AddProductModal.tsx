@@ -33,6 +33,7 @@ interface Props {
   onSave: () => void;
   onScanPress: (target: 'unit' | 'bulk') => void;
   onAutoBarcode: () => void;
+  onAutoBulkBarcode: () => void;
 }
 
 const AddProductModal: React.FC<Props> = ({
@@ -44,6 +45,7 @@ const AddProductModal: React.FC<Props> = ({
   onSave,
   onScanPress,
   onAutoBarcode,
+  onAutoBulkBarcode,
 }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -191,6 +193,15 @@ const AddProductModal: React.FC<Props> = ({
                           px="$3"
                       >
                           <Icon as={Camera} color="$primary600" size="sm" />
+                      </Button>
+                      <Button
+                          variant="outline"
+                          action="primary"
+                          onPress={onAutoBulkBarcode}
+                          borderRadius={16}
+                          borderColor="$primary600"
+                      >
+                          <ButtonText size="xs" color="$primary600">Auto</ButtonText>
                       </Button>
                     </HStack>
                   </FormControl>

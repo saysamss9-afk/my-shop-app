@@ -20,8 +20,9 @@ import ActionGrid, { DashboardItem } from './components/ActionGrid';
 type Props = StackScreenProps<RootStackParamList, 'Dashboard'>;
 
 const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { shopId, employeeId, userRole } = route.params;
-  const { syncStatus, lowStockCount, revenue, currency, lastSynced, triggerSync } = useDashboard(shopId);
+  const { shopId, employeeId, userRole, shopName: initialShopName } = route.params;
+  const { syncStatus, lowStockCount, revenue, currency, shopName: fetchedShopName, lastSynced, triggerSync } = useDashboard(shopId);
+  const displayShopName = fetchedShopName || initialShopName || 'Your Shop';
 
   const primaryActions: DashboardItem[] = [
     {
@@ -54,7 +55,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       description: 'Credit',
       icon: 'wallet',
       color: '#FB8C00',
-      onPress: () => console.log('Navigate to Customers'),
+      onPress: () => navigation.navigate('Customers', { shopId }),
     },
     {
       id: 'workers',
@@ -72,7 +73,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       icon: 'store',
       color: '#1E88E5',
       roleRequired: ['OWNER', 'MANAGER'],
-      onPress: () => console.log('Navigate to Suppliers'),
+      onPress: () => navigation.navigate('Suppliers', { shopId }),
     },
   ];
 
@@ -82,12 +83,14 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
 
       <DashboardHeader
         userRole={userRole}
+        shopName={displayShopName}
         syncStatus={syncStatus}
         onTriggerSync={triggerSync}
       />
 
       <RevenueHeroCard
         shopId={shopId}
+        shopName={displayShopName}
         revenue={revenue}
         currency={currency}
         lastSynced={lastSynced}

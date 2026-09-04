@@ -21,10 +21,21 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
     const checkEmployee = async () => {
         const data = await getUserEmployeeData(user.uid);
         if (data && data.shopId) {
+            let shopName = 'Your Shop';
+            try {
+                const shopSnap = await firebase.firestore().collection('registered_shops').doc(data.shopId).get();
+                if (shopSnap.exists) {
+                    shopName = shopSnap.data()?.name || shopName;
+                }
+            } catch (error) {
+                console.warn('Failed to fetch shop name for setup redirect:', error);
+            }
+
             navigation.replace('Dashboard', {
                 shopId: data.shopId,
                 employeeId: user.uid,
-                userRole: data.role
+                userRole: data.role,
+                shopName,
             });
         }
     };

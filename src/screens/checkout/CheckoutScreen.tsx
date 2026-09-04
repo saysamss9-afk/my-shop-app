@@ -20,12 +20,14 @@ import {
   Button,
   ButtonText,
 } from '@gluestack-ui/themed';
-import { Scan } from 'lucide-react-native';
+import { Scan, User, UserPlus } from 'lucide-react-native';
 import { useCheckout } from '../../hooks/useCheckout';
 import { useInventory } from '../../hooks/useInventory';
+import { useCustomers } from '../../hooks/useCustomers';
 import AppIcon from '../../components/common/AppIcon';
 import { ScannerView } from '../../components/ScannerView';
 import { getButtonHeight, platformShadow } from '../../utils/platformStyles';
+import SelectCustomerModal from './components/SelectCustomerModal';
 
 // Sub-components
 import CheckoutHeader from './components/CheckoutHeader';
@@ -46,12 +48,18 @@ const CheckoutScreen = ({ route, navigation }: any) => {
     updateQuantity,
     processSale,
     searchProductByBarcode,
+    selectedCustomerId,
+    setSelectedCustomerId,
   } = useCheckout(shopId, employeeId);
 
   const { products } = useInventory(shopId);
+  const { customers } = useCustomers(shopId);
   const [searchQuery, setSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [isScannerVisible, setIsScannerVisible] = useState(false);
+
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
 
   const filteredProducts = searchQuery.length > 0 ? products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,8 +73,8 @@ const CheckoutScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const handleCompleteSale = async () => {
-    await processSale('CASH');
+  const handleCompleteSale = async (method: string) => {
+    await processSale(method);
     setShowPaymentModal(false);
     navigation.goBack();
   };
@@ -127,6 +135,38 @@ const CheckoutScreen = ({ route, navigation }: any) => {
 
       {/* Search Section */}
       <Box px="$5" pb="$4" zIndex={10}>
+        <HStack space="md" mb="$4">
+          <Pressable
+            flex={1}
+            onPress={() => setShowCustomerModal(true)}
+            bg="$white"
+            p="$3"
+            rounded="$xl"
+            borderWidth={1}
+            borderColor={selectedCustomer ? "$primary600" : "$borderLight"}
+            style={{ ...platformShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.03)' }) }}
+          >
+            <HStack space="sm" alignItems="center">
+              <Center w={32} h={32} rounded="$full" bg={selectedCustomer ? "$primary50" : "$backgroundLight100"}>
+                <Icon as={User} size="xs" color={selectedCustomer ? "$primary600" : "$text400"} />
+              </Center>
+              <VStack>
+                <Text size="xs" color="$text500">{selectedCustomer ? "Customer Selected" : "Assign Customer"}</Text>
+                <Text size="sm" fontWeight="$bold" color={selectedCustomer ? "$text900" : "$text400"}>
+                  {selectedCustomer ? selectedCustomer.name : "Optional (for Credit)"}
+                </Text>
+              </VStack>
+              {selectedCustomer && (
+                  <Box ml="auto">
+                      <Pressable onPress={(e) => { e.stopPropagation(); setSelectedCustomerId(null); }}>
+                          <Icon as={CloseIcon} size="xs" color="$text400" />
+                      </Pressable>
+                  </Box>
+              )}
+            </HStack>
+          </Pressable>
+        </HStack>
+
         <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...platformShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
           <InputSlot pl="$4">
             <InputIcon as={SearchIcon} color="$primary600" />
@@ -193,6 +233,18 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         total={total}
         currency={currency}
         onConfirm={handleCompleteSale}
+        selectedCustomer={selectedCustomer}
+      />
+
+      <SelectCustomerModal
+        isOpen={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        customers={customers}
+        onSelect={(customerId) => {
+            setSelectedCustomerId(customerId);
+            setShowCustomerModal(false);
+        }}
+        selectedCustomerId={selectedCustomerId}
       />
     </Box>
   );

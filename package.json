@@ -10,7 +10,7 @@
     "test": "jest",
     "dev": "npm run start:web",
     "build:web": "webpack --mode production",
-    "start:web": "webpack serve --mode development --host 127.0.0.1 --port 8080",
+    "start:web": "webpack serve --mode development --host 127.0.0.1 --port 3000",
     "start:windows": "electron .",
     "build:windows": "npm run build:web && electron-builder --win"
   },

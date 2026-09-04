@@ -37,7 +37,9 @@ const InventoryScreen = ({ route, navigation }: any) => {
   const { shopId, userRole } = route.params;
   const {
     products,
+    categories,
     currency,
+    shopName,
     isLoading,
     showLowStockOnly,
     addProduct,
@@ -134,6 +136,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onBack={() => navigation.goBack()}
         onToggleFilter={toggleLowStockFilter}
         showLowStockOnly={showLowStockOnly}
+        shopName={shopName}
       />
 
       <InventorySearch
@@ -197,6 +200,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onSave={handleSave}
         onScanPress={setScanTarget}
         onAutoBarcode={() => setNewProduct({ ...newProduct, barcode: generateBarcode() })}
+        onAutoBulkBarcode={() => setNewProduct({ ...newProduct, bulkBarcode: generateBarcode() })}
       />
 
       {/* Camera Scanner Modal */}

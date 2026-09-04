@@ -59,6 +59,15 @@ export const useAuth = () => {
     return await authRepository.getUserEmployeeData(uid);
   }, []);
 
+  const getShopDetails = useCallback(async (shopId: string) => {
+    // We can instantiate ShopRepository here or pass it in
+    // For simplicity and since AuthRepository is already there, let's just use it
+    // Actually, it's better to keep it clean.
+    const { ShopRepository } = require('../repositories/ShopRepository');
+    const shopRepo = new ShopRepository();
+    return await shopRepo.getShopDetails(shopId);
+  }, []);
+
   const logout = useCallback(async () => {
     await authRepository.logout();
     setState({
@@ -80,6 +89,7 @@ export const useAuth = () => {
     linkUserToShop,
     clearError,
     getUserEmployeeData,
+    getShopDetails,
     logout
   };
 };

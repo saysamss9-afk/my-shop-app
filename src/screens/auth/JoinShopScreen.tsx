@@ -103,10 +103,11 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
         navigation.replace('Dashboard', {
             shopId: shopCode,
             employeeId: user.uid,
-            userRole: role
+            userRole: role,
+            shopName: shopDetails?.name || 'Your Shop'
         });
     }
-  }, [isSuccess, user]);
+  }, [isSuccess, user, shopCode, role, shopDetails?.name]);
 
   return (
     <ScreenWrapper scrollable>
@@ -268,7 +269,5 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
     </ScreenWrapper>
   );
 };
-
-export default JoinShopScreen;
 
 export default JoinShopScreen;

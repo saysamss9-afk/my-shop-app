@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { getDBConnection } from '../db/database';
 import { ProductRepository } from '../repositories/ProductRepository';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { Product, Sale, SaleItem } from '../db/types';
+import { useSync } from '../sync/SyncContext';
 
 export interface CartItem {
   product: Product;
@@ -51,10 +52,12 @@ export const validateCartStock = (items: CartItem[]) => {
 };
 
 export const useCheckout = (shopId: string, employeeId: string) => {
+  const { triggerSync } = useSync();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('$');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const fetchCurrency = useCallback(async () => {
     try {
@@ -126,15 +129,16 @@ export const useCheckout = (shopId: string, employeeId: string) => {
 
       const saleId = Date.now().toString();
       const saleTotal = calculateCartTotal(cart);
+      const targetCustomerId = customerId || selectedCustomerId;
       const sale: Sale = {
         id: saleId,
         shopId,
         employeeId,
-        customerId,
+        customerId: targetCustomerId,
         timestamp: Date.now(),
         totalAmount: saleTotal,
         paymentMethod,
-        paymentStatus: 'PAID',
+        paymentStatus: paymentMethod === 'DEBT' ? 'DEBT' : 'PAID',
         dueDate: null,
         syncStatus: 0,
         isReverted: 0,
@@ -151,13 +155,15 @@ export const useCheckout = (shopId: string, employeeId: string) => {
 
       await saleRepo.insertSale(sale, items);
       clearCart();
+      setSelectedCustomerId(null);
+      triggerSync(); // Trigger background sync
       return saleId;
     } catch (e: any) {
       setError(e.message || 'Unable to process sale.');
     } finally {
       setIsLoading(false);
     }
-  }, [cart, shopId, employeeId, clearCart]);
+  }, [cart, shopId, employeeId, clearCart, selectedCustomerId, triggerSync]);
 
   const searchProductByBarcode = useCallback(async (barcode: string) => {
     try {
@@ -191,5 +197,7 @@ export const useCheckout = (shopId: string, employeeId: string) => {
     clearCart,
     processSale,
     searchProductByBarcode,
+    selectedCustomerId,
+    setSelectedCustomerId,
   };
 };

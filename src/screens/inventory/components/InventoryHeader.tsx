@@ -15,9 +15,10 @@ interface Props {
   onBack: () => void;
   onToggleFilter: () => void;
   showLowStockOnly: boolean;
+  shopName?: string;
 }
 
-const InventoryHeader: React.FC<Props> = ({ onBack, onToggleFilter, showLowStockOnly }) => {
+const InventoryHeader: React.FC<Props> = ({ onBack, onToggleFilter, showLowStockOnly, shopName }) => {
   return (
     <Box px="$2" pt="$2" pb="$4">
       <HStack justifyContent="space-between" alignItems="center">
@@ -26,8 +27,12 @@ const InventoryHeader: React.FC<Props> = ({ onBack, onToggleFilter, showLowStock
             <Icon as={ArrowLeftIcon} color="$text900" />
           </Pressable>
           <VStack>
-            <Heading size="lg" color="$text900" fontWeight="$black">Inventory</Heading>
-            <Text size="xs" color="$text500">Manage your shop products</Text>
+            <Heading size="lg" color="$text900" fontWeight="$black">
+                {shopName || 'Inventory'}
+            </Heading>
+            <Text size="xs" color="$text500">
+                {shopName ? 'Inventory Management' : 'Manage your shop products'}
+            </Text>
           </VStack>
         </HStack>
         <Pressable

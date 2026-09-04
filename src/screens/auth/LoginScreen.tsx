@@ -43,7 +43,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, error, isSuccess, user, getUserEmployeeData } = useAuth();
+  const { login, isLoading, error, isSuccess, user, getUserEmployeeData, getShopDetails } = useAuth();
 
   useEffect(() => {
     if (isSuccess && user) {
@@ -55,10 +55,21 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         const employeeData = await getUserEmployeeData(user.uid);
         if (employeeData) {
+          let shopName = 'Your Shop';
+          try {
+            const shopData = await getShopDetails(employeeData.shopId);
+            if (shopData) {
+              shopName = shopData.name || shopName;
+            }
+          } catch (error) {
+            console.warn('Failed to fetch shop name for dashboard:', error);
+          }
+
           navigation.replace('Dashboard', {
             shopId: employeeData.shopId,
             employeeId: user.uid,
-            userRole: employeeData.role
+            userRole: employeeData.role,
+            shopName,
           });
         } else {
           navigation.replace('ShopSetup');
@@ -66,7 +77,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       };
       checkData();
     }
-  }, [isSuccess, user, navigation, getUserEmployeeData]);
+  }, [isSuccess, user, navigation, getUserEmployeeData, getShopDetails]);
 
   const handleState = () => {
     setShowPassword((showState) => !showState);

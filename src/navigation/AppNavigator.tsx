@@ -13,6 +13,8 @@ import CheckoutScreen from '../screens/checkout/CheckoutScreen';
 import SaleHistoryScreen from '../screens/sales/SaleHistoryScreen';
 import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
 import StaffManagementScreen from '../screens/admin/StaffManagementScreen';
+import SupplierScreen from '../screens/inventory/SupplierScreen';
+import CustomerScreen from '../screens/sales/CustomerScreen';
 
 export type RootStackParamList = {
   Landing: undefined;
@@ -22,12 +24,14 @@ export type RootStackParamList = {
   ShopSetup: undefined;
   ShopRequest: undefined;
   AdminDashboard: undefined;
-  Dashboard: { shopId: string; employeeId: string; userRole: string };
+  Dashboard: { shopId: string; employeeId: string; userRole: string; shopName?: string };
   Inventory: { shopId: string; userRole: string };
   Checkout: { shopId: string; employeeId: string };
   SaleHistory: { shopId: string };
   Analytics: { shopId: string };
   StaffManagement: { shopId: string };
+  Suppliers: { shopId: string };
+  Customers: { shopId: string };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -53,6 +57,8 @@ const AppNavigator = () => {
       <Stack.Screen name="SaleHistory" component={SaleHistoryScreen} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen} />
       <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
+      <Stack.Screen name="Suppliers" component={SupplierScreen} />
+      <Stack.Screen name="Customers" component={CustomerScreen} />
     </Stack.Navigator>
   );
 };

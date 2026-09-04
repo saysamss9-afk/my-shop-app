@@ -297,5 +297,3 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 export default ShopRequestScreen;
-
-export default ShopRequestScreen;

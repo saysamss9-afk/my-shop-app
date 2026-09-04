@@ -48,12 +48,11 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
 
       <Box
-        h={360}
+        h={320}
         borderBottomLeftRadius={52}
         borderBottomRightRadius={52}
         justifyContent="center"
         alignItems="center"
-        pt="$10"
         style={{
           background: 'linear-gradient(135deg, #6E3BE6 0%, #7E5BFF 46%, #8F6BFF 100%)',
           ...platformShadow({ offsetY: 18, radius: 32, color: 'rgba(110,59,230,0.20)' }),
@@ -92,8 +91,8 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
       </Box>
 
       <ScrollView
-        style={{ marginTop: -20, zIndex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32 }}
+        style={{ marginTop: 0, zIndex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 24 }}
         showsVerticalScrollIndicator={false}
       >
         <VStack space="xl">
@@ -182,31 +181,19 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
               EVERYTHING YOU NEED
             </Text>
 
-            {featureCards.map((feature) => (
-              <Box
-                key={feature.title}
-                bg="$white"
-                rounded={24}
-                px="$4"
-                py="$3"
-                style={{
-                  ...platformShadow({ offsetY: 6, radius: 16, color: 'rgba(110,59,230,0.05)' }),
-                }}
-              >
-                <HStack alignItems="center" space="md">
-                  <Center w={52} h={52} rounded={18} bg={feature.tint}>
-                    <AppIcon name={feature.icon as any} size={24} color={feature.color} />
+            <VStack space="lg" px="$2">
+              {featureCards.map((feature) => (
+                <HStack key={feature.title} alignItems="center" space="md">
+                  <Center w={40} h={40} rounded="$full" bg={feature.tint}>
+                    <AppIcon name={feature.icon as any} size={20} color={feature.color} />
                   </Center>
-
-                  <VStack flex={1} space="xs">
-                    <Heading size="sm" color="$text900">{feature.title}</Heading>
+                  <VStack>
+                    <Heading size="xs" color="$text900">{feature.title}</Heading>
                     <Text size="xs" color="$text500">{feature.subtitle}</Text>
                   </VStack>
-
-                  <Icon as={ChevronRightIcon} color="$text300" />
                 </HStack>
-              </Box>
-            ))}
+              ))}
+            </VStack>
           </VStack>
 
           <Center mt="$4">

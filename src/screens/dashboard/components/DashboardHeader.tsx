@@ -14,19 +14,23 @@ import { SyncStatus } from '../../../sync/SyncManager';
 
 interface Props {
   userRole: string;
+  shopName: string;
   syncStatus: SyncStatus;
   onTriggerSync: () => void;
 }
 
-const DashboardHeader: React.FC<Props> = ({ userRole, syncStatus, onTriggerSync }) => {
+const DashboardHeader: React.FC<Props> = ({ userRole, shopName, syncStatus, onTriggerSync }) => {
   return (
     <Box px="$2" pt="$2" pb="$6">
       <HStack justifyContent="space-between" alignItems="center">
         <VStack>
           <Text size="sm" color="$text500" fontWeight="$medium">Welcome,</Text>
           <Heading size="xl" color="$text900" fontWeight="$black">
-            {userRole === 'OWNER' ? 'Shop Owner' : 'Staff Member'}
+            {shopName}
           </Heading>
+          <Text size="xs" color="$text500" fontWeight="$medium">
+            {userRole === 'OWNER' ? 'Shop Owner' : 'Staff Member'}
+          </Text>
         </VStack>
         <HStack space="sm">
           {syncStatus === SyncStatus.Syncing ? (

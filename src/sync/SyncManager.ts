@@ -1,7 +1,9 @@
 import firestore from '@react-native-firebase/firestore';
+import NetInfo from '@react-native-community/netinfo';
 import { ProductRepository } from '../repositories/ProductRepository';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { SupplierRepository } from '../repositories/SupplierRepository';
+import { CustomerRepository } from '../repositories/CustomerRepository';
 
 export enum SyncStatus {
   Idle,
@@ -14,12 +16,37 @@ export class SyncManager {
   private status: SyncStatus = SyncStatus.Idle;
   private lastSynced: number = 0;
   private readonly BATCH_LIMIT = 500;
+  private isNetworkListenerActive: boolean = false;
+  private unsubscribeNetwork: (() => void) | null = null;
 
   constructor(
     private productRepo: ProductRepository,
     private saleRepo: SaleRepository,
-    private supplierRepo: SupplierRepository
+    private supplierRepo: SupplierRepository,
+    private customerRepo: CustomerRepository
   ) {}
+
+  public initialize() {
+    this.setupNetworkListener();
+  }
+
+  public cleanup() {
+    if (this.unsubscribeNetwork) {
+      this.unsubscribeNetwork();
+    }
+  }
+
+  private setupNetworkListener() {
+    if (this.isNetworkListenerActive) return;
+
+    this.isNetworkListenerActive = true;
+    this.unsubscribeNetwork = NetInfo.addEventListener(state => {
+      if (state.isConnected && state.isInternetReachable) {
+        console.log('Network is back online, triggering sync...');
+        this.triggerSync();
+      }
+    });
+  }
 
   async triggerSync() {
     if (this.status === SyncStatus.Syncing) return;
@@ -29,7 +56,9 @@ export class SyncManager {
       await Promise.all([
         this.syncSales(),
         this.syncProducts(),
-        this.syncSuppliers()
+        this.syncSuppliers(),
+        this.syncCustomers(),
+        this.syncPayments()
       ]);
       this.status = SyncStatus.Success;
       this.lastSynced = Date.now();
@@ -174,6 +203,85 @@ export class SyncManager {
     if (count > 0) {
       await batch.commit();
       for (const id of syncedIds) await this.supplierRepo.markSupplierSynced(id);
+    }
+  }
+
+  private async syncCustomers() {
+    const unsynced = await this.customerRepo.getUnsyncedCustomers();
+    if (unsynced.length === 0) return;
+
+    let batch = firestore().batch();
+    let count = 0;
+    const syncedIds: string[] = [];
+
+    for (const customer of unsynced) {
+      const customerRef = firestore().collection('shops').doc(customer.shopId).collection('customers').doc(customer.id);
+
+      const customerData = {
+        id: customer.id,
+        shopId: customer.shopId,
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+        currentBalance: customer.currentBalance
+      };
+
+      batch.set(customerRef, customerData);
+      count++;
+      syncedIds.push(customer.id);
+
+      if (count === this.BATCH_LIMIT) {
+        await batch.commit();
+        for (const id of syncedIds) await this.customerRepo.markCustomerSynced(id);
+        batch = firestore().batch();
+        count = 0;
+        syncedIds.length = 0;
+      }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+      for (const id of syncedIds) await this.customerRepo.markCustomerSynced(id);
+    }
+  }
+
+  private async syncPayments() {
+    const unsynced = await this.customerRepo.getUnsyncedPayments();
+    if (unsynced.length === 0) return;
+
+    let batch = firestore().batch();
+    let count = 0;
+    const syncedIds: string[] = [];
+
+    for (const payment of unsynced) {
+      const paymentRef = firestore().collection('shops').doc(payment.shopId).collection('payments').doc(payment.id);
+
+      const paymentData = {
+        id: payment.id,
+        customerId: payment.customerId,
+        shopId: payment.shopId,
+        amount: payment.amount,
+        paymentMethod: payment.paymentMethod,
+        timestamp: payment.timestamp,
+        note: payment.note
+      };
+
+      batch.set(paymentRef, paymentData);
+      count++;
+      syncedIds.push(payment.id);
+
+      if (count === this.BATCH_LIMIT) {
+        await batch.commit();
+        for (const id of syncedIds) await this.customerRepo.markPaymentSynced(id);
+        batch = firestore().batch();
+        count = 0;
+        syncedIds.length = 0;
+      }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+      for (const id of syncedIds) await this.customerRepo.markPaymentSynced(id);
     }
   }
 

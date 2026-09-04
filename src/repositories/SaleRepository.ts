@@ -16,6 +16,12 @@ export class SaleRepository {
       ];
       await tx.executeSql(saleQuery, saleParams);
 
+      // If it's a debt sale, update customer balance
+      if (sale.customerId && sale.paymentStatus === 'DEBT') {
+        const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance + ?, syncStatus = 0 WHERE id = ?';
+        await tx.executeSql(updateBalanceQuery, [sale.totalAmount, sale.customerId]);
+      }
+
       for (const item of items) {
         const itemQuery = `
           INSERT INTO SaleItem(id, saleId, productId, quantity, priceAtSale, isBulk)
@@ -76,8 +82,19 @@ export class SaleRepository {
 
   async revertSale(saleId: string) {
     await this.db.transaction(async (tx: any) => {
+      // Get sale info first to know if we need to update customer balance
+      const saleInfoQuery = 'SELECT customerId, totalAmount, paymentStatus FROM Sale WHERE id = ?';
+      const [saleInfoResult] = await tx.executeSql(saleInfoQuery, [saleId]);
+      const sale = saleInfoResult.rows.item(0);
+
       const revertQuery = 'UPDATE Sale SET isReverted = 1, syncStatus = 0 WHERE id = ?';
       await tx.executeSql(revertQuery, [saleId]);
+
+      // If it was a debt sale, reduce customer balance
+      if (sale && sale.customerId && sale.paymentStatus === 'DEBT') {
+        const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
+        await tx.executeSql(updateBalanceQuery, [sale.totalAmount, sale.customerId]);
+      }
 
       // Restore stock
       const itemsQuery = 'SELECT * FROM SaleItem WHERE saleId = ?';

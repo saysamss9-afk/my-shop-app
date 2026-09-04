@@ -1,17 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ProductRepository } from '../repositories/ProductRepository';
-import { SyncManager, SyncStatus } from '../sync/SyncManager';
+import { SyncStatus } from '../sync/SyncManager';
 import { getDBConnection } from '../db/database';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { SupplierRepository } from '../repositories/SupplierRepository';
 import { AnalyticsRepository } from '../repositories/AnalyticsRepository';
+import { useSync } from '../sync/SyncContext';
 
 export const useDashboard = (shopId: string) => {
+  const { syncManager, triggerSync: triggerGlobalSync } = useSync();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(SyncStatus.Idle);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [revenue, setRevenue] = useState(0);
   const [lastSynced, setLastSynced] = useState<number>(0);
   const [currency, setCurrency] = useState('$');
+  const [shopName, setShopName] = useState('');
+
+  // Sync status effect
+  useEffect(() => {
+    if (syncManager) {
+      setSyncStatus(syncManager.getStatus());
+      setLastSynced(syncManager.getLastSynced());
+    }
+  }, [syncManager]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -19,9 +30,11 @@ export const useDashboard = (shopId: string) => {
       const productRepo = new ProductRepository(db);
       const analyticsRepo = new AnalyticsRepository(db);
 
-      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
+      const shopResults = await db.executeSql('SELECT name, currency FROM Shop WHERE id = ?', [shopId]);
       if (shopResults[0].rows.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '$');
+        const shop = shopResults[0].rows.item(0);
+        setCurrency(shop.currency || '$');
+        setShopName(shop.name || '');
       }
 
       // Get low stock count
@@ -40,36 +53,18 @@ export const useDashboard = (shopId: string) => {
         endOfDay.getTime()
       );
       setRevenue(summary.totalRevenue);
-
-      // Get last synced time from Shop metadata (if we had it, for now we track locally in hook)
-      // For now we rely on the sync manager's internal state if triggered in this session
     } catch (e) {
       console.error('Failed to load dashboard stats:', e);
     }
   }, [shopId]);
 
   const triggerSync = useCallback(async () => {
-    try {
-      const db = await getDBConnection();
-      const productRepo = new ProductRepository(db);
-      const saleRepo = new SaleRepository(db);
-      const supplierRepo = new SupplierRepository(db);
-      const syncManager = new SyncManager(productRepo, saleRepo, supplierRepo);
-
-      setSyncStatus(SyncStatus.Syncing);
-      await syncManager.triggerSync();
-      setSyncStatus(SyncStatus.Success);
-      setLastSynced(Date.now());
-
-      // Refresh stats after sync
-      await loadStats();
-    } catch (e) {
-      console.error('Manual sync failed:', e);
-      setSyncStatus(SyncStatus.Error);
-    } finally {
-      setTimeout(() => setSyncStatus(SyncStatus.Idle), 3000);
-    }
-  }, [shopId, loadStats]);
+    setSyncStatus(SyncStatus.Syncing);
+    await triggerGlobalSync();
+    await loadStats();
+    setLastSynced(Date.now());
+    setTimeout(() => setSyncStatus(SyncStatus.Idle), 3000);
+  }, [triggerGlobalSync, loadStats]);
 
   useEffect(() => {
     loadStats();
@@ -80,6 +75,7 @@ export const useDashboard = (shopId: string) => {
     lowStockCount,
     revenue,
     currency,
+    shopName,
     lastSynced,
     triggerSync,
     refreshDashboard: loadStats

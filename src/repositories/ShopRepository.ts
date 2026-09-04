@@ -28,4 +28,9 @@ export class ShopRepository {
       .get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
+
+  async getShopDetails(shopId: string) {
+    const doc = await firestore().collection('registered_shops').doc(shopId).get();
+    return doc.exists ? doc.data() : null;
+  }
 }

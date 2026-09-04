@@ -3,14 +3,17 @@ import { getDBConnection } from '../db/database';
 import { ProductRepository } from '../repositories/ProductRepository';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { Product, Category } from '../db/types';
+import { useSync } from '../sync/SyncContext';
 
 export const useInventory = (shopId: string) => {
+  const { triggerSync } = useSync();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const [currency, setCurrency] = useState('$');
+  const [shopName, setShopName] = useState('');
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -23,9 +26,11 @@ export const useInventory = (shopId: string) => {
       const allProducts = await productRepo.getProductsByShop(shopId);
       const allCategories = await categoryRepo.getCategoriesByShop(shopId);
 
-      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
+      const shopResults = await db.executeSql('SELECT name, currency FROM Shop WHERE id = ?', [shopId]);
       if (shopResults[0].rows.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '$');
+        const shop = shopResults[0].rows.item(0);
+        setCurrency(shop.currency || '$');
+        setShopName(shop.name || '');
       }
 
       setProducts(allProducts);
@@ -58,12 +63,15 @@ export const useInventory = (shopId: string) => {
       // 2. Update local state immediately for instant UI feedback
       setProducts(prev => [newProduct, ...prev]);
 
-      // 3. Silently refresh categories or other metadata if needed,
+      // 3. Trigger background sync
+      triggerSync();
+
+      // 4. Silently refresh categories or other metadata if needed,
       // but don't call loadData() with isLoading=true
     } catch (e: any) {
       setError(e.message);
     }
-  }, [shopId]);
+  }, [shopId, triggerSync]);
 
   const toggleLowStockFilter = () => {
     setShowLowStockOnly(!showLowStockOnly);
@@ -81,6 +89,7 @@ export const useInventory = (shopId: string) => {
     products: filteredProducts,
     categories,
     currency,
+    shopName,
     isLoading,
     error,
     showLowStockOnly,
