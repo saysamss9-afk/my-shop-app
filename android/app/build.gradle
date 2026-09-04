@@ -80,39 +80,13 @@ android {
 
     namespace "com.abijahshops.admin"
     defaultConfig {
-        applicationId "com.abijahshops"
+        applicationId "com.abijahshops.admin"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
     }
 
-    flavorDimensions "app"
-    productFlavors {
-        user {
-            dimension "app"
-            versionNameSuffix "-user"
-        }
-        admin {
-            dimension "app"
-            applicationIdSuffix ".admin"
-            versionNameSuffix "-admin"
-        }
-    }
-
-    signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
-    }
-    buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
-        release {
             // Use debug signing for release builds on CI until production keys are set up
             if (file('debug.keystore').exists()) {
                 signingConfig signingConfigs.debug
