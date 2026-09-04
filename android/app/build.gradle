@@ -91,7 +91,6 @@ android {
     productFlavors {
         user {
             dimension "app"
-            applicationIdSuffix ".user"
             versionNameSuffix "-user"
         }
         admin {
