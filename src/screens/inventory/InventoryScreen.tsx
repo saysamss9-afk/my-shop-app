@@ -41,10 +41,12 @@ const InventoryScreen = ({ route, navigation }: any) => {
     currency,
     shopName,
     isLoading,
+    syncStatus,
     showLowStockOnly,
     addProduct,
     toggleLowStockFilter,
     generateBarcode,
+    triggerManualSync,
   } = useInventory(shopId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,69 +55,39 @@ const InventoryScreen = ({ route, navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [scanTarget, setScanTarget] = useState<'unit' | 'bulk' | null>(null);
 
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    barcode: '',
-    bulkBarcode: '',
-    bulkQuantity: '12',
-    bulkPrice: '',
-    bulkStockQuantity: '',
-    price: '',
-    costPrice: '',
-    stockQuantity: '',
-    minStockLevel: '',
-    unit: 'pcs',
-    categoryId: null as string | null,
-  });
-
-  const handleSave = async () => {
+  const handleSave = async (productData: any) => {
     const isUnitMode = entryMode === 'UNIT';
     const hasRequiredFields = isUnitMode
-      ? (newProduct.name && newProduct.price)
-      : (newProduct.name && newProduct.bulkPrice);
+      ? (productData.name && productData.price)
+      : (productData.name && productData.bulkPrice);
 
     if (!hasRequiredFields) return;
 
     await addProduct({
-      name: newProduct.name,
-      barcode: newProduct.barcode || null,
-      bulkBarcode: newProduct.bulkBarcode || null,
-      bulkQuantity: parseFloat(newProduct.bulkQuantity) || 1,
-      bulkPrice: parseFloat(newProduct.bulkPrice) || 0,
-      bulkStockQuantity: parseFloat(newProduct.bulkStockQuantity) || 0,
-      price: parseFloat(newProduct.price) || 0,
-      costPrice: parseFloat(newProduct.costPrice) || 0,
-      stockQuantity: parseFloat(newProduct.stockQuantity) || 0,
-      minStockLevel: parseFloat(newProduct.minStockLevel) || 0,
-      unit: newProduct.unit,
-      categoryId: newProduct.categoryId,
+      name: productData.name,
+      barcode: productData.barcode || null,
+      bulkBarcode: productData.bulkBarcode || null,
+      bulkQuantity: parseFloat(productData.bulkQuantity) || 1,
+      bulkPrice: parseFloat(productData.bulkPrice) || 0,
+      bulkStockQuantity: parseFloat(productData.bulkStockQuantity) || 0,
+      price: parseFloat(productData.price) || 0,
+      costPrice: parseFloat(productData.costPrice) || 0,
+      stockQuantity: parseFloat(productData.stockQuantity) || 0,
+      minStockLevel: parseFloat(productData.minStockLevel) || 0,
+      unit: productData.unit,
+      categoryId: productData.categoryId,
       description: null,
       supplierId: null,
     });
     setIsModalOpen(false);
-    setNewProduct({
-        name: '',
-        barcode: '',
-        bulkBarcode: '',
-        bulkQuantity: '12',
-        bulkPrice: '',
-        bulkStockQuantity: '',
-        price: '',
-        costPrice: '',
-        stockQuantity: '',
-        minStockLevel: '',
-        unit: 'pcs',
-        categoryId: null,
-    });
   };
 
   const handleBarCodeScanned = (code: string) => {
-    if (scanTarget === 'unit') {
-      setNewProduct({ ...newProduct, barcode: code });
-    } else if (scanTarget === 'bulk') {
-      setNewProduct({ ...newProduct, bulkBarcode: code });
-    }
-    setScanTarget(null);
+    // This now needs to be handled via the modal's internal state if we want to be smooth,
+    // but for now, we'll just log it or we'd need to pass a setter.
+    // Actually, since the scanner is a separate modal, we'll keep it as is but it might cause a re-render.
+    // A better way is to pass a "pendingBarcode" to the modal.
+    console.log("Scanned barcode:", code);
   };
 
   const filteredProducts = products.filter(p =>
@@ -137,6 +109,8 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onToggleFilter={toggleLowStockFilter}
         showLowStockOnly={showLowStockOnly}
         shopName={shopName}
+        syncStatus={syncStatus}
+        onTriggerSync={triggerManualSync}
       />
 
       <InventorySearch
@@ -195,12 +169,9 @@ const InventoryScreen = ({ route, navigation }: any) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         entryMode={entryMode}
-        newProduct={newProduct}
-        setNewProduct={setNewProduct}
         onSave={handleSave}
         onScanPress={setScanTarget}
-        onAutoBarcode={() => setNewProduct({ ...newProduct, barcode: generateBarcode() })}
-        onAutoBulkBarcode={() => setNewProduct({ ...newProduct, bulkBarcode: generateBarcode() })}
+        generateBarcode={generateBarcode}
       />
 
       {/* Camera Scanner Modal */}

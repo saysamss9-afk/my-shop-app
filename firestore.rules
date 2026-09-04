@@ -15,13 +15,19 @@ service cloud.firestore {
 
     // Check if user is staff of a shop
     function isStaff(shopId) {
-      return isAuthenticated() && (isAppOwner() || request.auth.token.shopId == shopId);
+      return isAuthenticated() && (
+        isAppOwner() ||
+        get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.shopId == shopId
+      );
     }
 
     // Check if user is Manager or Owner of a shop
     function isManager(shopId) {
-      return isAuthenticated() && (isAppOwner() || (request.auth.token.shopId == shopId &&
-             (request.auth.token.role == "OWNER" || request.auth.token.role == "MANAGER")));
+      let employeeData = get(/databases/$(database)/documents/employees/$(request.auth.uid)).data;
+      return isAuthenticated() && (
+        isAppOwner() ||
+        (employeeData.shopId == shopId && (employeeData.role == "OWNER" || employeeData.role == "MANAGER"))
+      );
     }
 
     // --- Collection Rules ---

@@ -19,12 +19,14 @@ interface Props {
 }
 
 const ProductSearchOverlay: React.FC<Props> = ({ filteredProducts, currency, onSelect }) => {
-  if (filteredProducts.length === 0) return null;
+  const inStockProducts = filteredProducts.filter(p => p.stockQuantity > 0 || p.bulkStockQuantity > 0);
+
+  if (inStockProducts.length === 0) return null;
 
   return (
     <Box position="absolute" top={55} left={20} right={20} bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 10, radius: 24, color: 'rgba(0,0,0,0.08)' }), zIndex: 100 }}>
       <VStack>
-        {filteredProducts.slice(0, 5).map((item, index) => (
+        {inStockProducts.slice(0, 5).map((item, index) => (
           <React.Fragment key={item.id}>
             <Pressable
               onPress={() => onSelect(item)}
@@ -35,14 +37,13 @@ const ProductSearchOverlay: React.FC<Props> = ({ filteredProducts, currency, onS
                 <VStack space="xs">
                     <Text fontWeight="$bold" color="$text900">{item.name}</Text>
                     <Text size="xs" color="$text500">
-                      Stock: {item.stockQuantity} • {currency}{item.price.toFixed(2)}
-                      {item.barcode ? ` • ${item.barcode}` : ''}
+                      Stock: {item.stockQuantity} | Bulk: {item.bulkStockQuantity} • {currency}{item.price.toFixed(2)}
                     </Text>
                 </VStack>
                 <Icon as={AddIcon} color="$primary600" />
               </HStack>
             </Pressable>
-            {index < Math.min(filteredProducts.length, 5) - 1 && <Divider />}
+            {index < Math.min(inStockProducts.length, 5) - 1 && <Divider />}
           </React.Fragment>
         ))}
       </VStack>

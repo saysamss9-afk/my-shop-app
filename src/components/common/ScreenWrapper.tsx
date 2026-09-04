@@ -46,6 +46,9 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
     return (
       <ScrollView
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        nestedScrollEnabled
         contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
       >
         {content}

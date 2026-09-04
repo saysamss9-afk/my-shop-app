@@ -52,13 +52,25 @@ const AddSupplierModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
             <FormControl isRequired>
               <FormControlLabel mb="$1"><FormControlLabelText>Supplier Name</FormControlLabelText></FormControlLabel>
               <Input borderRadius={16} bg="$backgroundLight50">
-                <InputField placeholder="e.g. Wholesale Ltd" value={name} onChangeText={setName} />
+                <InputField
+                    placeholder="e.g. Wholesale Ltd"
+                    value={name}
+                    onChangeText={setName}
+                    autoCorrect={true}
+                    autoCapitalize="words"
+                />
               </Input>
             </FormControl>
             <FormControl>
               <FormControlLabel mb="$1"><FormControlLabelText>Contact Info (Phone/Email)</FormControlLabelText></FormControlLabel>
               <Input borderRadius={16} bg="$backgroundLight50">
-                <InputField placeholder="+233..." value={contact} onChangeText={setContact} />
+                <InputField
+                    placeholder="+233..."
+                    value={contact}
+                    onChangeText={setContact}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                />
               </Input>
             </FormControl>
           </VStack>

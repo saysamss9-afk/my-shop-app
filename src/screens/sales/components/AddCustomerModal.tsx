@@ -52,13 +52,25 @@ const AddCustomerModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
             <FormControl isRequired>
               <FormControlLabel mb="$1"><FormControlLabelText>Full Name</FormControlLabelText></FormControlLabel>
               <Input borderRadius={16} bg="$backgroundLight50">
-                <InputField placeholder="Customer Name" value={name} onChangeText={setName} />
+                <InputField
+                    placeholder="Customer Name"
+                    value={name}
+                    onChangeText={setName}
+                    autoCorrect={true}
+                    autoCapitalize="words"
+                />
               </Input>
             </FormControl>
             <FormControl>
               <FormControlLabel mb="$1"><FormControlLabelText>Phone Number</FormControlLabelText></FormControlLabel>
               <Input borderRadius={16} bg="$backgroundLight50">
-                <InputField placeholder="054..." value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+                <InputField
+                    placeholder="054..."
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    autoCorrect={false}
+                />
               </Input>
             </FormControl>
           </VStack>

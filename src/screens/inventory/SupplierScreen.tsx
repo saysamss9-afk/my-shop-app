@@ -17,16 +17,17 @@ import {
   ArrowLeftIcon,
   SearchIcon,
 } from '@gluestack-ui/themed';
-import { Store } from 'lucide-react-native';
+import { Store, RefreshCw, AlertTriangle } from 'lucide-react-native';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import SupplierListItem from './components/SupplierListItem';
 import AddSupplierModal from './components/AddSupplierModal';
 import { getAppShadow } from '../../utils/platformStyles';
+import { SyncStatus } from '../../sync/SyncManager';
 
 const SupplierScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { suppliers, isLoading, addSupplier } = useSuppliers(shopId);
+  const { suppliers, isLoading, syncStatus, addSupplier, triggerManualSync } = useSuppliers(shopId);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const renderItem = useCallback(({ item }: any) => (
@@ -39,14 +40,45 @@ const SupplierScreen = ({ route, navigation }: any) => {
 
       {/* Header */}
       <Box px="$2" pt="$2" pb="$4">
-        <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
-            <Icon as={ArrowLeftIcon} color="$text900" />
-          </Pressable>
-          <VStack>
-            <Heading size="lg" color="$text900" fontWeight="$black">Suppliers</Heading>
-            <Text size="xs" color="$text500">Manage your product sources</Text>
-          </VStack>
+        <HStack justifyContent="space-between" alignItems="center">
+          <HStack space="md" alignItems="center">
+            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
+              <Icon as={ArrowLeftIcon} color="$text900" />
+            </Pressable>
+            <VStack>
+              <Heading size="lg" color="$text900" fontWeight="$black">Suppliers</Heading>
+              <Text size="xs" color="$text500">Manage your product sources</Text>
+            </VStack>
+          </HStack>
+
+          <HStack space="sm" alignItems="center">
+            {syncStatus === SyncStatus.Syncing ? (
+                <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
+                    <Spinner color="$primary600" size="small" />
+                    <Text size="xs" color="$primary600" fontWeight="$bold">Syncing...</Text>
+                </HStack>
+            ) : (
+                <Pressable
+                    onPress={triggerManualSync}
+                    bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
+                    px="$4"
+                    py="$2"
+                    rounded="$full"
+                    style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
+                >
+                    <HStack space="xs" alignItems="center">
+                        <Icon
+                            as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
+                            color="$white"
+                            size="xs"
+                        />
+                        <Text size="xs" color="$white" fontWeight="$bold">
+                            {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync Now'}
+                        </Text>
+                    </HStack>
+                </Pressable>
+            )}
+          </HStack>
         </HStack>
       </Box>
 

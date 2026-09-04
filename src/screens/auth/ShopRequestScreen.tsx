@@ -149,6 +149,8 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="Owner Name"
                     value={ownerName}
                     onChangeText={setOwnerName}
+                    autoCorrect={true}
+                    autoCapitalize="words"
                   />
                 </Input>
               </FormControl>
@@ -166,6 +168,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                     value={whatsappNumber}
                     onChangeText={setWhatsappNumber}
                     keyboardType="phone-pad"
+                    autoCorrect={false}
                   />
                 </Input>
               </FormControl>
@@ -179,6 +182,8 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="Official Business Name"
                     value={shopName}
                     onChangeText={setShopName}
+                    autoCorrect={true}
+                    autoCapitalize="words"
                   />
                 </Input>
               </FormControl>

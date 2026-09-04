@@ -5,8 +5,10 @@ import { CategoryRepository } from '../repositories/CategoryRepository';
 import { Product, Category } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 
+import { SyncStatus } from '../sync/SyncManager';
+
 export const useInventory = (shopId: string) => {
-  const { triggerSync } = useSync();
+  const { triggerSync, dataChangeTick, syncStatus } = useSync();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +46,7 @@ export const useInventory = (shopId: string) => {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, dataChangeTick]);
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'shopId' | 'syncStatus'>) => {
     try {
@@ -64,7 +66,7 @@ export const useInventory = (shopId: string) => {
       setProducts(prev => [newProduct, ...prev]);
 
       // 3. Trigger background sync
-      triggerSync();
+      triggerSync(shopId);
 
       // 4. Silently refresh categories or other metadata if needed,
       // but don't call loadData() with isLoading=true
@@ -85,17 +87,23 @@ export const useInventory = (shopId: string) => {
     ? products.filter(p => p.stockQuantity <= p.minStockLevel)
     : products;
 
+  const triggerManualSync = () => {
+    triggerSync(shopId);
+  };
+
   return {
     products: filteredProducts,
     categories,
     currency,
     shopName,
     isLoading,
+    syncStatus,
     error,
     showLowStockOnly,
     addProduct,
     toggleLowStockFilter,
     generateBarcode,
+    triggerManualSync,
     refreshInventory: loadData,
   };
 };

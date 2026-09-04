@@ -85,6 +85,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoCorrect={false}
                 />
               </Input>
             </FormControl>
@@ -102,6 +103,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
+                  autoCorrect={false}
                 />
               </Input>
             </FormControl>
@@ -119,6 +121,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry
+                  autoCorrect={false}
                 />
               </Input>
             </FormControl>

@@ -17,11 +17,20 @@ import DashboardHeader from './components/DashboardHeader';
 import RevenueHeroCard from './components/RevenueHeroCard';
 import ActionGrid, { DashboardItem } from './components/ActionGrid';
 
+import { useSync } from '../../sync/SyncContext';
+
 type Props = StackScreenProps<RootStackParamList, 'Dashboard'>;
 
 const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const { shopId, employeeId, userRole, shopName: initialShopName } = route.params;
+  const { startRealtimeSync, stopRealtimeSync } = useSync();
   const { syncStatus, lowStockCount, revenue, currency, shopName: fetchedShopName, lastSynced, triggerSync } = useDashboard(shopId);
+
+  React.useEffect(() => {
+    startRealtimeSync(shopId);
+    return () => stopRealtimeSync();
+  }, [shopId, startRealtimeSync, stopRealtimeSync]);
+
   const displayShopName = fetchedShopName || initialShopName || 'Your Shop';
 
   const primaryActions: DashboardItem[] = [

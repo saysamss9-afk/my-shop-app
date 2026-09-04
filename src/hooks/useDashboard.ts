@@ -8,7 +8,7 @@ import { AnalyticsRepository } from '../repositories/AnalyticsRepository';
 import { useSync } from '../sync/SyncContext';
 
 export const useDashboard = (shopId: string) => {
-  const { syncManager, triggerSync: triggerGlobalSync } = useSync();
+  const { syncManager, triggerSync: triggerGlobalSync, dataChangeTick } = useSync();
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(SyncStatus.Idle);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [revenue, setRevenue] = useState(0);
@@ -22,7 +22,7 @@ export const useDashboard = (shopId: string) => {
       setSyncStatus(syncManager.getStatus());
       setLastSynced(syncManager.getLastSynced());
     }
-  }, [syncManager]);
+  }, [syncManager, dataChangeTick]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -31,10 +31,10 @@ export const useDashboard = (shopId: string) => {
       const analyticsRepo = new AnalyticsRepository(db);
 
       const shopResults = await db.executeSql('SELECT name, currency FROM Shop WHERE id = ?', [shopId]);
-      if (shopResults[0].rows.length > 0) {
-        const shop = shopResults[0].rows.item(0);
-        setCurrency(shop.currency || '$');
-        setShopName(shop.name || '');
+      const shopRow = shopResults[0]?.rows?.length ? shopResults[0].rows.item(0) : null;
+      if (shopRow) {
+        setCurrency(shopRow.currency || '$');
+        setShopName(shopRow.name || '');
       }
 
       // Get low stock count
@@ -52,7 +52,7 @@ export const useDashboard = (shopId: string) => {
         startOfDay.getTime(),
         endOfDay.getTime()
       );
-      setRevenue(summary.totalRevenue);
+      setRevenue(Number(summary?.totalRevenue || 0));
     } catch (e) {
       console.error('Failed to load dashboard stats:', e);
     }
@@ -60,15 +60,15 @@ export const useDashboard = (shopId: string) => {
 
   const triggerSync = useCallback(async () => {
     setSyncStatus(SyncStatus.Syncing);
-    await triggerGlobalSync();
+    await triggerGlobalSync(shopId);
     await loadStats();
     setLastSynced(Date.now());
     setTimeout(() => setSyncStatus(SyncStatus.Idle), 3000);
-  }, [triggerGlobalSync, loadStats]);
+  }, [triggerGlobalSync, loadStats, shopId]);
 
   useEffect(() => {
     loadStats();
-  }, [loadStats]);
+  }, [loadStats, dataChangeTick]);
 
   return {
     syncStatus,

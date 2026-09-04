@@ -5,7 +5,7 @@ import { Customer } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 
 export const useCustomers = (shopId: string) => {
-  const { triggerSync } = useSync();
+  const { triggerSync, dataChangeTick, syncStatus } = useSync();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export const useCustomers = (shopId: string) => {
 
   useEffect(() => {
     loadCustomers();
-  }, [loadCustomers]);
+  }, [loadCustomers, dataChangeTick]);
 
   const addCustomer = useCallback(async (name: string, phone: string) => {
     try {
@@ -54,7 +54,7 @@ export const useCustomers = (shopId: string) => {
       };
       await repo.insertCustomer(newCustomer);
       setCustomers(prev => [newCustomer, ...prev]);
-      triggerSync();
+      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }
@@ -75,19 +75,25 @@ export const useCustomers = (shopId: string) => {
       };
       await repo.recordPayment(payment);
       await loadCustomers();
-      triggerSync();
+      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }
   }, [shopId, loadCustomers, triggerSync]);
 
+  const triggerManualSync = () => {
+    triggerSync(shopId);
+  };
+
   return {
     customers,
     isLoading,
+    syncStatus,
     error,
     currency,
     addCustomer,
     recordPayment,
+    triggerManualSync,
     refreshCustomers: loadCustomers,
   };
 };

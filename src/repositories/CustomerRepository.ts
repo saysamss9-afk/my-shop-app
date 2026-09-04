@@ -2,7 +2,7 @@ import { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { Customer, DebtPayment } from '../db/types';
 
 export class CustomerRepository {
-  constructor(private db: SQLiteDatabase) {}
+  constructor(public db: SQLiteDatabase) {}
 
   async insertCustomer(customer: Customer) {
     const query = `

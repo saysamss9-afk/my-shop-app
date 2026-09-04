@@ -17,7 +17,7 @@ import {
   ArrowLeftIcon,
   SearchIcon,
 } from '@gluestack-ui/themed';
-import { User } from 'lucide-react-native';
+import { User, RefreshCw, AlertTriangle } from 'lucide-react-native';
 import { useCustomers } from '../../hooks/useCustomers';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import CustomerListItem from './components/CustomerListItem';
@@ -25,10 +25,11 @@ import AddCustomerModal from './components/AddCustomerModal';
 import PaymentModal from './components/PaymentModal';
 import { getAppShadow } from '../../utils/platformStyles';
 import { Customer } from '../../db/types';
+import { SyncStatus } from '../../sync/SyncManager';
 
 const CustomerScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { customers, isLoading, currency, addCustomer, recordPayment } = useCustomers(shopId);
+  const { customers, isLoading, syncStatus, currency, addCustomer, recordPayment, triggerManualSync } = useCustomers(shopId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -48,14 +49,45 @@ const CustomerScreen = ({ route, navigation }: any) => {
 
       {/* Header */}
       <Box px="$2" pt="$2" pb="$4">
-        <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
-            <Icon as={ArrowLeftIcon} color="$text900" />
-          </Pressable>
-          <VStack>
-            <Heading size="lg" color="$text900" fontWeight="$black">Customers</Heading>
-            <Text size="xs" color="$text500">Manage debt and relationships</Text>
-          </VStack>
+        <HStack justifyContent="space-between" alignItems="center">
+          <HStack space="md" alignItems="center">
+            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
+              <Icon as={ArrowLeftIcon} color="$text900" />
+            </Pressable>
+            <VStack>
+              <Heading size="lg" color="$text900" fontWeight="$black">Customers</Heading>
+              <Text size="xs" color="$text500">Manage debt and relationships</Text>
+            </VStack>
+          </HStack>
+
+          <HStack space="sm" alignItems="center">
+            {syncStatus === SyncStatus.Syncing ? (
+                <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
+                    <Spinner color="$primary600" size="small" />
+                    <Text size="xs" color="$primary600" fontWeight="$bold">Syncing...</Text>
+                </HStack>
+            ) : (
+                <Pressable
+                    onPress={triggerManualSync}
+                    bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
+                    px="$4"
+                    py="$2"
+                    rounded="$full"
+                    style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
+                >
+                    <HStack space="xs" alignItems="center">
+                        <Icon
+                            as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
+                            color="$white"
+                            size="xs"
+                        />
+                        <Text size="xs" color="$white" fontWeight="$bold">
+                            {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync Now'}
+                        </Text>
+                    </HStack>
+                </Pressable>
+            )}
+          </HStack>
         </HStack>
       </Box>
 

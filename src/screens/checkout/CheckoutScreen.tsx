@@ -28,6 +28,7 @@ import AppIcon from '../../components/common/AppIcon';
 import { ScannerView } from '../../components/ScannerView';
 import { getButtonHeight, getAppShadow } from '../../utils/platformStyles';
 import SelectCustomerModal from './components/SelectCustomerModal';
+import SelectProductModal from './components/SelectProductModal';
 
 // Sub-components
 import CheckoutHeader from './components/CheckoutHeader';
@@ -55,9 +56,19 @@ const CheckoutScreen = ({ route, navigation }: any) => {
   const { products } = useInventory(shopId);
   const { customers } = useCustomers(shopId);
   const [searchQuery, setSearchQuery] = useState('');
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [isScannerVisible, setIsScannerVisible] = useState(false);
+
+  // Debounce checkout search
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+        setSearchQuery(localSearchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [localSearchQuery]);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
 
@@ -167,22 +178,37 @@ const CheckoutScreen = ({ route, navigation }: any) => {
           </Pressable>
         </HStack>
 
-        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
-          <InputSlot pl="$4">
-            <InputIcon as={SearchIcon} color="$primary600" />
-          </InputSlot>
-          <InputField
-            placeholder="Type name or barcode manually..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="$text400"
-          />
-          {searchQuery.length > 0 && (
-             <InputSlot pr="$4" onPress={() => setSearchQuery('')}>
-               <InputIcon as={CloseIcon} />
-             </InputSlot>
-          )}
-        </Input>
+        <HStack space="sm" alignItems="center">
+          <Input flex={1} variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
+            <InputSlot pl="$4">
+              <InputIcon as={SearchIcon} color="$primary600" />
+            </InputSlot>
+            <InputField
+              placeholder="Quick search..."
+              value={localSearchQuery}
+              onChangeText={setLocalSearchQuery}
+              placeholderTextColor="$text400"
+            />
+            {localSearchQuery.length > 0 && (
+               <InputSlot pr="$4" onPress={() => { setLocalSearchQuery(''); setSearchQuery(''); }}>
+                 <InputIcon as={CloseIcon} />
+               </InputSlot>
+            )}
+          </Input>
+
+          <Button
+            size="md"
+            variant="solid"
+            action="primary"
+            onPress={() => setShowProductModal(true)}
+            borderRadius={20}
+            bg="$primary600"
+            px="$4"
+            style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(110,59,230,0.2)' }) }}
+          >
+            <ButtonText fontWeight="$bold" size="sm">Browse</ButtonText>
+          </Button>
+        </HStack>
 
         <ProductSearchOverlay
             filteredProducts={filteredProducts}
@@ -245,6 +271,17 @@ const CheckoutScreen = ({ route, navigation }: any) => {
             setShowCustomerModal(false);
         }}
         selectedCustomerId={selectedCustomerId}
+      />
+
+      <SelectProductModal
+        isOpen={showProductModal}
+        onClose={() => setShowProductModal(false)}
+        products={products}
+        currency={currency}
+        onSelect={(product, isBulk) => {
+            addToCart(product, 1, isBulk);
+            setShowProductModal(false);
+        }}
       />
     </Box>
   );

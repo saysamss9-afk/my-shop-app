@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView } from 'react-native';
 import {
   Heading,
@@ -28,25 +28,58 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   entryMode: 'UNIT' | 'BULK';
-  newProduct: any;
-  setNewProduct: (product: any) => void;
-  onSave: () => void;
+  onSave: (product: any) => void;
   onScanPress: (target: 'unit' | 'bulk') => void;
-  onAutoBarcode: () => void;
-  onAutoBulkBarcode: () => void;
+  generateBarcode: () => string;
 }
 
 const AddProductModal: React.FC<Props> = ({
   isOpen,
   onClose,
   entryMode,
-  newProduct,
-  setNewProduct,
   onSave,
   onScanPress,
-  onAutoBarcode,
-  onAutoBulkBarcode,
+  generateBarcode,
 }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    barcode: '',
+    bulkBarcode: '',
+    bulkQuantity: '12',
+    bulkPrice: '',
+    bulkStockQuantity: '',
+    price: '',
+    costPrice: '',
+    stockQuantity: '',
+    minStockLevel: '',
+    unit: 'pcs',
+    categoryId: null as string | null,
+  });
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        name: '',
+        barcode: '',
+        bulkBarcode: '',
+        bulkQuantity: '12',
+        bulkPrice: '',
+        bulkStockQuantity: '',
+        price: '',
+        costPrice: '',
+        stockQuantity: '',
+        minStockLevel: '',
+        unit: 'pcs',
+        categoryId: null,
+      });
+    }
+  }, [isOpen]);
+
+  const handleLocalSave = () => {
+    onSave(formData);
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
@@ -69,8 +102,8 @@ const AddProductModal: React.FC<Props> = ({
                 <Input borderRadius={16} bg="$backgroundLight50">
                   <InputField
                     placeholder="e.g. Milo 500g"
-                    value={newProduct.name}
-                    onChangeText={text => setNewProduct({ ...newProduct, name: text })}
+                    value={formData.name}
+                    onChangeText={text => setFormData({ ...formData, name: text })}
                   />
                 </Input>
               </FormControl>
@@ -85,8 +118,8 @@ const AddProductModal: React.FC<Props> = ({
                       <Input flex={1} borderRadius={16} bg="$backgroundLight50">
                         <InputField
                           placeholder="Manual barcode entry..."
-                          value={newProduct.barcode}
-                          onChangeText={text => setNewProduct({ ...newProduct, barcode: text })}
+                          value={formData.barcode}
+                          onChangeText={text => setFormData({ ...formData, barcode: text })}
                         />
                       </Input>
                       <Button
@@ -102,7 +135,7 @@ const AddProductModal: React.FC<Props> = ({
                       <Button
                           variant="outline"
                           action="primary"
-                          onPress={onAutoBarcode}
+                          onPress={() => setFormData({ ...formData, barcode: generateBarcode() })}
                           borderRadius={16}
                           borderColor="$primary600"
                       >
@@ -119,9 +152,9 @@ const AddProductModal: React.FC<Props> = ({
                       <Input borderRadius={16} bg="$backgroundLight50">
                         <InputField
                           placeholder="0.00"
-                          value={newProduct.price}
+                          value={formData.price}
                           keyboardType="numeric"
-                          onChangeText={text => setNewProduct({ ...newProduct, price: text })}
+                          onChangeText={text => setFormData({ ...formData, price: text })}
                         />
                       </Input>
                     </FormControl>
@@ -132,9 +165,9 @@ const AddProductModal: React.FC<Props> = ({
                       <Input borderRadius={16} bg="$backgroundLight50">
                         <InputField
                           placeholder="0"
-                          value={newProduct.stockQuantity}
+                          value={formData.stockQuantity}
                           keyboardType="numeric"
-                          onChangeText={text => setNewProduct({ ...newProduct, stockQuantity: text })}
+                          onChangeText={text => setFormData({ ...formData, stockQuantity: text })}
                         />
                       </Input>
                     </FormControl>
@@ -148,9 +181,9 @@ const AddProductModal: React.FC<Props> = ({
                       <Input borderRadius={16} bg="$backgroundLight50">
                         <InputField
                           placeholder="0.00"
-                          value={newProduct.costPrice}
+                          value={formData.costPrice}
                           keyboardType="numeric"
-                          onChangeText={text => setNewProduct({ ...newProduct, costPrice: text })}
+                          onChangeText={text => setFormData({ ...formData, costPrice: text })}
                         />
                       </Input>
                     </FormControl>
@@ -161,9 +194,9 @@ const AddProductModal: React.FC<Props> = ({
                       <Input borderRadius={16} bg="$backgroundLight50">
                         <InputField
                           placeholder="5"
-                          value={newProduct.minStockLevel}
+                          value={formData.minStockLevel}
                           keyboardType="numeric"
-                          onChangeText={text => setNewProduct({ ...newProduct, minStockLevel: text })}
+                          onChangeText={text => setFormData({ ...formData, minStockLevel: text })}
                         />
                       </Input>
                     </FormControl>
@@ -180,8 +213,8 @@ const AddProductModal: React.FC<Props> = ({
                       <Input flex={1} borderRadius={16} bg="$backgroundLight50">
                         <InputField
                             placeholder="Scan or type carton barcode..."
-                            value={newProduct.bulkBarcode}
-                            onChangeText={text => setNewProduct({ ...newProduct, bulkBarcode: text })}
+                            value={formData.bulkBarcode}
+                            onChangeText={text => setFormData({ ...formData, bulkBarcode: text })}
                         />
                       </Input>
                       <Button
@@ -197,7 +230,7 @@ const AddProductModal: React.FC<Props> = ({
                       <Button
                           variant="outline"
                           action="primary"
-                          onPress={onAutoBulkBarcode}
+                          onPress={() => setFormData({ ...formData, bulkBarcode: generateBarcode() })}
                           borderRadius={16}
                           borderColor="$primary600"
                       >
@@ -214,9 +247,9 @@ const AddProductModal: React.FC<Props> = ({
                       <Input borderRadius={16} bg="$backgroundLight50">
                         <InputField
                           placeholder="0.00"
-                          value={newProduct.bulkPrice}
+                          value={formData.bulkPrice}
                           keyboardType="numeric"
-                          onChangeText={text => setNewProduct({ ...newProduct, bulkPrice: text })}
+                          onChangeText={text => setFormData({ ...formData, bulkPrice: text })}
                         />
                       </Input>
                     </FormControl>
@@ -227,9 +260,9 @@ const AddProductModal: React.FC<Props> = ({
                       <Input borderRadius={16} bg="$backgroundLight50">
                         <InputField
                           placeholder="0"
-                          value={newProduct.bulkStockQuantity}
+                          value={formData.bulkStockQuantity}
                           keyboardType="numeric"
-                          onChangeText={text => setNewProduct({ ...newProduct, bulkStockQuantity: text })}
+                          onChangeText={text => setFormData({ ...formData, bulkStockQuantity: text })}
                         />
                       </Input>
                     </FormControl>
@@ -242,9 +275,9 @@ const AddProductModal: React.FC<Props> = ({
                     <Input borderRadius={16} bg="$backgroundLight50">
                       <InputField
                         placeholder="12"
-                        value={newProduct.bulkQuantity}
+                        value={formData.bulkQuantity}
                         keyboardType="numeric"
-                        onChangeText={text => setNewProduct({ ...newProduct, bulkQuantity: text })}
+                        onChangeText={text => setFormData({ ...formData, bulkQuantity: text })}
                       />
                     </Input>
                   </FormControl>
@@ -259,7 +292,7 @@ const AddProductModal: React.FC<Props> = ({
           <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
             <ButtonText>Cancel</ButtonText>
           </Button>
-          <Button action="primary" onPress={onSave} borderRadius={16} bg="$primary600" style={{ height: getButtonHeight(50) }}>
+          <Button action="primary" onPress={handleLocalSave} borderRadius={16} bg="$primary600" style={{ height: getButtonHeight(50) }}>
             <ButtonText fontWeight="$bold">Add to Inventory</ButtonText>
           </Button>
         </ModalFooter>

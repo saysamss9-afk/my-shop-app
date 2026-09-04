@@ -129,6 +129,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
+                    autoCorrect={false}
                   />
                 </Input>
               </FormControl>
@@ -146,6 +147,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
+                    autoCorrect={false}
                   />
                   <InputSlot pr="$3" onPress={handleState}>
                     <InputIcon as={showPassword ? EyeIcon : EyeOffIcon} />

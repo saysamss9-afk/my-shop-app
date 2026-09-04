@@ -2,7 +2,7 @@ import { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { Sale, SaleItem } from '../db/types';
 
 export class SaleRepository {
-  constructor(private db: SQLiteDatabase) {}
+  constructor(public db: SQLiteDatabase) {}
 
   async insertSale(sale: Sale, items: SaleItem[]) {
     await this.db.transaction(async (tx: any) => {
@@ -78,6 +78,36 @@ export class SaleRepository {
   async markSaleSynced(id: string) {
     const query = 'UPDATE Sale SET syncStatus = 1 WHERE id = ?';
     await this.db.executeSql(query, [id]);
+  }
+
+  async upsertRemoteSale(sale: any, items: any[]) {
+    await this.db.transaction(async (tx: any) => {
+      // 1. Insert or Replace the Sale record
+      const saleQuery = `
+        INSERT OR REPLACE INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+      `;
+      const saleParams = [
+        sale.id, sale.shopId, sale.employeeId, sale.customerId || null, sale.timestamp,
+        sale.totalAmount, sale.paymentMethod || 'CASH', sale.paymentStatus || 'PAID',
+        sale.dueDate || null, sale.isReverted ? 1 : 0
+      ];
+      await tx.executeSql(saleQuery, saleParams);
+
+      // 2. Delete existing items for this sale (if any) to handle updates cleanly
+      await tx.executeSql('DELETE FROM SaleItem WHERE saleId = ?', [sale.id]);
+
+      // 3. Insert SaleItems
+      for (const item of items) {
+        const itemQuery = `
+          INSERT INTO SaleItem(id, saleId, productId, quantity, priceAtSale, isBulk)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+        const itemId = `${sale.id}_${item.productId}_${item.isBulk ? 'bulk' : 'unit'}`;
+        const itemParams = [itemId, sale.id, item.productId, item.quantity, item.priceAtSale, item.isBulk ? 1 : 0];
+        await tx.executeSql(itemQuery, itemParams);
+      }
+    });
   }
 
   async revertSale(saleId: string) {

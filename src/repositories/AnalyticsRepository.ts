@@ -34,17 +34,18 @@ export class AnalyticsRepository {
       WHERE shopId = ? AND timestamp BETWEEN ? AND ? AND isReverted = 0
     `;
     const results = await this.db.executeSql(query, [shopId, start, end]);
-    const item = results[0].rows.item(0);
+    const item = results[0]?.rows?.length ? results[0].rows.item(0) : null;
     return {
-      totalRevenue: item.totalRevenue || 0,
-      totalProfit: item.totalProfit || 0
+      totalRevenue: Number(item?.totalRevenue || 0),
+      totalProfit: Number(item?.totalProfit || 0),
     };
   }
 
   async getTotalExpenses(shopId: string, start: number, end: number): Promise<number> {
     const query = 'SELECT SUM(amount) as total FROM Expense WHERE shopId = ? AND timestamp BETWEEN ? AND ?';
     const results = await this.db.executeSql(query, [shopId, start, end]);
-    return results[0].rows.item(0).total || 0;
+    const item = results[0]?.rows?.length ? results[0].rows.item(0) : null;
+    return Number(item?.total || 0);
   }
 
   async getTopProducts(shopId: string, start: number, end: number, limit: number = 5): Promise<TopProduct[]> {

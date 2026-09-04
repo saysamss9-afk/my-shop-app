@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Input,
@@ -16,6 +16,21 @@ interface Props {
 }
 
 const InventorySearch: React.FC<Props> = ({ searchQuery, setSearchQuery }) => {
+  const [localQuery, setLocalQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(localQuery);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [localQuery, setSearchQuery]);
+
+  const handleClear = () => {
+    setLocalQuery('');
+    setSearchQuery('');
+  };
+
   return (
     <Box px="$5" pb="$4">
       <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...getAppShadow({ offsetY: 4, radius: 16, color: 'rgba(0,0,0,0.04)' }) }}>
@@ -24,13 +39,13 @@ const InventorySearch: React.FC<Props> = ({ searchQuery, setSearchQuery }) => {
         </InputSlot>
         <InputField
           placeholder="Search name, barcode or SKU..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+          value={localQuery}
+          onChangeText={setLocalQuery}
           placeholderTextColor="$text400"
         />
-        {searchQuery.length > 0 && (
-           <InputSlot pr="$4" onPress={() => setSearchQuery('')}>
-             <InputIcon as={CloseIcon} />
+        {localQuery.length > 0 && (
+           <InputSlot pr="$4" onPress={handleClear}>
+             <Icon as={CloseIcon} />
            </InputSlot>
         )}
       </Input>

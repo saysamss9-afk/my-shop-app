@@ -13,17 +13,19 @@ import {
   Divider,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
-import { RefreshCw } from 'lucide-react-native';
+import { RefreshCw, AlertTriangle } from 'lucide-react-native';
 import { useSales } from '../../hooks/useSales';
 import { Sale } from '../../db/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getAppShadow } from '../../utils/platformStyles';
+import { SyncStatus } from '../../sync/SyncManager';
 
 // Sub-components
 import SaleHistoryItem from './components/SaleHistoryItem';
 
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { sales, isLoading, currency, revertSale, refreshSales } = useSales(shopId);
+  const { sales, isLoading, syncStatus, currency, revertSale, triggerManualSync } = useSales(shopId);
 
   const renderItem = useCallback(({ item }: { item: Sale }) => (
     <SaleHistoryItem
@@ -45,9 +47,33 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
             title="Sales History"
             titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
           />
-          <Pressable onPress={refreshSales} p="$3">
-            <Icon as={RefreshCw} color="white" size="sm" />
-          </Pressable>
+          {syncStatus === SyncStatus.Syncing ? (
+            <HStack mr="$4" space="xs" alignItems="center" bg="rgba(255,255,255,0.1)" px="$3" py="$1.5" rounded="$full">
+                <Spinner color="white" size="small" />
+                <Text size="xs" color="white" fontWeight="$bold">Syncing...</Text>
+            </HStack>
+          ) : (
+            <Pressable
+                onPress={triggerManualSync}
+                mr="$4"
+                bg={syncStatus === SyncStatus.Error ? "$error500" : "white"}
+                px="$3"
+                py="$1.5"
+                rounded="$full"
+                style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(0,0,0,0.1)' }) }}
+            >
+                <HStack space="xs" alignItems="center">
+                    <Icon
+                        as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
+                        color={syncStatus === SyncStatus.Error ? "white" : "$primary800"}
+                        size="xs"
+                    />
+                    <Text size="xs" color={syncStatus === SyncStatus.Error ? "white" : "$primary800"} fontWeight="$black">
+                        {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync'}
+                    </Text>
+                </HStack>
+            </Pressable>
+          )}
         </Appbar.Header>
       </Box>
 

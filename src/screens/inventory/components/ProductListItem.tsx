@@ -10,7 +10,7 @@ import {
   Badge,
   BadgeText,
 } from '@gluestack-ui/themed';
-import { CloudOff, CheckCircle2 } from 'lucide-react-native';
+import { CloudOff, CheckCircle2, Scan } from 'lucide-react-native';
 import { Product } from '../../../db/types';
 import AppIcon from '../../../components/common/AppIcon';
 import { getAppShadow } from '../../../utils/platformStyles';
@@ -47,9 +47,9 @@ const ProductListItem: React.FC<Props> = ({ item, currency }) => {
           />
         </Center>
         <VStack flex={1} space="xs">
-          <HStack space="xs" alignItems="center">
-              <Heading size="sm" color="$text900" fontWeight="$bold">
-              {item.name}
+          <HStack space="xs" alignItems="center" justifyContent="space-between">
+              <Heading size="sm" color="$text900" fontWeight="$black" flex={1}>
+                {item.name}
               </Heading>
               {item.syncStatus === 0 ? (
                   <Icon as={CloudOff} size="xs" color="$amber600" />
@@ -57,23 +57,41 @@ const ProductListItem: React.FC<Props> = ({ item, currency }) => {
                   <Icon as={CheckCircle2} size="xs" color="$success600" />
               )}
           </HStack>
-          <VStack space="xxs">
-              <HStack space="xs" alignItems="center">
-                  <Badge action="info" variant="solid" size="sm" rounded="$full">
-                      <BadgeText size="xxs">UNIT</BadgeText>
-                  </Badge>
-                  <Text size="xs" color="$text500">
-                  {item.stockQuantity} {item.unit} @ {currency}{item.price.toFixed(2)}
-                  </Text>
-              </HStack>
-              <HStack space="xs" alignItems="center">
-                  <Badge action="warning" variant="solid" size="sm" rounded="$full">
-                      <BadgeText size="xxs">BULK</BadgeText>
-                  </Badge>
-                  <Text size="xs" color="$text500">
-                  {item.bulkStockQuantity} cartons @ {currency}{item.bulkPrice.toFixed(2)}
-                  </Text>
-              </HStack>
+
+          <VStack space="xs">
+              <VStack space="xxs">
+                  <HStack space="xs" alignItems="center">
+                      <Badge action="info" variant="solid" size="sm" rounded="$full">
+                          <BadgeText size="xxs">UNIT</BadgeText>
+                      </Badge>
+                      <Text size="xs" color="$text500">
+                      {item.stockQuantity} {item.unit} @ {currency}{item.price.toFixed(2)}
+                      </Text>
+                  </HStack>
+                  {item.barcode && (
+                    <HStack space="xs" alignItems="center" ml="$4">
+                        <Icon as={Scan} size="xxs" color="$text400" />
+                        <Text size="xxs" color="$text400" fontWeight="$bold">{item.barcode}</Text>
+                    </HStack>
+                  )}
+              </VStack>
+
+              <VStack space="xxs">
+                  <HStack space="xs" alignItems="center">
+                      <Badge action="warning" variant="solid" size="sm" rounded="$full">
+                          <BadgeText size="xxs">BULK</BadgeText>
+                      </Badge>
+                      <Text size="xs" color="$text500">
+                      {item.bulkStockQuantity} cartons @ {currency}{item.bulkPrice.toFixed(2)}
+                      </Text>
+                  </HStack>
+                  {item.bulkBarcode && (
+                    <HStack space="xs" alignItems="center" ml="$4">
+                        <Icon as={Scan} size="xxs" color="$text400" />
+                        <Text size="xxs" color="$text400" fontWeight="$bold">{item.bulkBarcode}</Text>
+                    </HStack>
+                  )}
+              </VStack>
           </VStack>
         </VStack>
         <VStack alignItems="flex-end" space="xs">

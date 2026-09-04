@@ -5,7 +5,7 @@ import { Supplier } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 
 export const useSuppliers = (shopId: string) => {
-  const { triggerSync } = useSync();
+  const { triggerSync, dataChangeTick, syncStatus } = useSync();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export const useSuppliers = (shopId: string) => {
 
   useEffect(() => {
     loadSuppliers();
-  }, [loadSuppliers]);
+  }, [loadSuppliers, dataChangeTick]);
 
   const addSupplier = useCallback(async (name: string, contactInfo: string) => {
     try {
@@ -42,17 +42,23 @@ export const useSuppliers = (shopId: string) => {
       };
       await repo.insertSupplier(newSupplier);
       setSuppliers(prev => [newSupplier, ...prev]);
-      triggerSync();
+      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }
-  }, [shopId]);
+  }, [shopId, triggerSync]);
+
+  const triggerManualSync = () => {
+    triggerSync(shopId);
+  };
 
   return {
     suppliers,
     isLoading,
+    syncStatus,
     error,
     addSupplier,
+    triggerManualSync,
     refreshSuppliers: loadSuppliers,
   };
 };

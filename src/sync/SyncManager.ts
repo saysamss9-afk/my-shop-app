@@ -1,6 +1,7 @@
 import firestore from '@react-native-firebase/firestore';
 import NetInfo from '@react-native-community/netinfo';
 import { ProductRepository } from '../repositories/ProductRepository';
+import { CategoryRepository } from '../repositories/CategoryRepository';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { SupplierRepository } from '../repositories/SupplierRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
@@ -18,13 +19,20 @@ export class SyncManager {
   private readonly BATCH_LIMIT = 500;
   private isNetworkListenerActive: boolean = false;
   private unsubscribeNetwork: (() => void) | null = null;
+  private realtimeUnsubscribers: (() => void)[] = [];
+  private onDataChangedCallback: (() => void) | null = null;
 
   constructor(
     private productRepo: ProductRepository,
+    private categoryRepo: CategoryRepository,
     private saleRepo: SaleRepository,
     private supplierRepo: SupplierRepository,
     private customerRepo: CustomerRepository
   ) {}
+
+  public setOnDataChanged(callback: () => void) {
+    this.onDataChangedCallback = callback;
+  }
 
   public initialize() {
     this.setupNetworkListener();
@@ -34,6 +42,140 @@ export class SyncManager {
     if (this.unsubscribeNetwork) {
       this.unsubscribeNetwork();
     }
+    this.stopRealtimeSync();
+  }
+
+  public startRealtimeSync(shopId: string) {
+    if (this.realtimeUnsubscribers.length > 0) return;
+
+    console.log('Starting real-time sync for shop:', shopId);
+
+    const productUnsub = firestore()
+      .collection('shops')
+      .doc(shopId)
+      .collection('products')
+      .onSnapshot(async (snapshot) => {
+        if (!snapshot) return;
+        for (const change of snapshot.docChanges()) {
+          if (change.type === 'added' || change.type === 'modified') {
+            const data = change.doc.data();
+            await this.productRepo.insertProduct({
+                id: data.id,
+                shopId: data.shopId,
+                categoryId: data.categoryId || null,
+                name: data.name,
+                description: data.description || null,
+                barcode: data.barcode || null,
+                bulkBarcode: data.bulkBarcode || null,
+                bulkQuantity: data.bulkQuantity || 1,
+                bulkPrice: data.bulkPrice || 0,
+                bulkStockQuantity: data.bulkStockQuantity || 0,
+                price: data.price || 0,
+                costPrice: data.costPrice || 0,
+                stockQuantity: data.stockQuantity || 0,
+                minStockLevel: data.minStockLevel || 0,
+                unit: data.unit || 'pcs',
+                supplierId: data.supplierId || null,
+                syncStatus: 1
+            });
+          }
+        }
+        this.onDataChangedCallback?.();
+      });
+
+    const categoryUnsub = firestore()
+      .collection('shops')
+      .doc(shopId)
+      .collection('categories')
+      .onSnapshot(async (snapshot) => {
+        if (!snapshot) return;
+        for (const change of snapshot.docChanges()) {
+          if (change.type === 'added' || change.type === 'modified') {
+            const data = change.doc.data();
+            await this.categoryRepo.db.executeSql(
+                'INSERT OR REPLACE INTO Category(id, shopId, name, syncStatus) VALUES (?, ?, ?, 1)',
+                [data.id, data.shopId, data.name]
+            );
+          }
+        }
+        this.onDataChangedCallback?.();
+      });
+
+    const supplierUnsub = firestore()
+      .collection('shops')
+      .doc(shopId)
+      .collection('suppliers')
+      .onSnapshot(async (snapshot) => {
+        if (!snapshot) return;
+        for (const change of snapshot.docChanges()) {
+          if (change.type === 'added' || change.type === 'modified') {
+            const data = change.doc.data();
+            await this.supplierRepo.db.executeSql(
+              'INSERT OR REPLACE INTO Supplier(id, shopId, name, contactInfo, syncStatus) VALUES (?, ?, ?, ?, 1)',
+              [data.id, data.shopId, data.name, data.contactInfo || null]
+            );
+          }
+        }
+        this.onDataChangedCallback?.();
+      });
+
+    const customerUnsub = firestore()
+      .collection('shops')
+      .doc(shopId)
+      .collection('customers')
+      .onSnapshot(async (snapshot) => {
+        if (!snapshot) return;
+        for (const change of snapshot.docChanges()) {
+          if (change.type === 'added' || change.type === 'modified') {
+            const data = change.doc.data();
+            await this.customerRepo.db.executeSql(
+              'INSERT OR REPLACE INTO Customer(id, shopId, name, phone, email, currentBalance, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
+              [data.id, data.shopId, data.name, data.phone || null, data.email || null, data.currentBalance || 0]
+            );
+          }
+        }
+        this.onDataChangedCallback?.();
+      });
+
+    const saleUnsub = firestore()
+      .collection('shops')
+      .doc(shopId)
+      .collection('sales')
+      .onSnapshot(async (snapshot) => {
+        if (!snapshot) return;
+        for (const change of snapshot.docChanges()) {
+          if (change.type === 'added' || change.type === 'modified') {
+            const data = change.doc.data();
+            await this.saleRepo.upsertRemoteSale(data, data.items || []);
+          }
+        }
+        this.onDataChangedCallback?.();
+      });
+
+    const expenseUnsub = firestore()
+      .collection('shops')
+      .doc(shopId)
+      .collection('expenses')
+      .onSnapshot(async (snapshot) => {
+        if (!snapshot) return;
+        for (const change of snapshot.docChanges()) {
+          if (change.type === 'added' || change.type === 'modified') {
+            const data = change.doc.data();
+            await this.productRepo.db.executeSql(
+              'INSERT OR REPLACE INTO Expense(id, shopId, category, amount, description, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
+              [data.id, data.shopId, data.category, data.amount, data.description || null, data.timestamp, 1]
+            );
+          }
+        }
+        this.onDataChangedCallback?.();
+      });
+
+    this.realtimeUnsubscribers.push(productUnsub, categoryUnsub, supplierUnsub, customerUnsub, saleUnsub, expenseUnsub);
+  }
+
+  public stopRealtimeSync() {
+    this.realtimeUnsubscribers.forEach(unsub => unsub());
+    this.realtimeUnsubscribers = [];
   }
 
   private setupNetworkListener() {
@@ -43,23 +185,39 @@ export class SyncManager {
     this.unsubscribeNetwork = NetInfo.addEventListener(state => {
       if (state.isConnected && state.isInternetReachable) {
         console.log('Network is back online, triggering sync...');
+        // Note: Automatic network sync might not have shopId context here
+        // It will primarily sync UP local changes
         this.triggerSync();
       }
     });
   }
 
-  async triggerSync() {
+  async triggerSync(shopId?: string) {
     if (this.status === SyncStatus.Syncing) return;
 
     this.status = SyncStatus.Syncing;
     try {
-      await Promise.all([
+      const syncTasks = [
         this.syncSales(),
         this.syncProducts(),
         this.syncSuppliers(),
         this.syncCustomers(),
         this.syncPayments()
-      ]);
+      ];
+
+      // If shopId is provided, also pull changes from remote
+      if (shopId) {
+        syncTasks.push(
+          this.pullProducts(shopId),
+          this.pullCategories(shopId),
+          this.pullSuppliers(shopId),
+          this.pullCustomers(shopId),
+          this.pullSales(shopId),
+          this.pullExpenses(shopId)
+        );
+      }
+
+      await Promise.all(syncTasks);
       this.status = SyncStatus.Success;
       this.lastSynced = Date.now();
     } catch (error) {
@@ -72,6 +230,138 @@ export class SyncManager {
           this.status = SyncStatus.Idle;
         }
       }, 3000);
+    }
+  }
+
+  private async pullProducts(shopId: string) {
+    try {
+      const snapshot = await firestore()
+        .collection('shops')
+        .doc(shopId)
+        .collection('products')
+        .get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.productRepo.insertProduct({
+          id: data.id,
+          shopId: data.shopId,
+          categoryId: data.categoryId || null,
+          name: data.name,
+          description: data.description || null,
+          barcode: data.barcode || null,
+          bulkBarcode: data.bulkBarcode || null,
+          bulkQuantity: data.bulkQuantity || 1,
+          bulkPrice: data.bulkPrice || 0,
+          bulkStockQuantity: data.bulkStockQuantity || 0,
+          price: data.price || 0,
+          costPrice: data.costPrice || 0,
+          stockQuantity: data.stockQuantity || 0,
+          minStockLevel: data.minStockLevel || 0,
+          unit: data.unit || 'pcs',
+          supplierId: data.supplierId || null,
+          syncStatus: 1 // Already synced
+        });
+      }
+    } catch (e) {
+      console.error('Pull Products Error:', e);
+    }
+  }
+
+  private async pullCategories(shopId: string) {
+    try {
+      const snapshot = await firestore()
+        .collection('shops')
+        .doc(shopId)
+        .collection('categories')
+        .get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.categoryRepo.db.executeSql(
+          'INSERT OR REPLACE INTO Category(id, shopId, name, syncStatus) VALUES (?, ?, ?, 1)',
+          [data.id, data.shopId, data.name]
+        );
+      }
+    } catch (e) {
+      console.error('Pull Categories Error:', e);
+    }
+  }
+
+  private async pullSuppliers(shopId: string) {
+    try {
+      const snapshot = await firestore()
+        .collection('shops')
+        .doc(shopId)
+        .collection('suppliers')
+        .get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.supplierRepo.db.executeSql(
+          'INSERT OR REPLACE INTO Supplier(id, shopId, name, contactInfo, syncStatus) VALUES (?, ?, ?, ?, 1)',
+          [data.id, data.shopId, data.name, data.contactInfo || null]
+        );
+      }
+    } catch (e) {
+      console.error('Pull Suppliers Error:', e);
+    }
+  }
+
+  private async pullCustomers(shopId: string) {
+    try {
+      const snapshot = await firestore()
+        .collection('shops')
+        .doc(shopId)
+        .collection('customers')
+        .get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.customerRepo.db.executeSql(
+          'INSERT OR REPLACE INTO Customer(id, shopId, name, phone, email, currentBalance, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
+          [data.id, data.shopId, data.name, data.phone || null, data.email || null, data.currentBalance || 0]
+        );
+      }
+    } catch (e) {
+      console.error('Pull Customers Error:', e);
+    }
+  }
+
+  private async pullSales(shopId: string) {
+    try {
+      const snapshot = await firestore()
+        .collection('shops')
+        .doc(shopId)
+        .collection('sales')
+        .get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.saleRepo.upsertRemoteSale(data, data.items || []);
+      }
+    } catch (e) {
+      console.error('Pull Sales Error:', e);
+    }
+  }
+
+  private async pullExpenses(shopId: string) {
+    try {
+      const snapshot = await firestore()
+        .collection('shops')
+        .doc(shopId)
+        .collection('expenses')
+        .get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.productRepo.db.executeSql(
+          'INSERT OR REPLACE INTO Expense(id, shopId, category, amount, description, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
+          [data.id, data.shopId, data.category, data.amount, data.description || null, data.timestamp]
+        );
+      }
+    } catch (e) {
+      console.error('Pull Expenses Error:', e);
     }
   }
 
