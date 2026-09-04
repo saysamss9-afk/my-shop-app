@@ -33,7 +33,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { User, MapPin } from 'lucide-react-native';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { ShopRepository } from '../../repositories/ShopRepository';
-import { platformShadow } from '../../utils/platformStyles';
+import { getAppShadow } from '../../utils/platformStyles';
 
 type Props = StackScreenProps<RootStackParamList, 'ShopRequest'>;
 
@@ -135,7 +135,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
             </VStack>
           </VStack>
 
-          <Box bg="$white" p="$6" rounded="$3xl" borderWidth={1} borderColor="$borderLight" style={{ ...platformShadow({ offsetY: 6, radius: 18, color: 'rgba(110,59,230,0.08)' }) }}>
+          <Box bg="$white" p="$6" rounded="$3xl" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 6, radius: 18, color: 'rgba(110,59,230,0.08)' }) }}>
             <VStack space="lg">
               <FormControl isRequired>
                 <FormControlLabel>

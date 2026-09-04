@@ -24,7 +24,7 @@ import {
 import { useInventory } from '../../hooks/useInventory';
 import { Product } from '../../db/types';
 import { ScannerView } from '../../components/ScannerView';
-import { platformShadow } from '../../utils/platformStyles';
+import { getAppShadow } from '../../utils/platformStyles';
 
 // Sub-components
 import ProductListItem from './components/ProductListItem';
@@ -174,7 +174,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
           onPress={() => setIsSelectionModalOpen(true)}
           bg="$primary600"
           m="$6"
-          style={{ ...platformShadow({ offsetY: 10, radius: 26, color: 'rgba(110,59,230,0.28)' }) }}
+          style={{ ...getAppShadow({ offsetY: 10, radius: 26, color: 'rgba(110,59,230,0.28)' }) }}
         >
           <FabIcon as={AddIcon} mr="$2" />
           <FabLabel fontWeight="$black">New Product</FabLabel>

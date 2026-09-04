@@ -16,7 +16,7 @@ import {
 } from '@gluestack-ui/themed';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
-import { platformShadow } from '../../utils/platformStyles';
+import { getAppShadow } from '../../utils/platformStyles';
 
 // Sub-components
 import AdminHeader from './components/AdminHeader';
@@ -295,7 +295,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
             bg={viewMode === 'requests' ? '$white' : 'transparent'}
             p="$2"
             rounded="$lg"
-            style={{ ...platformShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
+            style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
           >
             <Center>
               <Text size="sm" fontWeight="$bold" color={viewMode === 'requests' ? '$primary800' : '$text500'}>
@@ -309,7 +309,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
             bg={viewMode === 'shops' ? '$white' : 'transparent'}
             p="$2"
             rounded="$lg"
-            style={{ ...platformShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
+            style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
           >
             <Center>
               <Text size="sm" fontWeight="$bold" color={viewMode === 'shops' ? '$primary800' : '$text500'}>

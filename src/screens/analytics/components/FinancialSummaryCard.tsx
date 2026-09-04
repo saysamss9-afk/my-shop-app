@@ -6,7 +6,7 @@ import {
   Text,
   Heading,
 } from '@gluestack-ui/themed';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
   totalRevenue: number;
@@ -17,7 +17,7 @@ interface Props {
 
 const FinancialSummaryCard: React.FC<Props> = ({ totalRevenue, expenses, netProfit, currency }) => {
   return (
-    <Box bg="$primary800" p="$6" rounded="$3xl" mb="$6" style={{ ...platformShadow({ offsetY: 10, radius: 20, color: 'rgba(0,0,0,0.18)' }) }}>
+    <Box bg="$primary800" p="$6" rounded="$3xl" mb="$6" style={{ ...getAppShadow({ offsetY: 10, radius: 20, color: 'rgba(0,0,0,0.18)' }) }}>
       <VStack space="md" alignItems="center">
           <Text size="sm" color="rgba(255,255,255,0.7)" fontWeight="$bold" textTransform="uppercase">Total Revenue</Text>
           <Heading size="3xl" color="$white" fontWeight="$black">

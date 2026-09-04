@@ -10,7 +10,7 @@ import { useDashboard } from '../../hooks/useDashboard';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
-import { platformShadow } from '../../utils/platformStyles';
+import { getAppShadow } from '../../utils/platformStyles';
 
 // Sub-components
 import DashboardHeader from './components/DashboardHeader';
@@ -110,7 +110,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
           px="$6"
           py="$2"
           rounded="$full"
-          style={{ ...platformShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.05)' }) }}
+          style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.05)' }) }}
         >
           <Text size="xs" color="$text400" fontWeight="$bold">Switch Account</Text>
         </Pressable>

@@ -11,7 +11,7 @@ import {
   BadgeText,
 } from '@gluestack-ui/themed';
 import AppIcon, { IconName } from '../../../components/common/AppIcon';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 export interface DashboardItem {
   id: string;
@@ -47,7 +47,7 @@ const ActionGrid: React.FC<Props> = ({ actions, userRole, lowStockCount }) => {
           h={64}
           rounded="$2xl"
           bg="$white"
-          style={{ ...platformShadow({ offsetY: 8, radius: 18, color: 'rgba(0,0,0,0.05)' }) }}
+          style={{ ...getAppShadow({ offsetY: 8, radius: 18, color: 'rgba(0,0,0,0.05)' }) }}
           mb="$2"
         >
           <AppIcon name={item.icon} size={28} color={item.color} />

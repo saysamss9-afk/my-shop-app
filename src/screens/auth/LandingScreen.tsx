@@ -14,7 +14,7 @@ import {
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import AppIcon from '../../components/common/AppIcon';
-import { platformShadow } from '../../utils/platformStyles';
+import { getAppShadow } from '../../utils/platformStyles';
 
 type Props = StackScreenProps<RootStackParamList, 'Landing'>;
 
@@ -55,7 +55,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
         alignItems="center"
         style={{
           background: 'linear-gradient(135deg, #6E3BE6 0%, #7E5BFF 46%, #8F6BFF 100%)',
-          ...platformShadow({ offsetY: 18, radius: 32, color: 'rgba(110,59,230,0.20)' }),
+          ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(110,59,230,0.20)' }),
         }}
       >
         <VStack space="md" alignItems="center" px="$8">
@@ -103,7 +103,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
             px="$5"
             py="$4"
             style={{
-              ...platformShadow({ offsetY: 10, radius: 22, color: 'rgba(0,0,0,0.05)' }),
+              ...getAppShadow({ offsetY: 10, radius: 22, color: 'rgba(0,0,0,0.05)' }),
             }}
             sx={{
               ':active': {
@@ -134,7 +134,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
               h={160}
               rounded={30}
               style={{
-                ...platformShadow({ offsetY: 8, radius: 22, color: 'rgba(0,0,0,0.04)' }),
+                ...getAppShadow({ offsetY: 8, radius: 22, color: 'rgba(0,0,0,0.04)' }),
               }}
               sx={{ ':active': { transform: [{ scale: 0.96 }] } }}
             >
@@ -158,7 +158,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
               h={160}
               rounded={30}
               style={{
-                ...platformShadow({ offsetY: 8, radius: 22, color: 'rgba(0,0,0,0.04)' }),
+                ...getAppShadow({ offsetY: 8, radius: 22, color: 'rgba(0,0,0,0.04)' }),
               }}
               sx={{ ':active': { transform: [{ scale: 0.96 }] } }}
             >

@@ -10,7 +10,7 @@ import {
 } from '@gluestack-ui/themed';
 import { User, Phone, CloudOff, CheckCircle2, Wallet } from 'lucide-react-native';
 import { Customer } from '../../../db/types';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 import { Pressable, Button, ButtonText, ButtonIcon } from '@gluestack-ui/themed';
 
 interface Props {
@@ -28,7 +28,7 @@ const CustomerListItem: React.FC<Props> = ({ item, currency, onPay }) => {
       mb="$4"
       borderWidth={1}
       borderColor="$borderLight"
-      style={{ ...platformShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
+      style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
     >
       <HStack space="md" alignItems="center">
         <Center w={52} h={52} rounded={16} bg="$primary50">

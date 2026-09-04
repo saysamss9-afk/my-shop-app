@@ -8,7 +8,7 @@ import {
   SearchIcon,
   CloseIcon,
 } from '@gluestack-ui/themed';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
   searchQuery: string;
@@ -18,7 +18,7 @@ interface Props {
 const InventorySearch: React.FC<Props> = ({ searchQuery, setSearchQuery }) => {
   return (
     <Box px="$5" pb="$4">
-      <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...platformShadow({ offsetY: 4, radius: 16, color: 'rgba(0,0,0,0.04)' }) }}>
+      <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...getAppShadow({ offsetY: 4, radius: 16, color: 'rgba(0,0,0,0.04)' }) }}>
         <InputSlot pl="$4">
           <InputIcon as={SearchIcon} color="$primary600" />
         </InputSlot>

@@ -13,15 +13,6 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == "l2JP5nnzVSP6gd8aSDEqI60Tbfl2";
     }
 
-    // Helper to get current user's employee record
-    function getEmployeeData() {
-      return get(/databases/$(database)/documents/employees/$(request.auth.uid)).data;
-    }
-
-    function employeeExists() {
-      return exists(/databases/$(database)/documents/employees/$(request.auth.uid));
-    }
-
     // Check if user is staff of a shop
     function isStaff(shopId) {
       return isAuthenticated() && (isAppOwner() || request.auth.token.shopId == shopId);
@@ -37,8 +28,10 @@ service cloud.firestore {
 
     // Registered Shops (Global metadata)
     match /registered_shops/{shopId} {
-      // Anyone authenticated can read to verify a join code
-      allow read: if isAuthenticated();
+      // Anyone can verify a specific shop code (get)
+      allow get: if true;
+      // Only authenticated users can list shops
+      allow list: if isAuthenticated();
       // Only the App Owner can create new registered shops
       allow create: if isAppOwner();
       // Only the owner of the shop or App Owner can update metadata

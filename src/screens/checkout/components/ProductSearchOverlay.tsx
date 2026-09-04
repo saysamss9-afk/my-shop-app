@@ -9,7 +9,7 @@ import {
   Divider,
   AddIcon,
 } from '@gluestack-ui/themed';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 import { Product } from '../../../db/types';
 
 interface Props {
@@ -22,7 +22,7 @@ const ProductSearchOverlay: React.FC<Props> = ({ filteredProducts, currency, onS
   if (filteredProducts.length === 0) return null;
 
   return (
-    <Box position="absolute" top={55} left={20} right={20} bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ ...platformShadow({ offsetY: 10, radius: 24, color: 'rgba(0,0,0,0.08)' }), zIndex: 100 }}>
+    <Box position="absolute" top={55} left={20} right={20} bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 10, radius: 24, color: 'rgba(0,0,0,0.08)' }), zIndex: 100 }}>
       <VStack>
         {filteredProducts.slice(0, 5).map((item, index) => (
           <React.Fragment key={item.id}>

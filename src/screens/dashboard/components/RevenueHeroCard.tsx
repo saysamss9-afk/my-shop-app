@@ -9,7 +9,7 @@ import {
   BadgeText,
 } from '@gluestack-ui/themed';
 import AppIcon from '../../../components/common/AppIcon';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
   shopId: string;
@@ -28,7 +28,7 @@ const RevenueHeroCard: React.FC<Props> = ({ shopId, shopName, revenue, currency,
       mb="$8"
       style={{
         background: 'linear-gradient(135deg, #6E3BE6 0%, #8956FF 100%)',
-        ...platformShadow({ offsetY: 18, radius: 26, color: 'rgba(110,59,230,0.18)' }),
+        ...getAppShadow({ offsetY: 18, radius: 26, color: 'rgba(110,59,230,0.18)' }),
       }}
     >
       <VStack space="md">

@@ -9,6 +9,9 @@ export const SQLite = {
   }),
 };
 
+export const enablePromise = () => {};
+export const openDatabase = async () => SQLite.openDatabase();
+
 // Mocks for other native modules
 export const RNPrint = {
   print: async () => console.log('Print not supported on web'),

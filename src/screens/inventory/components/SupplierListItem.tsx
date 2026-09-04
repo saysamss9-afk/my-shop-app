@@ -10,7 +10,7 @@ import {
 } from '@gluestack-ui/themed';
 import { Store, Phone, CloudOff, CheckCircle2 } from 'lucide-react-native';
 import { Supplier } from '../../../db/types';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
   item: Supplier;
@@ -25,7 +25,7 @@ const SupplierListItem: React.FC<Props> = ({ item }) => {
       mb="$4"
       borderWidth={1}
       borderColor="$borderLight"
-      style={{ ...platformShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
+      style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
     >
       <HStack space="md" alignItems="center">
         <Center w={52} h={52} rounded={16} bg="$primary50">

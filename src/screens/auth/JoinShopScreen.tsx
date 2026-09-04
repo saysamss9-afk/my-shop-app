@@ -57,14 +57,16 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   const { register, isLoading, error, isSuccess, user } = useAuth();
 
   const handleVerifyCode = async () => {
-    if (!shopCode) return;
+    const cleanedCode = shopCode.trim();
+    if (!cleanedCode) return;
 
     setIsVerifying(true);
     setShopDetails(null);
     try {
-      const shopDoc = await firebase.firestore().collection('registered_shops').doc(shopCode).get();
+      const shopDoc = await firebase.firestore().collection('registered_shops').doc(cleanedCode).get();
       if (shopDoc.exists) {
         const data = shopDoc.data();
+        setShopCode(cleanedCode); // Update state with trimmed code
         setShopDetails({
           name: data?.name || '',
           ownerName: data?.ownerName || '',
@@ -92,7 +94,8 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      await register(email, password, shopCode, role, name, phoneNumber, country);
+      const cleanedCode = shopCode.trim();
+      await register(email, password, cleanedCode, role, name, phoneNumber, country);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }

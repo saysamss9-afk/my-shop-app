@@ -23,7 +23,7 @@ import ScreenWrapper from '../../components/common/ScreenWrapper';
 import CustomerListItem from './components/CustomerListItem';
 import AddCustomerModal from './components/AddCustomerModal';
 import PaymentModal from './components/PaymentModal';
-import { platformShadow } from '../../utils/platformStyles';
+import { getAppShadow } from '../../utils/platformStyles';
 import { Customer } from '../../db/types';
 
 const CustomerScreen = ({ route, navigation }: any) => {
@@ -88,7 +88,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
         onPress={() => setIsModalOpen(true)}
         bg="$primary600"
         m="$6"
-        style={{ ...platformShadow({ offsetY: 10, radius: 26, color: 'rgba(110,59,230,0.28)' }) }}
+        style={{ ...getAppShadow({ offsetY: 10, radius: 26, color: 'rgba(110,59,230,0.28)' }) }}
       >
         <FabIcon as={AddIcon} mr="$2" />
         <FabLabel fontWeight="$black">New Customer</FabLabel>

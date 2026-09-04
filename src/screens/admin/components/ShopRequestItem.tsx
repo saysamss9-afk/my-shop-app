@@ -15,7 +15,7 @@ import {
   Spinner,
 } from '@gluestack-ui/themed';
 import { User, MapPin, PhoneIcon, EditIcon, TrashIcon } from 'lucide-react-native';
-import { platformShadow } from '../../../utils/platformStyles';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
   item: any;
@@ -28,7 +28,7 @@ interface Props {
 
 const ShopRequestItem: React.FC<Props> = ({ item, processing, onEdit, onWhatsApp, onDelete, onApprove }) => {
   return (
-    <Box bg="$white" p="$4" rounded="$2xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ ...platformShadow({ offsetY: 6, radius: 18, color: 'rgba(110,59,230,0.06)' }) }}>
+    <Box bg="$white" p="$4" rounded="$2xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 6, radius: 18, color: 'rgba(110,59,230,0.06)' }) }}>
       <HStack justifyContent="space-between" alignItems="flex-start">
         <VStack flex={1}>
           <Heading size="md" color="$text900">{item.shopName}</Heading>

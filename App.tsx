@@ -38,9 +38,9 @@ const theme = {
 const App = () => {
   console.log('App.tsx: Rendering root App component');
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <GluestackUIProvider config={config}>
+    <GluestackUIProvider config={config}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <ErrorBoundary>
           <PaperProvider theme={theme}>
             <SyncProvider>
               <OfflineBanner />
@@ -49,9 +49,9 @@ const App = () => {
               </NavigationContainer>
             </SyncProvider>
           </PaperProvider>
-        </GluestackUIProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+        </ErrorBoundary>
+      </SafeAreaProvider>
+    </GluestackUIProvider>
   );
 };
 

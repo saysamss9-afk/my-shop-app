@@ -26,7 +26,7 @@ import { useInventory } from '../../hooks/useInventory';
 import { useCustomers } from '../../hooks/useCustomers';
 import AppIcon from '../../components/common/AppIcon';
 import { ScannerView } from '../../components/ScannerView';
-import { getButtonHeight, platformShadow } from '../../utils/platformStyles';
+import { getButtonHeight, getAppShadow } from '../../utils/platformStyles';
 import SelectCustomerModal from './components/SelectCustomerModal';
 
 // Sub-components
@@ -144,7 +144,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
             rounded="$xl"
             borderWidth={1}
             borderColor={selectedCustomer ? "$primary600" : "$borderLight"}
-            style={{ ...platformShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.03)' }) }}
+            style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.03)' }) }}
           >
             <HStack space="sm" alignItems="center">
               <Center w={32} h={32} rounded="$full" bg={selectedCustomer ? "$primary50" : "$backgroundLight100"}>
@@ -167,7 +167,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
           </Pressable>
         </HStack>
 
-        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...platformShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
+        <Input variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
           <InputSlot pl="$4">
             <InputIcon as={SearchIcon} color="$primary600" />
           </InputSlot>
