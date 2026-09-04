@@ -8,6 +8,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import OfflineBanner from './src/components/common/OfflineBanner';
 import { SyncProvider } from './src/sync/SyncContext';
+import { AuthProvider } from './src/auth/AuthContext';
 
 const { LightTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
@@ -42,12 +43,14 @@ const App = () => {
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <ErrorBoundary>
           <PaperProvider theme={theme}>
-            <SyncProvider>
-              <OfflineBanner />
-              <NavigationContainer theme={theme}>
-                <AppNavigator />
-              </NavigationContainer>
-            </SyncProvider>
+            <AuthProvider>
+              <SyncProvider>
+                <OfflineBanner />
+                <NavigationContainer theme={theme}>
+                  <AppNavigator />
+                </NavigationContainer>
+              </SyncProvider>
+            </AuthProvider>
           </PaperProvider>
         </ErrorBoundary>
       </SafeAreaProvider>

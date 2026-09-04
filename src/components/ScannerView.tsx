@@ -32,7 +32,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({ onScan, isActive }) =>
     (async () => {
       const status = await requestCameraPermissionSafely();
       if (!isCancelled) {
-        setHasPermission(status === 'granted');
+        setHasPermission(status === 'granted' || status === 'not-required');
       }
     })();
 

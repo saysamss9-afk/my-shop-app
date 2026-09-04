@@ -10,15 +10,53 @@ import {
   Center,
   Pressable,
   ChevronRightIcon,
+  Spinner,
 } from '@gluestack-ui/themed';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import AppIcon from '../../components/common/AppIcon';
 import { getAppShadow } from '../../utils/platformStyles';
+import { useAuthContext } from '../../auth/AuthContext';
+import firebase from '../../firebase-config';
 
 type Props = StackScreenProps<RootStackParamList, 'Landing'>;
 
 const LandingScreen: React.FC<Props> = ({ navigation }) => {
+  const { user, employeeData, isRestoringSession } = useAuthContext();
+
+  React.useEffect(() => {
+    if (!isRestoringSession && user) {
+      const redirect = async () => {
+        if (user.uid === "l2JP5nnzVSP6gd8aSDEqI60Tbfl2") {
+          navigation.replace('AdminDashboard');
+          return;
+        }
+
+        if (employeeData) {
+          let shopName = 'Your Shop';
+          try {
+            const shopSnap = await firebase.firestore().collection('registered_shops').doc(employeeData.shopId).get();
+            if (shopSnap.exists) {
+              shopName = shopSnap.data()?.name || shopName;
+            }
+          } catch (error) {
+            console.warn('LandingScreen: Failed to fetch shop name:', error);
+          }
+
+          navigation.replace('Dashboard', {
+            shopId: employeeData.shopId,
+            employeeId: user.uid,
+            userRole: employeeData.role,
+            shopName,
+          });
+        } else {
+          navigation.replace('ShopSetup');
+        }
+      };
+      redirect();
+    }
+  }, [user, employeeData, isRestoringSession, navigation]);
+
   const featureCards = [
     {
       title: 'Fast Sales',
@@ -42,6 +80,20 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
       color: '#2E7D32',
     },
   ];
+
+  if (isRestoringSession) {
+    return (
+      <Box flex={1} bg="$surfaceLavender">
+        <Center flex={1}>
+          <VStack space="md" alignItems="center">
+            <AppIcon name="store" size={60} color="#6E3BE6" />
+            <Spinner size="large" color="$primary600" />
+            <Text size="sm" color="$text500">Restoring Session...</Text>
+          </VStack>
+        </Center>
+      </Box>
+    );
+  }
 
   return (
     <Box flex={1} bg="$surfaceLavender">

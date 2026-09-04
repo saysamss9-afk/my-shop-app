@@ -59,15 +59,17 @@ service cloud.firestore {
     // Shop-scoped data
     match /shops/{shopId} {
 
-      // Products & Inventory: Staff can read, Managers can manage
+      // Products & Inventory: Staff can read and create, Managers can update/delete
       match /products/{productId} {
         allow read: if isStaff(shopId);
-        allow write: if isManager(shopId);
+        allow create: if isStaff(shopId);
+        allow update, delete: if isManager(shopId);
       }
 
       match /categories/{categoryId} {
         allow read: if isStaff(shopId);
-        allow write: if isManager(shopId);
+        allow create: if isStaff(shopId);
+        allow update, delete: if isManager(shopId);
       }
 
       // Sales: Staff can record sales, Managers can view/edit history

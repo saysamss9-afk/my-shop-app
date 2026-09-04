@@ -14,6 +14,12 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 
+  // Auth persistence for web
+  if (typeof window !== 'undefined') {
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .catch(err => console.error('Auth persistence failed:', err));
+  }
+
   // Enable persistence for web
   if (typeof window !== 'undefined') {
     firebase.firestore().enablePersistence({ synchronizeTabs: true })

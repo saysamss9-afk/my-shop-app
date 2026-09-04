@@ -167,7 +167,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         />
       )}
 
-      {(userRole === 'OWNER' || userRole === 'MANAGER') && (
+      {(userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'SALES') && (
         <Fab
           size="lg"
           placement="bottom right"
