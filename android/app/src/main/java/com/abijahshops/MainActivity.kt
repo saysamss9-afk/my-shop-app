@@ -1,4 +1,4 @@
-package com.abijahshops.admin
+package com.abijahshops
 
 import android.os.Bundle
 import com.facebook.react.ReactActivity

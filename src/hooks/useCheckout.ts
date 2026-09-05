@@ -4,6 +4,7 @@ import { ProductRepository } from '../repositories/ProductRepository';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { Product, Sale, SaleItem } from '../db/types';
 import { useSync } from '../sync/SyncContext';
+import { generateUUID } from '../utils/uuid';
 
 export interface CartItem {
   product: Product;
@@ -127,7 +128,7 @@ export const useCheckout = (shopId: string, employeeId: string) => {
       const db = await getDBConnection();
       const saleRepo = new SaleRepository(db);
 
-      const saleId = Date.now().toString();
+      const saleId = generateUUID();
       const saleTotal = calculateCartTotal(cart);
       const targetCustomerId = customerId || selectedCustomerId;
       const sale: Sale = {
@@ -145,7 +146,7 @@ export const useCheckout = (shopId: string, employeeId: string) => {
       };
 
       const items: SaleItem[] = cart.map(item => ({
-        id: `${saleId}_${item.product.id}_${item.isBulk ? 'bulk' : 'unit'}`,
+        id: generateUUID(),
         saleId,
         productId: item.product.id,
         quantity: item.quantity,

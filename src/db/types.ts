@@ -32,6 +32,7 @@ export interface Product {
   minStockLevel: number;
   unit: string;
   supplierId: string | null;
+  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
   syncStatus: number;
 }
 
@@ -40,6 +41,7 @@ export interface Supplier {
   shopId: string;
   name: string;
   contactInfo: string | null;
+  currentBalance: number;
   syncStatus: number;
 }
 
@@ -100,8 +102,47 @@ export interface PurchaseOrder {
   id: string;
   shopId: string;
   supplierId: string;
+  invoiceNumber: string | null;
   timestamp: number;
   totalCost: number;
+  amountPaid: number;
+  balance: number;
+  paymentStatus: 'PAID' | 'PARTIAL' | 'DEBT';
+  syncStatus: number;
+}
+
+export interface PurchaseOrderItem {
+  id: string;
+  purchaseOrderId: string;
+  productId: string;
+  productName: string; // Storing name snapshot
+  quantity: number;
+  costPrice: number;
+  isBulk: number;
+}
+
+export interface PurchaseReturn {
+  id: string;
+  purchaseOrderId: string;
+  shopId: string;
+  supplierId: string;
+  productId: string;
+  quantity: number;
+  value: number;
+  reason: string;
+  timestamp: number;
+  syncStatus: number;
+}
+
+export interface SupplierPayment {
+  id: string;
+  supplierId: string;
+  shopId: string;
+  amount: number;
+  paymentMethod: string;
+  reference: string | null;
+  timestamp: number;
+  note: string | null;
   syncStatus: number;
 }
 

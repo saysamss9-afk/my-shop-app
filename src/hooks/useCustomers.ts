@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
 import { CustomerRepository } from '../repositories/CustomerRepository';
-import { Customer } from '../db/types';
+import { ProductRepository } from '../repositories/ProductRepository';
+import { Customer, Product } from '../db/types';
 import { useSync } from '../sync/SyncContext';
+import { generateUUID } from '../utils/uuid';
 
 export const useCustomers = (shopId: string) => {
   const { triggerSync, dataChangeTick, syncStatus } = useSync();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('$');
 
-  const loadCustomers = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -28,6 +31,10 @@ export const useCustomers = (shopId: string) => {
         data.push(results[0].rows.item(i));
       }
       setCustomers(data);
+
+      const prodRepo = new ProductRepository(db);
+      const prods = await prodRepo.getProductsByShop(shopId);
+      setProducts(prods);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -36,15 +43,15 @@ export const useCustomers = (shopId: string) => {
   }, [shopId]);
 
   useEffect(() => {
-    loadCustomers();
-  }, [loadCustomers, dataChangeTick]);
+    loadData();
+  }, [loadData, dataChangeTick]);
 
   const addCustomer = useCallback(async (name: string, phone: string) => {
     try {
       const db = await getDBConnection();
       const repo = new CustomerRepository(db);
       const newCustomer: Customer = {
-        id: Date.now().toString(),
+        id: generateUUID(),
         shopId,
         name,
         phone,
@@ -65,7 +72,7 @@ export const useCustomers = (shopId: string) => {
       const db = await getDBConnection();
       const repo = new CustomerRepository(db);
       const payment = {
-        id: Date.now().toString(),
+        id: generateUUID(),
         customerId,
         shopId,
         amount,
@@ -74,12 +81,40 @@ export const useCustomers = (shopId: string) => {
         note: note || null,
       };
       await repo.recordPayment(payment);
-      await loadCustomers();
+      await loadData();
       triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }
-  }, [shopId, loadCustomers, triggerSync]);
+  }, [shopId, loadData, triggerSync]);
+
+  const returnProduct = useCallback(async (
+    customerId: string,
+    productId: string,
+    quantity: number,
+    isBulk: boolean,
+    price: number
+  ) => {
+    try {
+      const db = await getDBConnection();
+      const repo = new CustomerRepository(db);
+      const returnOrder = {
+        id: generateUUID(),
+        customerId,
+        shopId,
+        productId,
+        quantity,
+        value: price * quantity,
+        timestamp: Date.now(),
+        isBulk
+      };
+      await repo.recordReturn(returnOrder);
+      await loadData();
+      triggerSync(shopId);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, [shopId, loadData, triggerSync]);
 
   const triggerManualSync = () => {
     triggerSync(shopId);
@@ -87,13 +122,15 @@ export const useCustomers = (shopId: string) => {
 
   return {
     customers,
+    products,
     isLoading,
     syncStatus,
     error,
     currency,
     addCustomer,
     recordPayment,
+    returnProduct,
     triggerManualSync,
-    refreshCustomers: loadCustomers,
+    refreshCustomers: loadData,
   };
 };

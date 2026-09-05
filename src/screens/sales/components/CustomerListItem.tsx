@@ -8,7 +8,7 @@ import {
   Icon,
   Center,
 } from '@gluestack-ui/themed';
-import { User, Phone, CloudOff, CheckCircle2, Wallet } from 'lucide-react-native';
+import { User, Phone, CloudOff, CheckCircle2, Wallet, RotateCcw } from 'lucide-react-native';
 import { Customer } from '../../../db/types';
 import { getAppShadow } from '../../../utils/platformStyles';
 import { Pressable, Button, ButtonText, ButtonIcon } from '@gluestack-ui/themed';
@@ -17,9 +17,10 @@ interface Props {
   item: Customer;
   currency: string;
   onPay: (customer: Customer) => void;
+  onReturn: (customer: Customer) => void;
 }
 
-const CustomerListItem: React.FC<Props> = ({ item, currency, onPay }) => {
+const CustomerListItem: React.FC<Props> = ({ item, currency, onPay, onReturn }) => {
   return (
     <Box
       bg="$white"
@@ -59,8 +60,9 @@ const CustomerListItem: React.FC<Props> = ({ item, currency, onPay }) => {
       </HStack>
 
       {item.currentBalance > 0 && (
-        <Box mt="$4" pt="$4" borderTopWidth={1} borderTopColor="$backgroundLight100">
+        <HStack mt="$4" pt="$4" borderTopWidth={1} borderTopColor="$backgroundLight100" space="md">
             <Button
+                flex={1}
                 size="sm"
                 action="positive"
                 variant="outline"
@@ -68,9 +70,21 @@ const CustomerListItem: React.FC<Props> = ({ item, currency, onPay }) => {
                 onPress={() => onPay(item)}
             >
                 <ButtonIcon as={Wallet} mr="$2" />
-                <ButtonText size="xs" fontWeight="$bold">Pay Installment</ButtonText>
+                <ButtonText size="xs" fontWeight="$bold">Payment</ButtonText>
             </Button>
-        </Box>
+
+            <Button
+                flex={1}
+                size="sm"
+                action="secondary"
+                variant="outline"
+                borderRadius={12}
+                onPress={() => onReturn(item)}
+            >
+                <ButtonIcon as={RotateCcw} mr="$2" />
+                <ButtonText size="xs" fontWeight="$bold">Return Item</ButtonText>
+            </Button>
+        </HStack>
       )}
     </Box>
   );

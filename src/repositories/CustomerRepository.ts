@@ -1,5 +1,6 @@
 import { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { Customer, DebtPayment } from '../db/types';
+import { generateUUID } from '../utils/uuid';
 
 export class CustomerRepository {
   constructor(public db: SQLiteDatabase) {}
@@ -66,6 +67,57 @@ export class CustomerRepository {
   async markPaymentSynced(id: string) {
     const query = 'UPDATE DebtPayment SET syncStatus = 1 WHERE id = ?';
     await this.db.executeSql(query, [id]);
+  }
+
+  async recordReturn(returnOrder: {
+    id: string;
+    customerId: string;
+    shopId: string;
+    productId: string;
+    quantity: number;
+    value: number;
+    timestamp: number;
+    isBulk: boolean;
+  }) {
+    await this.db.transaction(async (tx: any) => {
+      // 1. Record the adjustment
+      const adjQuery = `
+        INSERT INTO InventoryAdjustment(id, productId, shopId, quantity, reason, timestamp, syncStatus)
+        VALUES (?, ?, ?, ?, ?, ?, 0)
+      `;
+      await tx.executeSql(adjQuery, [
+        returnOrder.id,
+        returnOrder.productId,
+        returnOrder.shopId,
+        returnOrder.quantity,
+        'CUSTOMER_RETURN',
+        returnOrder.timestamp
+      ]);
+
+      // 2. Reduce customer debt
+      const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
+      await tx.executeSql(updateBalanceQuery, [returnOrder.value, returnOrder.customerId]);
+
+      // 3. Restore stock in Product table
+      const column = returnOrder.isBulk ? 'bulkStockQuantity' : 'stockQuantity';
+      const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ? WHERE id = ?`;
+      await tx.executeSql(restoreStockQuery, [returnOrder.quantity, returnOrder.productId]);
+
+      // 4. Record in AuditLog
+      const auditQuery = `
+        INSERT INTO AuditLog(id, shopId, employeeId, action, targetId, details, timestamp, syncStatus)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+      `;
+      await tx.executeSql(auditQuery, [
+        generateUUID(),
+        returnOrder.shopId,
+        'SYSTEM', // Ideally passed from UI
+        'ITEM_RETURNED',
+        returnOrder.customerId,
+        `Returned ${returnOrder.quantity} of ${returnOrder.productId}. Value: ${returnOrder.value}`,
+        returnOrder.timestamp
+      ]);
+    });
   }
 
   async getUnsyncedCustomers(): Promise<Customer[]> {

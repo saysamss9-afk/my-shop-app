@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { FlatList, StatusBar } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { FlatList, StatusBar, ScrollView } from 'react-native';
 import {
   Box,
   VStack,
@@ -16,42 +16,101 @@ import {
   AddIcon,
   ArrowLeftIcon,
   SearchIcon,
+  Input,
+  InputField,
+  InputSlot,
 } from '@gluestack-ui/themed';
-import { Store, RefreshCw, AlertTriangle } from 'lucide-react-native';
+import { Store, RefreshCw, AlertTriangle, XCircle, TrendingUp, Wallet, ShoppingCart, History } from 'lucide-react-native';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import SupplierListItem from './components/SupplierListItem';
 import AddSupplierModal from './components/AddSupplierModal';
+import SupplierPaymentModal from './components/SupplierPaymentModal';
 import { getAppShadow } from '../../utils/platformStyles';
 import { SyncStatus } from '../../sync/SyncManager';
 
 const SupplierScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { suppliers, isLoading, syncStatus, addSupplier, triggerManualSync } = useSuppliers(shopId);
+  const { suppliers, stats, isLoading, syncStatus, currency, addSupplier, recordPayment, triggerManualSync } = useSuppliers(shopId);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredSuppliers = useMemo(() => {
+    if (!searchQuery) return suppliers;
+    const lowerQuery = searchQuery.toLowerCase();
+    return suppliers.filter(s =>
+      s.name.toLowerCase().includes(lowerQuery) ||
+      (s.contactInfo && s.contactInfo.toLowerCase().includes(lowerQuery))
+    );
+  }, [suppliers, searchQuery]);
+
+  const handlePay = useCallback((supplier: any) => {
+    setSelectedSupplier(supplier);
+    setIsPaymentModalOpen(true);
+  }, []);
+
+  const handlePurchase = useCallback((supplier: any) => {
+    navigation.navigate('Purchase', { shopId, initialSupplierId: supplier.id });
+  }, [navigation, shopId]);
 
   const renderItem = useCallback(({ item }: any) => (
-    <SupplierListItem item={item} />
-  ), []);
+    <SupplierListItem item={item} currency={currency} onPay={handlePay} onPurchase={handlePurchase} />
+  ), [currency, handlePay, handlePurchase]);
+
+  const SummaryCard = ({ title, value, subValue, icon, color }: any) => (
+    <Box
+        bg="$white"
+        p="$4"
+        rounded="$2xl"
+        mr="$4"
+        w={160}
+        style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.04)' }) }}
+    >
+        <VStack space="sm">
+            <HStack justifyContent="space-between" alignItems="center">
+                <Center w={32} h={32} bg={`${color}10`} rounded="$lg">
+                    <Icon as={icon} color={color} size="sm" />
+                </Center>
+                <Text size="xxs" color="$text400" fontWeight="$bold">{title}</Text>
+            </HStack>
+            <VStack>
+                <Heading size="md" color="$text900" fontWeight="$black">{value}</Heading>
+                <Text size="xxs" color="$text500">{subValue}</Text>
+            </VStack>
+        </VStack>
+    </Box>
+  );
 
   return (
     <ScreenWrapper withHeader>
       <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
 
       {/* Header */}
-      <Box px="$2" pt="$2" pb="$4">
-        <HStack justifyContent="space-between" alignItems="center">
+      <Box px="$4" pt="$2" pb="$2">
+        <HStack justifyContent="space-between" alignItems="center" mb="$4">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
               <Icon as={ArrowLeftIcon} color="$text900" />
             </Pressable>
             <VStack>
               <Heading size="lg" color="$text900" fontWeight="$black">Suppliers</Heading>
-              <Text size="xs" color="$text500">Manage your product sources</Text>
+              <Text size="xs" color="$text500">Inventory Sourcing</Text>
             </VStack>
           </HStack>
 
           <HStack space="sm" alignItems="center">
+            <Pressable
+                onPress={() => navigation.navigate('PurchaseHistory', { shopId })}
+                p="$2.5"
+                bg="$white"
+                rounded="$full"
+                style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
+            >
+                <Icon as={History} color="$text500" size="sm" />
+            </Pressable>
+
             {syncStatus === SyncStatus.Syncing ? (
                 <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
                     <Spinner color="$primary600" size="small" />
@@ -73,13 +132,62 @@ const SupplierScreen = ({ route, navigation }: any) => {
                             size="xs"
                         />
                         <Text size="xs" color="$white" fontWeight="$bold">
-                            {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync Now'}
+                            {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync'}
                         </Text>
                     </HStack>
                 </Pressable>
             )}
           </HStack>
         </HStack>
+
+        {/* Dashboard Horizontal Scroll */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+            <SummaryCard
+                title="TOTAL PAYABLE"
+                value={`${currency}${stats.totalPayable.toLocaleString()}`}
+                subValue={`${stats.owedSuppliers} Suppliers Owed`}
+                icon={Wallet}
+                color="#EF4444"
+            />
+            <SummaryCard
+                title="PAID THIS MONTH"
+                value={`${currency}${stats.paidThisMonth.toLocaleString()}`}
+                subValue="Supplier Payments"
+                icon={TrendingUp}
+                color="#10B981"
+            />
+            <SummaryCard
+                title="PURCHASES"
+                value={`${currency}${stats.purchasesThisMonth.toLocaleString()}`}
+                subValue="New Inventory Value"
+                icon={ShoppingCart}
+                color="#6366F1"
+            />
+            <SummaryCard
+                title="NETWORK"
+                value={stats.totalSuppliers}
+                subValue="Total Suppliers"
+                icon={Store}
+                color="#F59E0B"
+            />
+        </ScrollView>
+
+        {/* Search Bar */}
+        <Input borderRadius={16} bg="$white" style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(0,0,0,0.02)' }) }}>
+          <InputSlot pl="$3">
+            <Icon as={SearchIcon} color="$text400" />
+          </InputSlot>
+          <InputField
+            placeholder="Search suppliers..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <InputSlot pr="$3" onPress={() => setSearchQuery('')}>
+              <Icon as={XCircle} color="$text300" size="sm" />
+            </InputSlot>
+          ) : null}
+        </Input>
       </Box>
 
       {isLoading ? (
@@ -88,17 +196,19 @@ const SupplierScreen = ({ route, navigation }: any) => {
         </Center>
       ) : (
         <FlatList
-          data={suppliers}
+          data={filteredSuppliers}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
           ListEmptyComponent={
-            <Center mt="$20">
+            <Center mt="$10">
               <VStack space="md" alignItems="center">
                 <Center w={100} h={100} bg="$backgroundLight100" rounded="$full">
                     <Icon as={Store} size="xl" color="$text300" />
                 </Center>
-                <Text color="$text400">No suppliers added yet.</Text>
+                <Text color="$text400">
+                    {searchQuery ? 'No matching suppliers.' : 'No suppliers added yet.'}
+                </Text>
               </VStack>
             </Center>
           }
@@ -121,6 +231,17 @@ const SupplierScreen = ({ route, navigation }: any) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={addSupplier}
+      />
+
+      <SupplierPaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => {
+            setIsPaymentModalOpen(false);
+            setSelectedSupplier(null);
+        }}
+        onSave={recordPayment}
+        supplier={selectedSupplier}
+        currency={currency}
       />
     </ScreenWrapper>
   );

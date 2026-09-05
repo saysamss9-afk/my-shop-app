@@ -4,6 +4,7 @@ import { ProductRepository } from '../repositories/ProductRepository';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { Product, Category } from '../db/types';
 import { useSync } from '../sync/SyncContext';
+import { generateUUID } from '../utils/uuid';
 
 import { SyncStatus } from '../sync/SyncManager';
 
@@ -54,8 +55,9 @@ export const useInventory = (shopId: string) => {
       const productRepo = new ProductRepository(db);
       const newProduct: Product = {
         ...productData,
-        id: Date.now().toString(),
+        id: generateUUID(),
         shopId,
+        status: 'ACTIVE',
         syncStatus: 0,
       };
 
@@ -70,6 +72,18 @@ export const useInventory = (shopId: string) => {
 
       // 4. Silently refresh categories or other metadata if needed,
       // but don't call loadData() with isLoading=true
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, [shopId, triggerSync]);
+
+  const updateProduct = useCallback(async (product: Product) => {
+    try {
+      const db = await getDBConnection();
+      const productRepo = new ProductRepository(db);
+      await productRepo.updateProduct(product);
+      setProducts(prev => prev.map(p => p.id === product.id ? product : p));
+      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }

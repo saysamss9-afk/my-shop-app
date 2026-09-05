@@ -14,6 +14,8 @@ import SaleHistoryScreen from '../screens/sales/SaleHistoryScreen';
 import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
 import StaffManagementScreen from '../screens/admin/StaffManagementScreen';
 import SupplierScreen from '../screens/inventory/SupplierScreen';
+import PurchaseScreen from '../screens/inventory/PurchaseScreen';
+import PurchaseHistoryScreen from '../screens/inventory/PurchaseHistoryScreen';
 import CustomerScreen from '../screens/sales/CustomerScreen';
 
 export type RootStackParamList = {
@@ -31,6 +33,8 @@ export type RootStackParamList = {
   Analytics: { shopId: string };
   StaffManagement: { shopId: string };
   Suppliers: { shopId: string };
+  Purchase: { shopId: string; initialSupplierId?: string };
+  PurchaseHistory: { shopId: string };
   Customers: { shopId: string };
 };
 
@@ -58,6 +62,8 @@ const AppNavigator = () => {
       <Stack.Screen name="Analytics" component={AnalyticsScreen} />
       <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
       <Stack.Screen name="Suppliers" component={SupplierScreen} />
+      <Stack.Screen name="Purchase" component={PurchaseScreen} />
+      <Stack.Screen name="PurchaseHistory" component={PurchaseHistoryScreen} />
       <Stack.Screen name="Customers" component={CustomerScreen} />
     </Stack.Navigator>
   );

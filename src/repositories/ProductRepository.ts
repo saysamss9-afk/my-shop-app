@@ -6,14 +6,14 @@ export class ProductRepository {
 
   async insertProduct(product: Product) {
     const query = `
-      INSERT OR REPLACE INTO Product(id, shopId, categoryId, name, description, barcode, bulkBarcode, bulkQuantity, bulkPrice, bulkStockQuantity, price, costPrice, stockQuantity, minStockLevel, unit, supplierId, syncStatus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT OR REPLACE INTO Product(id, shopId, categoryId, name, description, barcode, bulkBarcode, bulkQuantity, bulkPrice, bulkStockQuantity, price, costPrice, stockQuantity, minStockLevel, unit, supplierId, status, syncStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `;
     const params = [
       product.id, product.shopId, product.categoryId, product.name, product.description,
       product.barcode, product.bulkBarcode, product.bulkQuantity, product.bulkPrice,
       product.bulkStockQuantity, product.price, product.costPrice, product.stockQuantity,
-      product.minStockLevel, product.unit, product.supplierId
+      product.minStockLevel, product.unit, product.supplierId, product.status || 'ACTIVE'
     ];
     await this.db.executeSql(query, params);
   }
@@ -47,6 +47,22 @@ export class ProductRepository {
     const column = isBulk ? 'bulkStockQuantity' : 'stockQuantity';
     const query = `UPDATE Product SET ${column} = ${column} + ? WHERE id = ?`;
     await this.db.executeSql(query, [change, productId]);
+  }
+
+  async updateProduct(product: Product) {
+    const query = `
+      UPDATE Product SET
+        categoryId = ?, name = ?, description = ?, barcode = ?, bulkBarcode = ?,
+        bulkQuantity = ?, bulkPrice = ?, price = ?, costPrice = ?,
+        minStockLevel = ?, unit = ?, status = ?, syncStatus = 0
+      WHERE id = ?
+    `;
+    const params = [
+      product.categoryId, product.name, product.description, product.barcode, product.bulkBarcode,
+      product.bulkQuantity, product.bulkPrice, product.price, product.costPrice,
+      product.minStockLevel, product.unit, product.status, product.id
+    ];
+    await this.db.executeSql(query, params);
   }
 
   async getLowStockCount(shopId: string): Promise<number> {

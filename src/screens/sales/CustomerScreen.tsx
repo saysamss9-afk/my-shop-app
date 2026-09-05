@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { FlatList, StatusBar } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { FlatList, StatusBar, Alert } from 'react-native';
 import {
   Box,
   VStack,
@@ -16,40 +16,124 @@ import {
   AddIcon,
   ArrowLeftIcon,
   SearchIcon,
+  Input,
+  InputField,
+  InputIcon,
+  InputSlot,
+  useToast,
+  Toast,
+  ToastTitle,
+  ToastDescription,
 } from '@gluestack-ui/themed';
-import { User, RefreshCw, AlertTriangle } from 'lucide-react-native';
+import { User, RefreshCw, AlertTriangle, XCircle } from 'lucide-react-native';
 import { useCustomers } from '../../hooks/useCustomers';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import CustomerListItem from './components/CustomerListItem';
 import AddCustomerModal from './components/AddCustomerModal';
 import PaymentModal from './components/PaymentModal';
+import ReturnModal from './components/ReturnModal';
 import { getAppShadow } from '../../utils/platformStyles';
 import { Customer } from '../../db/types';
 import { SyncStatus } from '../../sync/SyncManager';
 
 const CustomerScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { customers, isLoading, syncStatus, currency, addCustomer, recordPayment, triggerManualSync } = useCustomers(shopId);
+  const { customers, products, isLoading, syncStatus, currency, addCustomer, recordPayment, returnProduct, triggerManualSync, error } = useCustomers(shopId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const toast = useToast();
+
+  const filteredCustomers = useMemo(() => {
+    if (!searchQuery) return customers;
+    const lowerQuery = searchQuery.toLowerCase();
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(lowerQuery) ||
+      (c.phone && c.phone.includes(lowerQuery))
+    );
+  }, [customers, searchQuery]);
 
   const handlePay = useCallback((customer: Customer) => {
     setSelectedCustomer(customer);
     setIsPaymentModalOpen(true);
   }, []);
 
+  const handleReturn = useCallback((customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsReturnModalOpen(true);
+  }, []);
+
+  const onAddCustomer = async (name: string, phone: string) => {
+    try {
+      await addCustomer(name, phone);
+      toast.show({
+        placement: "top",
+        render: ({ id }) => (
+          <Toast nativeId={id} action="success" variant="solid">
+            <VStack space="xs">
+              <ToastTitle>Customer Added</ToastTitle>
+              <ToastDescription>{name} has been added successfully.</ToastDescription>
+            </VStack>
+          </Toast>
+        ),
+      });
+    } catch (e: any) {
+      Alert.alert("Error", "Failed to add customer: " + e.message);
+    }
+  };
+
+  const onRecordPayment = async (customerId: string, amount: number, method: string, note?: string) => {
+    try {
+      await recordPayment(customerId, amount, method, note);
+      toast.show({
+        placement: "top",
+        render: ({ id }) => (
+          <Toast nativeId={id} action="success" variant="solid">
+            <VStack space="xs">
+              <ToastTitle>Payment Recorded</ToastTitle>
+              <ToastDescription>Payment of {currency}{amount.toFixed(2)} received.</ToastDescription>
+            </VStack>
+          </Toast>
+        ),
+      });
+    } catch (e: any) {
+      Alert.alert("Error", "Failed to record payment: " + e.message);
+    }
+  };
+
+  const handleReturnProduct = async (customerId: string, productId: string, qty: number, isBulk: boolean, price: number) => {
+    try {
+      await returnProduct(customerId, productId, qty, isBulk, price);
+      toast.show({
+        placement: "top",
+        render: ({ id }) => (
+          <Toast nativeId={id} action="success" variant="solid">
+            <VStack space="xs">
+              <ToastTitle>Item Returned</ToastTitle>
+              <ToastDescription>Stock restored and debt reduced by {currency}{(price * qty).toFixed(2)}.</ToastDescription>
+            </VStack>
+          </Toast>
+        ),
+      });
+    } catch (e: any) {
+      Alert.alert("Error", "Failed to process return: " + e.message);
+    }
+  };
+
   const renderItem = useCallback(({ item }: any) => (
-    <CustomerListItem item={item} currency={currency} onPay={handlePay} />
-  ), [currency, handlePay]);
+    <CustomerListItem item={item} currency={currency} onPay={handlePay} onReturn={handleReturn} />
+  ), [currency, handlePay, handleReturn]);
 
   return (
     <ScreenWrapper withHeader>
       <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
 
       {/* Header */}
-      <Box px="$2" pt="$2" pb="$4">
-        <HStack justifyContent="space-between" alignItems="center">
+      <Box px="$4" pt="$2" pb="$2">
+        <HStack justifyContent="space-between" alignItems="center" mb="$4">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
               <Icon as={ArrowLeftIcon} color="$text900" />
@@ -89,15 +173,42 @@ const CustomerScreen = ({ route, navigation }: any) => {
             )}
           </HStack>
         </HStack>
+
+        {/* Search Bar */}
+        <Input borderRadius={16} bg="$white" style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(0,0,0,0.02)' }) }}>
+          <InputSlot pl="$3">
+            <InputIcon as={SearchIcon} color="$text400" />
+          </InputSlot>
+          <InputField
+            placeholder="Search name or phone..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <InputSlot pr="$3" onPress={() => setSearchQuery('')}>
+              <Icon as={XCircle} color="$text300" size="sm" />
+            </InputSlot>
+          ) : null}
+        </Input>
       </Box>
 
-      {isLoading ? (
+      {error ? (
+        <Center p="$10">
+          <VStack space="md" alignItems="center">
+            <Icon as={AlertTriangle} size="xl" color="$error600" />
+            <Text textAlign="center" color="$text600">{error}</Text>
+            <Button size="sm" action="secondary" variant="outline" onPress={triggerManualSync}>
+              <ButtonText>Try Reloading</ButtonText>
+            </Button>
+          </VStack>
+        </Center>
+      ) : isLoading ? (
         <Center flex={1}>
           <Spinner size="large" color="$primary600" />
         </Center>
       ) : (
         <FlatList
-          data={customers}
+          data={filteredCustomers}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
@@ -107,7 +218,9 @@ const CustomerScreen = ({ route, navigation }: any) => {
                 <Center w={100} h={100} bg="$backgroundLight100" rounded="$full">
                     <Icon as={User} size="xl" color="$text300" />
                 </Center>
-                <Text color="$text400">No customers added yet.</Text>
+                <Text color="$text400">
+                  {searchQuery ? 'No matching customers found.' : 'No customers added yet.'}
+                </Text>
               </VStack>
             </Center>
           }
@@ -129,7 +242,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
       <AddCustomerModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={addCustomer}
+        onSave={onAddCustomer}
       />
 
       <PaymentModal
@@ -138,8 +251,20 @@ const CustomerScreen = ({ route, navigation }: any) => {
             setIsPaymentModalOpen(false);
             setSelectedCustomer(null);
         }}
-        onSave={recordPayment}
+        onSave={onRecordPayment}
         customer={selectedCustomer}
+        currency={currency}
+      />
+
+      <ReturnModal
+        isOpen={isReturnModalOpen}
+        onClose={() => {
+            setIsReturnModalOpen(false);
+            setSelectedCustomer(null);
+        }}
+        onSave={handleReturnProduct}
+        customer={selectedCustomer}
+        products={products}
         currency={currency}
       />
     </ScreenWrapper>
@@ -147,3 +272,4 @@ const CustomerScreen = ({ route, navigation }: any) => {
 };
 
 export default CustomerScreen;
+

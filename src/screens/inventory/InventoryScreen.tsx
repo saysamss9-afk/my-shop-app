@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { FlatList, StatusBar } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { FlatList, StatusBar, Alert } from 'react-native';
 import {
   Box,
   VStack,
@@ -20,6 +20,8 @@ import {
   ModalBody,
   Heading,
   CloseIcon,
+  HStack,
+  Pressable,
 } from '@gluestack-ui/themed';
 import { useInventory } from '../../hooks/useInventory';
 import { Product } from '../../db/types';
@@ -29,6 +31,7 @@ import { getAppShadow } from '../../utils/platformStyles';
 // Sub-components
 import ProductListItem from './components/ProductListItem';
 import AddProductModal from './components/AddProductModal';
+import EditProductModal from './components/EditProductModal';
 import EntryTypeModal from './components/EntryTypeModal';
 import InventoryHeader from './components/InventoryHeader';
 import InventorySearch from './components/InventorySearch';
@@ -44,15 +47,19 @@ const InventoryScreen = ({ route, navigation }: any) => {
     syncStatus,
     showLowStockOnly,
     addProduct,
+    updateProduct,
     toggleLowStockFilter,
     generateBarcode,
     triggerManualSync,
   } = useInventory(shopId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
   const [entryMode, setEntryMode] = useState<'UNIT' | 'BULK'>('UNIT');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING'>('ALL');
   const [scanTarget, setScanTarget] = useState<'unit' | 'bulk' | null>(null);
 
   const handleSave = async (productData: any) => {
@@ -78,26 +85,38 @@ const InventoryScreen = ({ route, navigation }: any) => {
       categoryId: productData.categoryId,
       description: null,
       supplierId: null,
+      status: 'ACTIVE',
     });
     setIsModalOpen(false);
   };
 
+  const handleUpdate = async (updatedProduct: Product) => {
+      await updateProduct(updatedProduct);
+      setIsEditModalOpen(false);
+  };
+
   const handleBarCodeScanned = (code: string) => {
-    // This now needs to be handled via the modal's internal state if we want to be smooth,
-    // but for now, we'll just log it or we'd need to pass a setter.
-    // Actually, since the scanner is a separate modal, we'll keep it as is but it might cause a re-render.
-    // A better way is to pass a "pendingBarcode" to the modal.
     console.log("Scanned barcode:", code);
   };
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.barcode && p.barcode.includes(searchQuery)) ||
-    (p.id && p.id.includes(searchQuery))
-  );
+  const pendingCount = useMemo(() => products.filter(p => p.status === 'DRAFT').length, [products]);
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (p.barcode && p.barcode.includes(searchQuery)) ||
+                         (p.id && p.id.includes(searchQuery));
+
+    if (activeTab === 'PENDING') return matchesSearch && p.status === 'DRAFT';
+    return matchesSearch && p.status !== 'ARCHIVED';
+  });
+
+  const handleItemPress = (product: Product) => {
+      setSelectedProduct(product);
+      setIsEditModalOpen(true);
+  };
 
   const renderItem = useCallback(({ item }: { item: Product }) => (
-    <ProductListItem item={item} currency={currency} />
+    <ProductListItem item={item} currency={currency} onPress={() => handleItemPress(item)} />
   ), [currency]);
 
   return (
@@ -118,6 +137,29 @@ const InventoryScreen = ({ route, navigation }: any) => {
         setSearchQuery={setSearchQuery}
       />
 
+      {/* Tabs */}
+      <HStack px="$5" space="md" mb="$4">
+          <Pressable onPress={() => setActiveTab('ALL')} flex={1}>
+              <Box pb="$2" borderBottomWidth={2} borderBottomColor={activeTab === 'ALL' ? '$primary600' : 'transparent'}>
+                  <Text textAlign="center" fontWeight={activeTab === 'ALL' ? '$bold' : '$medium'} color={activeTab === 'ALL' ? '$primary600' : '$text400'}>
+                      Inventory
+                  </Text>
+              </Box>
+          </Pressable>
+          <Pressable onPress={() => setActiveTab('PENDING')} flex={1}>
+              <HStack justifyContent="center" space="xs" pb="$2" borderBottomWidth={2} borderBottomColor={activeTab === 'PENDING' ? '$warning600' : 'transparent'}>
+                  <Text fontWeight={activeTab === 'PENDING' ? '$bold' : '$medium'} color={activeTab === 'PENDING' ? '$warning600' : '$text400'}>
+                      Pending Review
+                  </Text>
+                  {pendingCount > 0 && (
+                      <Box bg="$warning600" px="$2" rounded="$full" justifyContent="center">
+                          <Text color="white" size="xxs" fontWeight="$bold">{pendingCount}</Text>
+                      </Box>
+                  )}
+              </HStack>
+          </Pressable>
+      </HStack>
+
       {isLoading ? (
         <Center flex={1}>
           <Spinner size="large" color="$primary600" />
@@ -134,7 +176,9 @@ const InventoryScreen = ({ route, navigation }: any) => {
                 <Center w={100} h={100} bg="$backgroundLight100" rounded="$full">
                     <Icon as={SearchIcon} size="xl" color="$text300" />
                 </Center>
-                <Text color="$text400">No items found in inventory.</Text>
+                <Text color="$text400">
+                    {activeTab === 'PENDING' ? 'No pending items to review.' : 'No items found in inventory.'}
+                </Text>
               </VStack>
             </Center>
           }
@@ -170,6 +214,19 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onClose={() => setIsModalOpen(false)}
         entryMode={entryMode}
         onSave={handleSave}
+        onScanPress={setScanTarget}
+        generateBarcode={generateBarcode}
+      />
+
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedProduct(null);
+        }}
+        product={selectedProduct}
+        categories={categories}
+        onSave={handleUpdate}
         onScanPress={setScanTarget}
         generateBarcode={generateBarcode}
       />
