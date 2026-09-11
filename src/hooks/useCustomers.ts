@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { ProductRepository } from '../repositories/ProductRepository';
-import { Customer, Product } from '../db/types';
+import type { Customer, Product } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 import { generateUUID } from '../utils/uuid';
 
@@ -50,18 +50,25 @@ export const useCustomers = (shopId: string) => {
     try {
       const db = await getDBConnection();
       const repo = new CustomerRepository(db);
+
+      const safeShopId = typeof shopId === 'object' ? (shopId as any).shopId : shopId;
+      if (!safeShopId || safeShopId === 'undefined' || safeShopId === '[object Object]') {
+        console.error("useCustomers: Invalid shopId", shopId);
+        return;
+      }
+
       const newCustomer: Customer = {
         id: generateUUID(),
-        shopId,
-        name,
-        phone,
+        shopId: safeShopId,
+        name: name || 'Unknown Customer',
+        phone: phone || null,
         email: null,
         currentBalance: 0,
         syncStatus: 0,
       };
       await repo.insertCustomer(newCustomer);
       setCustomers(prev => [newCustomer, ...prev]);
-      triggerSync(shopId);
+      triggerSync(safeShopId);
     } catch (e: any) {
       setError(e.message);
     }
@@ -117,8 +124,30 @@ export const useCustomers = (shopId: string) => {
   }, [shopId, loadData, triggerSync]);
 
   const triggerManualSync = () => {
-    triggerSync(shopId);
+    triggerSync(shopId, true);
   };
+
+  const getCustomerHistory = useCallback(async (customerId: string) => {
+    try {
+      const db = await getDBConnection();
+      const repo = new CustomerRepository(db);
+      return await repo.getCustomerHistory(customerId);
+    } catch (e: any) {
+      console.error('Failed to fetch customer history:', e.message);
+      return [];
+    }
+  }, []);
+
+  const getItemsTakenOnCredit = useCallback(async (customerId: string) => {
+    try {
+      const db = await getDBConnection();
+      const repo = new CustomerRepository(db);
+      return await repo.getItemsTakenOnCredit(customerId);
+    } catch (e: any) {
+      console.error('Failed to fetch items on credit:', e.message);
+      return [];
+    }
+  }, []);
 
   return {
     customers,
@@ -131,6 +160,8 @@ export const useCustomers = (shopId: string) => {
     recordPayment,
     returnProduct,
     triggerManualSync,
+    getCustomerHistory,
+    getItemsTakenOnCredit,
     refreshCustomers: loadData,
   };
 };

@@ -149,7 +149,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="Owner Name"
                     value={ownerName}
                     onChangeText={setOwnerName}
-                    autoCorrect={true}
+                    autoCorrect={false}
                     autoCapitalize="words"
                   />
                 </Input>
@@ -182,7 +182,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="Official Business Name"
                     value={shopName}
                     onChangeText={setShopName}
-                    autoCorrect={true}
+                    autoCorrect={false}
                     autoCapitalize="words"
                   />
                 </Input>
@@ -219,6 +219,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="e.g. Ghana, Nigeria"
                     value={country}
                     onChangeText={setCountry}
+                    autoCorrect={false}
                   />
                 </Input>
               </FormControl>
@@ -258,6 +259,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                     value={location}
                     onChangeText={setLocation}
                     multiline
+                    autoCorrect={false}
                   />
                 </Input>
               </FormControl>

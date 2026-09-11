@@ -26,13 +26,14 @@ export interface Product {
   bulkQuantity: number;
   bulkPrice: number;
   bulkStockQuantity: number;
+  bulkUnit: string | null;
   price: number;
   costPrice: number;
   stockQuantity: number;
   minStockLevel: number;
   unit: string;
   supplierId: string | null;
-  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED' | 'DELETED';
   syncStatus: number;
 }
 
@@ -40,7 +41,11 @@ export interface Supplier {
   id: string;
   shopId: string;
   name: string;
-  contactInfo: string | null;
+  contactPerson: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  contactInfo: string | null; // Keep for backward compatibility
   currentBalance: number;
   syncStatus: number;
 }

@@ -82,6 +82,7 @@ const PurchaseReturnModal: React.FC<Props> = ({ isOpen, onClose, item, onSave })
                     placeholder="e.g. Damaged, Expired, Wrong item"
                     value={reason}
                     onChangeText={setReason}
+                    autoCorrect={false}
                 />
               </Textarea>
             </FormControl>

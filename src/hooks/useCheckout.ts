@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { getDBConnection } from '../db/database';
 import { ProductRepository } from '../repositories/ProductRepository';
 import { SaleRepository } from '../repositories/SaleRepository';
-import { Product, Sale, SaleItem } from '../db/types';
+import type { Product, Sale, SaleItem } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 import { generateUUID } from '../utils/uuid';
 

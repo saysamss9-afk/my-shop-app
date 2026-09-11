@@ -68,6 +68,7 @@
     "@react-navigation/stack": "^6.3.29",
     "firebase": "^10.12.2",
     "lucide-react-native": "^1.37.0",
+    "alasql": "^4.5.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.75.2",

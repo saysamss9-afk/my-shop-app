@@ -53,7 +53,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
     setSelectedCustomerId,
   } = useCheckout(shopId, employeeId);
 
-  const { products } = useInventory(shopId);
+  const { products, categories } = useInventory(shopId);
   const { customers } = useCustomers(shopId);
   const [searchQuery, setSearchQuery] = useState('');
   const [localSearchQuery, setLocalSearchQuery] = useState('');
@@ -72,10 +72,18 @@ const CheckoutScreen = ({ route, navigation }: any) => {
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
 
-  const filteredProducts = searchQuery.length > 0 ? products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.barcode && p.barcode.includes(searchQuery))
-  ) : [];
+  const filteredProducts = searchQuery.length > 0 ? products.filter(p => {
+    const category = categories.find(c => c.id === p.categoryId);
+    const categoryName = category ? category.name.toLowerCase() : '';
+    const lowerQuery = searchQuery.toLowerCase();
+
+    return p.status === 'ACTIVE' && (
+      p.name.toLowerCase().includes(lowerQuery) ||
+      categoryName.includes(lowerQuery) ||
+      (p.barcode && p.barcode.includes(searchQuery)) ||
+      (p.bulkBarcode && p.bulkBarcode.includes(searchQuery))
+    );
+  }) : [];
 
   const handleCameraScan = async (barcode: string) => {
     const found = await searchProductByBarcode(barcode);
@@ -188,6 +196,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
               value={localSearchQuery}
               onChangeText={setLocalSearchQuery}
               placeholderTextColor="$text400"
+              autoCorrect={false}
             />
             {localSearchQuery.length > 0 && (
                <InputSlot pr="$4" onPress={() => { setLocalSearchQuery(''); setSearchQuery(''); }}>
@@ -260,6 +269,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         currency={currency}
         onConfirm={handleCompleteSale}
         selectedCustomer={selectedCustomer}
+        cart={cart}
       />
 
       <SelectCustomerModal
@@ -277,6 +287,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         isOpen={showProductModal}
         onClose={() => setShowProductModal(false)}
         products={products}
+        categories={categories}
         currency={currency}
         onSelect={(product, isBulk) => {
             addToCart(product, 1, isBulk);

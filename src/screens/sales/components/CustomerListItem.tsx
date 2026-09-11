@@ -9,7 +9,7 @@ import {
   Center,
 } from '@gluestack-ui/themed';
 import { User, Phone, CloudOff, CheckCircle2, Wallet, RotateCcw } from 'lucide-react-native';
-import { Customer } from '../../../db/types';
+import type { Customer } from '../../../db/types';
 import { getAppShadow } from '../../../utils/platformStyles';
 import { Pressable, Button, ButtonText, ButtonIcon } from '@gluestack-ui/themed';
 
@@ -18,9 +18,13 @@ interface Props {
   currency: string;
   onPay: (customer: Customer) => void;
   onReturn: (customer: Customer) => void;
+  onPress: () => void;
 }
 
-const CustomerListItem: React.FC<Props> = ({ item, currency, onPay, onReturn }) => {
+const CustomerListItem: React.FC<Props> = ({ item, currency, onPay, onReturn, onPress }) => {
+  const currentBalance = Number(item?.currentBalance ?? 0);
+  const hasDebt = currentBalance > 0;
+
   return (
     <Box
       bg="$white"
@@ -31,35 +35,37 @@ const CustomerListItem: React.FC<Props> = ({ item, currency, onPay, onReturn }) 
       borderColor="$borderLight"
       style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
     >
-      <HStack space="md" alignItems="center">
-        <Center w={52} h={52} rounded={16} bg="$primary50">
-          <Icon as={User} color="$primary600" size="md" />
-        </Center>
-        <VStack flex={1} space="xs">
-          <HStack space="xs" alignItems="center">
-            <Heading size="sm" color="$text900" fontWeight="$bold">
-              {item.name}
-            </Heading>
-            {item.syncStatus === 0 ? (
-                <Icon as={CloudOff} size="xs" color="$amber600" />
-            ) : (
-                <Icon as={CheckCircle2} size="xs" color="$success600" />
-            )}
-          </HStack>
-          <HStack space="xs" alignItems="center">
-            <Icon as={Phone} size="xs" color="$text400" />
-            <Text size="xs" color="$text500">{item.phone || 'No phone'}</Text>
-          </HStack>
-        </VStack>
-        <VStack alignItems="flex-end" space="xs">
-            <Text size="xs" fontWeight="$bold" color="$text500">Debt</Text>
-            <Text size="md" color={item.currentBalance > 0 ? '$error600' : '$success600'} fontWeight="$black">
-                {currency}{item.currentBalance.toFixed(2)}
-            </Text>
-        </VStack>
-      </HStack>
+      <Pressable onPress={onPress}>
+        <HStack space="md" alignItems="center">
+            <Center w={52} h={52} rounded={16} bg="$primary50">
+            <Icon as={User} color="$primary600" size="md" />
+            </Center>
+            <VStack flex={1} space="xs">
+            <HStack space="xs" alignItems="center">
+                <Heading size="sm" color="$text900" fontWeight="$bold">
+                {item.name}
+                </Heading>
+                {item.syncStatus === 0 ? (
+                    <Icon as={CloudOff} size="xs" color="$amber600" />
+                ) : (
+                    <Icon as={CheckCircle2} size="xs" color="$success600" />
+                )}
+            </HStack>
+            <HStack space="xs" alignItems="center">
+                <Icon as={Phone} size="xs" color="$text400" />
+                <Text size="xs" color="$text500">{item.phone || 'No phone'}</Text>
+            </HStack>
+            </VStack>
+            <VStack alignItems="flex-end" space="xs">
+                <Text size="xs" fontWeight="$bold" color="$text500">Debt</Text>
+                <Text size="md" color={hasDebt ? '$error600' : '$success600'} fontWeight="$black">
+                    {currency}{currentBalance.toFixed(2)}
+                </Text>
+            </VStack>
+        </HStack>
+      </Pressable>
 
-      {item.currentBalance > 0 && (
+      {hasDebt && (
         <HStack mt="$4" pt="$4" borderTopWidth={1} borderTopColor="$backgroundLight100" space="md">
             <Button
                 flex={1}

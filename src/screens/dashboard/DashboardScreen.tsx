@@ -7,23 +7,27 @@ import {
   Center,
 } from '@gluestack-ui/themed';
 import { useDashboard } from '../../hooks/useDashboard';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { getAppShadow } from '../../utils/platformStyles';
 
 // Sub-components
 import DashboardHeader from './components/DashboardHeader';
 import RevenueHeroCard from './components/RevenueHeroCard';
-import ActionGrid, { DashboardItem } from './components/ActionGrid';
+import ActionGrid from './components/ActionGrid';
+import type { DashboardItem } from './components/ActionGrid';
 
 import { useSync } from '../../sync/SyncContext';
+import { useAuthContext } from '../../auth/AuthContext';
+import { handleSwitchAccount } from './switchAccount';
 
 type Props = StackScreenProps<RootStackParamList, 'Dashboard'>;
 
 const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const { shopId, employeeId, userRole, shopName: initialShopName } = route.params;
   const { startRealtimeSync, stopRealtimeSync } = useSync();
+  const { signOut } = useAuthContext();
   const { syncStatus, lowStockCount, revenue, currency, shopName: fetchedShopName, lastSynced, triggerSync } = useDashboard(shopId);
 
   React.useEffect(() => {
@@ -114,7 +118,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Bottom Switch Account */}
       <Center mt="$10" mb="$4">
         <Pressable
-          onPress={() => navigation.replace('Landing')}
+          onPress={() => handleSwitchAccount({ signOut, reset: navigation.reset })}
           bg="$white"
           px="$6"
           py="$2"

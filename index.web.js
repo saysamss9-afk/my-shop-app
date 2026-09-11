@@ -1,6 +1,16 @@
 if (typeof __DEV__ === 'undefined') {
   global.__DEV__ = true;
 }
+
+// Silence common web-only warnings from React Native Web
+if (typeof window !== 'undefined') {
+    const originalWarn = console.warn;
+    console.warn = (...args) => {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('useNativeDriver')) return;
+        originalWarn(...args);
+    };
+}
+
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import './src/firebase-config'; // MUST BE FIRST

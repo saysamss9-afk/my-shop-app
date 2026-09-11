@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, Alert } from 'react-native';
 import {
   Heading,
   Icon,
@@ -20,14 +20,32 @@ import {
   Input,
   InputField,
   CloseIcon,
+  Text as GlueText,
+  Select,
+  SelectTrigger,
+  SelectInput,
+  SelectIcon,
+  SelectPortal,
+  SelectBackdrop,
+  SelectContent,
+  SelectDragIndicatorWrapper,
+  SelectDragIndicator,
+  SelectItem,
+  ChevronDownIcon,
+  Box,
+  Pressable,
 } from '@gluestack-ui/themed';
-import { Camera } from 'lucide-react-native';
+import { Camera, Package, Info, Zap } from 'lucide-react-native';
 import { getButtonHeight } from '../../../utils/platformStyles';
+import type { Category } from '../../../db/types';
+
+const BULK_UNITS = ['Carton', 'Pack', 'Bag', 'Crate', 'Box', 'Bundle', 'Set'];
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   entryMode: 'UNIT' | 'BULK';
+  categories: Category[];
   onSave: (product: any) => void;
   onScanPress: (target: 'unit' | 'bulk') => void;
   generateBarcode: () => string;
@@ -37,6 +55,7 @@ const AddProductModal: React.FC<Props> = ({
   isOpen,
   onClose,
   entryMode,
+  categories,
   onSave,
   onScanPress,
   generateBarcode,
@@ -45,16 +64,19 @@ const AddProductModal: React.FC<Props> = ({
     name: '',
     barcode: '',
     bulkBarcode: '',
-    bulkQuantity: '12',
+    bulkQuantity: '1',
     bulkPrice: '',
-    bulkStockQuantity: '',
+    bulkStockQuantity: '0',
+    bulkUnit: 'Carton',
     price: '',
     costPrice: '',
-    stockQuantity: '',
-    minStockLevel: '',
+    stockQuantity: '0',
+    minStockLevel: '5',
     unit: 'pcs',
     categoryId: null as string | null,
   });
+
+  const [hasBulkOption, setHasBulkOption] = useState(entryMode === 'BULK');
 
   // Reset form when modal opens
   useEffect(() => {
@@ -63,21 +85,43 @@ const AddProductModal: React.FC<Props> = ({
         name: '',
         barcode: '',
         bulkBarcode: '',
-        bulkQuantity: '12',
+        bulkQuantity: '1',
         bulkPrice: '',
-        bulkStockQuantity: '',
+        bulkStockQuantity: entryMode === 'BULK' ? '1' : '0',
+        bulkUnit: 'Carton',
         price: '',
         costPrice: '',
-        stockQuantity: '',
-        minStockLevel: '',
+        stockQuantity: entryMode === 'UNIT' ? '1' : '0',
+        minStockLevel: '5',
         unit: 'pcs',
         categoryId: null,
       });
+      setHasBulkOption(entryMode === 'BULK');
     }
-  }, [isOpen]);
+  }, [isOpen, entryMode]);
 
   const handleLocalSave = () => {
-    onSave(formData);
+    if (!formData.name) {
+        Alert.alert("Required", "Product Name is required.");
+        return;
+    }
+    if (!formData.price && (!hasBulkOption || !formData.bulkPrice)) {
+        Alert.alert("Required", "Please provide a Selling Price.");
+        return;
+    }
+
+    // Ensure barcodes exist as per requirement: "must either be scanned, or auto generated"
+    const finalData = {
+      ...formData,
+      barcode: formData.barcode || generateBarcode(),
+      bulkBarcode: (hasBulkOption && (formData.bulkBarcode || formData.bulkPrice)) ? (formData.bulkBarcode || generateBarcode()) : '',
+      bulkPrice: hasBulkOption ? formData.bulkPrice : '0',
+      bulkQuantity: hasBulkOption ? formData.bulkQuantity : '1',
+      bulkStockQuantity: hasBulkOption ? formData.bulkStockQuantity : '0',
+      bulkUnit: hasBulkOption ? formData.bulkUnit : null,
+    };
+
+    onSave(finalData);
   };
 
   return (
@@ -85,9 +129,10 @@ const AddProductModal: React.FC<Props> = ({
       <ModalBackdrop />
       <ModalContent rounded="$3xl">
         <ModalHeader>
-          <Heading size="lg" fontWeight="$black">
-            {entryMode === 'UNIT' ? 'Add New Unit Item' : 'Add New Bulk Item'}
-          </Heading>
+          <VStack>
+            <Heading size="lg" fontWeight="$black">Add New Product</Heading>
+            <GlueText size="xs" color="$text500">Provide complete inventory and pricing details.</GlueText>
+          </VStack>
           <ModalCloseButton>
             <Icon as={CloseIcon} />
           </ModalCloseButton>
@@ -104,186 +149,181 @@ const AddProductModal: React.FC<Props> = ({
                     placeholder="e.g. Milo 500g"
                     value={formData.name}
                     onChangeText={text => setFormData({ ...formData, name: text })}
+                    autoCorrect={false}
                   />
                 </Input>
               </FormControl>
 
-              {entryMode === 'UNIT' ? (
-                <>
-                  <FormControl>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Barcode / Code (Type or Scan)</FormControlLabelText>
-                    </FormControlLabel>
-                    <HStack space="sm">
-                      <Input flex={1} borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                          placeholder="Manual barcode entry..."
-                          value={formData.barcode}
-                          onChangeText={text => setFormData({ ...formData, barcode: text })}
-                        />
-                      </Input>
-                      <Button
-                          variant="outline"
-                          action="primary"
-                          onPress={() => onScanPress('unit')}
-                          borderRadius={16}
-                          borderColor="$primary600"
-                          px="$3"
-                      >
-                          <Icon as={Camera} color="$primary600" size="sm" />
-                      </Button>
-                      <Button
-                          variant="outline"
-                          action="primary"
-                          onPress={() => setFormData({ ...formData, barcode: generateBarcode() })}
-                          borderRadius={16}
-                          borderColor="$primary600"
-                      >
-                          <ButtonText size="xs" color="$primary600">Auto</ButtonText>
-                      </Button>
+              <FormControl>
+                <FormControlLabel mb="$1">
+                  <FormControlLabelText size="sm">Category</FormControlLabelText>
+                </FormControlLabel>
+                <Select onValueChange={(v) => setFormData({...formData, categoryId: v})} selectedValue={formData.categoryId}>
+                    <SelectTrigger borderRadius={16} bg="$backgroundLight50">
+                        <SelectInput placeholder="Select Category" />
+                        <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
+                    </SelectTrigger>
+                    <SelectPortal>
+                        <SelectBackdrop />
+                        <SelectContent>
+                            <SelectDragIndicatorWrapper><SelectDragIndicator /></SelectDragIndicatorWrapper>
+                            {categories.map(c => (
+                                <SelectItem key={c.id} label={c.name} value={c.id} />
+                            ))}
+                        </SelectContent>
+                    </SelectPortal>
+                </Select>
+              </FormControl>
+
+              {/* Barcodes */}
+              <HStack space="md">
+                <VStack flex={1} space="xs">
+                    <FormControlLabel><FormControlLabelText size="xs">Unit Barcode</FormControlLabelText></FormControlLabel>
+                    <HStack space="xs">
+                        <Input flex={1} borderRadius={12} bg="$backgroundLight50">
+                            <InputField
+                                size="sm"
+                                placeholder="Scan/Type"
+                                value={formData.barcode}
+                                onChangeText={t => setFormData({...formData, barcode: t})}
+                            />
+                        </Input>
+                        <Button size="xs" variant="outline" onPress={() => onScanPress('unit')} borderRadius={10} px="$2" borderColor="$primary300">
+                            <Icon as={Camera} size="xs" color="$primary600" />
+                        </Button>
+                        <Button size="xs" variant="outline" onPress={() => setFormData({...formData, barcode: generateBarcode()})} borderRadius={10} px="$2" borderColor="$warning300">
+                            <Icon as={Zap} size="xs" color="$warning600" />
+                        </Button>
                     </HStack>
-                  </FormControl>
-
-                  <HStack space="md">
-                    <FormControl isRequired flex={1}>
-                      <FormControlLabel mb="$1">
-                        <FormControlLabelText size="sm">Unit Price</FormControlLabelText>
-                      </FormControlLabel>
-                      <Input borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                          placeholder="0.00"
-                          value={formData.price}
-                          keyboardType="numeric"
-                          onChangeText={text => setFormData({ ...formData, price: text })}
-                        />
-                      </Input>
-                    </FormControl>
-                    <FormControl isRequired flex={1}>
-                      <FormControlLabel mb="$1">
-                        <FormControlLabelText size="sm">Unit Stock</FormControlLabelText>
-                      </FormControlLabel>
-                      <Input borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                          placeholder="0"
-                          value={formData.stockQuantity}
-                          keyboardType="numeric"
-                          onChangeText={text => setFormData({ ...formData, stockQuantity: text })}
-                        />
-                      </Input>
-                    </FormControl>
-                  </HStack>
-
-                  <HStack space="md">
-                    <FormControl flex={1}>
-                      <FormControlLabel mb="$1">
-                        <FormControlLabelText size="sm">Cost Price</FormControlLabelText>
-                      </FormControlLabel>
-                      <Input borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                          placeholder="0.00"
-                          value={formData.costPrice}
-                          keyboardType="numeric"
-                          onChangeText={text => setFormData({ ...formData, costPrice: text })}
-                        />
-                      </Input>
-                    </FormControl>
-                    <FormControl flex={1}>
-                      <FormControlLabel mb="$1">
-                        <FormControlLabelText size="sm">Min Stock Level</FormControlLabelText>
-                      </FormControlLabel>
-                      <Input borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                          placeholder="5"
-                          value={formData.minStockLevel}
-                          keyboardType="numeric"
-                          onChangeText={text => setFormData({ ...formData, minStockLevel: text })}
-                        />
-                      </Input>
-                    </FormControl>
-                  </HStack>
-
-                </>
-              ) : (
-                <>
-                  <FormControl>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Carton Barcode (Type or Scan)</FormControlLabelText>
-                    </FormControlLabel>
-                    <HStack space="sm">
-                      <Input flex={1} borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                            placeholder="Scan or type carton barcode..."
-                            value={formData.bulkBarcode}
-                            onChangeText={text => setFormData({ ...formData, bulkBarcode: text })}
-                        />
-                      </Input>
-                      <Button
-                          variant="outline"
-                          action="primary"
-                          onPress={() => onScanPress('bulk')}
-                          borderRadius={16}
-                          borderColor="$primary600"
-                          px="$3"
-                      >
-                          <Icon as={Camera} color="$primary600" size="sm" />
-                      </Button>
-                      <Button
-                          variant="outline"
-                          action="primary"
-                          onPress={() => setFormData({ ...formData, bulkBarcode: generateBarcode() })}
-                          borderRadius={16}
-                          borderColor="$primary600"
-                      >
-                          <ButtonText size="xs" color="$primary600">Auto</ButtonText>
-                      </Button>
+                </VStack>
+                <VStack flex={1} space="xs">
+                    <FormControlLabel><FormControlLabelText size="xs">{hasBulkOption ? formData.bulkUnit : 'Bulk'} Barcode</FormControlLabelText></FormControlLabel>
+                    <HStack space="xs">
+                        <Input flex={1} borderRadius={12} bg="$backgroundLight50" isDisabled={!hasBulkOption}>
+                            <InputField
+                                size="sm"
+                                placeholder={hasBulkOption ? "Scan/Type" : "Enable bulk below"}
+                                value={formData.bulkBarcode}
+                                onChangeText={t => setFormData({...formData, bulkBarcode: t})}
+                            />
+                        </Input>
+                        <Button size="xs" variant="outline" onPress={() => onScanPress('bulk')} borderRadius={10} px="$2" borderColor="$primary300" isDisabled={!hasBulkOption}>
+                            <Icon as={Camera} size="xs" color={hasBulkOption ? "$primary600" : "$text300"} />
+                        </Button>
+                        <Button size="xs" variant="outline" onPress={() => setFormData({...formData, bulkBarcode: generateBarcode()})} borderRadius={10} px="$2" borderColor="$warning300" isDisabled={!hasBulkOption}>
+                            <Icon as={Zap} size="xs" color={hasBulkOption ? "$warning600" : "$text300"} />
+                        </Button>
                     </HStack>
-                  </FormControl>
+                </VStack>
+              </HStack>
 
-                  <HStack space="md">
-                    <FormControl isRequired flex={1}>
-                      <FormControlLabel mb="$1">
-                        <FormControlLabelText size="sm">Carton Price</FormControlLabelText>
-                      </FormControlLabel>
-                      <Input borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                          placeholder="0.00"
-                          value={formData.bulkPrice}
-                          keyboardType="numeric"
-                          onChangeText={text => setFormData({ ...formData, bulkPrice: text })}
-                        />
-                      </Input>
-                    </FormControl>
-                    <FormControl isRequired flex={1}>
-                      <FormControlLabel mb="$1">
-                        <FormControlLabelText size="sm">Carton Stock</FormControlLabelText>
-                      </FormControlLabel>
-                      <Input borderRadius={16} bg="$backgroundLight50">
-                        <InputField
-                          placeholder="0"
-                          value={formData.bulkStockQuantity}
-                          keyboardType="numeric"
-                          onChangeText={text => setFormData({ ...formData, bulkStockQuantity: text })}
-                        />
-                      </Input>
-                    </FormControl>
+              {/* Bulk Toggle Option */}
+              <Pressable onPress={() => setHasBulkOption(!hasBulkOption)}>
+                  <HStack space="sm" alignItems="center" bg="$backgroundLight50" p="$3" rounded="$xl" borderWidth={1} borderColor={hasBulkOption ? "$primary300" : "$borderLight"}>
+                      <Box w={20} h={20} rounded="$full" borderWidth={2} borderColor={hasBulkOption ? "$primary600" : "$text300"} alignItems="center" justifyContent="center">
+                          {hasBulkOption && <Box w={10} h={10} rounded="$full" bg="$primary600" />}
+                      </Box>
+                      <VStack flex={1}>
+                        <GlueText size="sm" fontWeight="$bold" color={hasBulkOption ? "$primary700" : "$text600"}>Enable Bulk Selling</GlueText>
+                        <GlueText size="xs" color="$text400">Items sold in packs, cartons, or bags</GlueText>
+                      </VStack>
                   </HStack>
+              </Pressable>
 
-                  <FormControl isRequired>
-                    <FormControlLabel mb="$1">
-                      <FormControlLabelText size="sm">Units per Carton</FormControlLabelText>
-                    </FormControlLabel>
-                    <Input borderRadius={16} bg="$backgroundLight50">
-                      <InputField
-                        placeholder="12"
-                        value={formData.bulkQuantity}
+              {/* Stock Management */}
+              <Box bg="$primary50" p="$4" rounded="$2xl">
+                <HStack space="xs" alignItems="center" mb="$3">
+                    <Icon as={Package} size="xs" color="$primary600" />
+                    <Heading size="xs" color="$primary700">INITIAL STOCK</Heading>
+                </HStack>
+                <HStack space="md">
+                    <FormControl isRequired flex={1}>
+                        <FormControlLabel><FormControlLabelText size="xs">Unit Stock ({formData.unit})</FormControlLabelText></FormControlLabel>
+                        <Input borderRadius={12} bg="$white">
+                            <InputField value={formData.stockQuantity} onChangeText={t => setFormData({...formData, stockQuantity: t})} keyboardType="numeric" />
+                        </Input>
+                    </FormControl>
+                    {hasBulkOption && (
+                        <FormControl isRequired flex={1}>
+                            <FormControlLabel><FormControlLabelText size="xs">{formData.bulkUnit} Stock</FormControlLabelText></FormControlLabel>
+                            <Input borderRadius={12} bg="$white">
+                                <InputField value={formData.bulkStockQuantity} onChangeText={t => setFormData({...formData, bulkStockQuantity: t})} keyboardType="numeric" />
+                            </Input>
+                        </FormControl>
+                    )}
+                </HStack>
+              </Box>
+
+              {/* Pricing */}
+              <Box bg="$backgroundLight50" p="$4" rounded="$2xl">
+                <Heading size="xs" mb="$3" color="$text400">FINANCIALS</Heading>
+                <VStack space="md">
+                    <HStack space="md">
+                        <FormControl isRequired flex={1}>
+                            <FormControlLabel><FormControlLabelText size="xs">Cost Price (Unit)</FormControlLabelText></FormControlLabel>
+                            <Input borderRadius={12} bg="$white">
+                                <InputField placeholder="0.00" value={formData.costPrice} onChangeText={t => setFormData({...formData, costPrice: t})} keyboardType="numeric" />
+                            </Input>
+                        </FormControl>
+                        <FormControl isRequired flex={1}>
+                            <FormControlLabel><FormControlLabelText size="xs">Selling Price (Unit)</FormControlLabelText></FormControlLabel>
+                            <Input borderRadius={12} bg="$white">
+                                <InputField placeholder="0.00" value={formData.price} onChangeText={t => setFormData({...formData, price: t})} keyboardType="numeric" />
+                            </Input>
+                        </FormControl>
+                    </HStack>
+
+                    {hasBulkOption && (
+                        <VStack space="md" p="$3" bg="$white" rounded="$xl" borderWidth={1} borderColor="$primary100">
+                            <FormControl isRequired>
+                                <FormControlLabel><FormControlLabelText size="xs">Bulk Unit Type</FormControlLabelText></FormControlLabel>
+                                <Select onValueChange={(v) => setFormData({...formData, bulkUnit: v})} selectedValue={formData.bulkUnit}>
+                                    <SelectTrigger borderRadius={12} bg="$backgroundLight50">
+                                        <SelectInput placeholder="Select Unit" />
+                                        <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
+                                    </SelectTrigger>
+                                    <SelectPortal>
+                                        <SelectBackdrop />
+                                        <SelectContent>
+                                            <SelectDragIndicatorWrapper><SelectDragIndicator /></SelectDragIndicatorWrapper>
+                                            {BULK_UNITS.map(u => (
+                                                <SelectItem key={u} label={u} value={u} />
+                                            ))}
+                                        </SelectContent>
+                                    </SelectPortal>
+                                </Select>
+                            </FormControl>
+                            <HStack space="md">
+                                <FormControl isRequired flex={1}>
+                                    <FormControlLabel><FormControlLabelText size="xs">{formData.bulkUnit} Price</FormControlLabelText></FormControlLabel>
+                                    <Input borderRadius={12} bg="$backgroundLight50">
+                                        <InputField placeholder="0.00" value={formData.bulkPrice} onChangeText={t => setFormData({...formData, bulkPrice: t})} keyboardType="numeric" />
+                                    </Input>
+                                </FormControl>
+                                <FormControl isRequired flex={1}>
+                                    <FormControlLabel><FormControlLabelText size="xs">Units per {formData.bulkUnit}</FormControlLabelText></FormControlLabel>
+                                    <Input borderRadius={12} bg="$backgroundLight50">
+                                        <InputField value={formData.bulkQuantity} onChangeText={t => setFormData({...formData, bulkQuantity: t})} keyboardType="numeric" />
+                                    </Input>
+                                </FormControl>
+                            </HStack>
+                        </VStack>
+                    )}
+                </VStack>
+              </Box>
+
+              <FormControl>
+                <FormControlLabel mb="$1">
+                    <FormControlLabelText size="sm">Min Stock Alert (Units)</FormControlLabelText>
+                </FormControlLabel>
+                <Input borderRadius={16} bg="$backgroundLight50">
+                    <InputField
+                        value={formData.minStockLevel}
                         keyboardType="numeric"
-                        onChangeText={text => setFormData({ ...formData, bulkQuantity: text })}
-                      />
-                    </Input>
-                  </FormControl>
-
-                </>
-              )}
+                        onChangeText={text => setFormData({ ...formData, minStockLevel: text })}
+                    />
+                </Input>
+              </FormControl>
 
             </VStack>
           </ScrollView>

@@ -5,7 +5,7 @@ import {
   VStack,
   HStack,
   Heading,
-  Text,
+  Text as GlueText,
   Icon,
   Pressable,
   Center,
@@ -90,7 +90,7 @@ const PurchaseScreen = ({ route, navigation }: any) => {
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">New Purchase</Heading>
-            <Text size="xs" color="$text500">Record inventory intake</Text>
+            <GlueText size="xs" color="$text500">Record inventory intake</GlueText>
           </VStack>
         </HStack>
       </Box>
@@ -128,13 +128,14 @@ const PurchaseScreen = ({ route, navigation }: any) => {
                                 value={invoiceNumber}
                                 onChangeText={setInvoiceNumber}
                                 autoCapitalize="characters"
+                                autoCorrect={false}
                             />
                         </Input>
                     </FormControl>
                     <FormControl flex={1}>
                         <FormControlLabel><FormControlLabelText>Date</FormControlLabelText></FormControlLabel>
                         <Box h={45} bg="$backgroundLight50" rounded={16} justifyContent="center" px="$3">
-                            <Text size="sm">{new Date().toLocaleDateString()}</Text>
+                            <GlueText size="sm">{new Date().toLocaleDateString()}</GlueText>
                         </Box>
                     </FormControl>
                 </HStack>
@@ -159,7 +160,7 @@ const PurchaseScreen = ({ route, navigation }: any) => {
 
             {purchaseCart.length === 0 ? (
                 <Center p="$10" bg="$backgroundLight50" rounded="$3xl" borderStyle="dashed" borderWidth={1} borderColor="$borderLight">
-                    <Text size="sm" color="$text400">No products added yet.</Text>
+                    <GlueText size="sm" color="$text400">No products added yet.</GlueText>
                 </Center>
             ) : (
                 purchaseCart.map((item, index) => (
@@ -167,12 +168,12 @@ const PurchaseScreen = ({ route, navigation }: any) => {
                         <HStack justifyContent="space-between" alignItems="center">
                             <VStack flex={1}>
                                 <Heading size="xs">{item.name}</Heading>
-                                <Text size="xs" color="$text500">
-                                    {item.quantity} {item.isBulk ? 'Cartons' : 'Units'} @ ₵{item.costPrice.toFixed(2)}
-                                </Text>
+                                <GlueText size="xs" color="$text500">
+                                    {item.quantity} {item.isBulk ? 'Cartons' : 'Units'} @ ₵{(item.costPrice ?? 0).toFixed(2)}
+                                </GlueText>
                             </VStack>
                             <HStack space="md" alignItems="center">
-                                <Heading size="sm" color="$primary600">₵{(item.quantity * item.costPrice).toFixed(2)}</Heading>
+                                <Heading size="sm" color="$primary600">₵{((item.quantity || 0) * (item.costPrice || 0)).toFixed(2)}</Heading>
                                 <Pressable onPress={() => removeFromCart(index)}>
                                     <Icon as={TrashIcon} color="$error500" size="sm" />
                                 </Pressable>
@@ -187,8 +188,8 @@ const PurchaseScreen = ({ route, navigation }: any) => {
           <Box bg="$white" p="$5" rounded="$3xl" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' })}>
             <VStack space="lg">
                 <HStack justifyContent="space-between">
-                    <Text size="sm" color="$text600">Subtotal</Text>
-                    <Heading size="md" fontWeight="$black">₵{subtotal.toFixed(2)}</Heading>
+                    <GlueText size="sm" color="$text600">Subtotal</GlueText>
+                    <Heading size="md" fontWeight="$black">₵{(subtotal ?? 0).toFixed(2)}</Heading>
                 </HStack>
 
                 <FormControl>
@@ -204,8 +205,8 @@ const PurchaseScreen = ({ route, navigation }: any) => {
                 </FormControl>
 
                 <HStack justifyContent="space-between" bg="$error50" p="$3" rounded="$xl">
-                    <Text size="sm" color="$error700" fontWeight="$bold">Balance (Credit)</Text>
-                    <Heading size="md" color="$error700" fontWeight="$black">₵{balance.toFixed(2)}</Heading>
+                    <GlueText size="sm" color="$error700" fontWeight="$bold">Balance (Credit)</GlueText>
+                    <Heading size="md" color="$error700" fontWeight="$black">₵{(balance ?? 0).toFixed(2)}</Heading>
                 </HStack>
             </VStack>
           </Box>

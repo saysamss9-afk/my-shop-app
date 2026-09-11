@@ -57,7 +57,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   const { register, isLoading, error, isSuccess, user } = useAuth();
 
   const handleVerifyCode = async () => {
-    const cleanedCode = shopCode.trim();
+    const cleanedCode = shopCode.trim().replace(/\s/g, '');
     if (!cleanedCode) return;
 
     setIsVerifying(true);
@@ -66,7 +66,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
       const shopDoc = await firebase.firestore().collection('registered_shops').doc(cleanedCode).get();
       if (shopDoc.exists) {
         const data = shopDoc.data();
-        setShopCode(cleanedCode); // Update state with trimmed code
+        setShopCode(cleanedCode); // Update state with cleaned code
         setShopDetails({
           name: data?.name || '',
           ownerName: data?.ownerName || '',
@@ -94,7 +94,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      const cleanedCode = shopCode.trim();
+      const cleanedCode = shopCode.trim().replace(/\s/g, '');
       await register(email, password, cleanedCode, role, name, phoneNumber, country);
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -194,7 +194,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
                                         bg={role === r ? '$primary50' : 'transparent'}
                                     >
                                         <Center>
-                                            <Text size="xxs" fontWeight="$bold" color={role === r ? '$primary600' : '$text400'}>
+                                            <Text size="2xs" fontWeight="$bold" color={role === r ? '$primary600' : '$text400'}>
                                                 {r}
                                             </Text>
                                         </Center>
@@ -207,7 +207,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
                             <FormControlLabel mb="$1"><FormControlLabelText size="sm">Full Name</FormControlLabelText></FormControlLabel>
                             <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
                                 <InputSlot pl="$3"><Icon as={User} size="sm" color="$primary600" /></InputSlot>
-                                <InputField placeholder="John Doe" value={name} onChangeText={setName} />
+                                <InputField placeholder="John Doe" value={name} onChangeText={setName} autoCorrect={false} />
                             </Input>
                         </FormControl>
 
@@ -226,6 +226,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
                                     placeholder="e.g. Ghana, Nigeria, Kenya"
                                     value={country}
                                     onChangeText={setCountry}
+                                    autoCorrect={false}
                                 />
                             </Input>
                         </FormControl>

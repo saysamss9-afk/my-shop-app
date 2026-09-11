@@ -59,25 +59,37 @@ export class SyncManager {
         for (const change of snapshot.docChanges()) {
           if (change.type === 'added' || change.type === 'modified') {
             const data = change.doc.data();
-            await this.productRepo.insertProduct({
-                id: data.id,
-                shopId: data.shopId,
-                categoryId: data.categoryId || null,
-                name: data.name,
-                description: data.description || null,
-                barcode: data.barcode || null,
-                bulkBarcode: data.bulkBarcode || null,
-                bulkQuantity: data.bulkQuantity || 1,
-                bulkPrice: data.bulkPrice || 0,
-                bulkStockQuantity: data.bulkStockQuantity || 0,
-                price: data.price || 0,
-                costPrice: data.costPrice || 0,
-                stockQuantity: data.stockQuantity || 0,
-                minStockLevel: data.minStockLevel || 0,
-                unit: data.unit || 'pcs',
-                supplierId: data.supplierId || null,
-                syncStatus: 1
-            });
+            const local = await this.productRepo.getProductById(data.id);
+            if (local && (local.syncStatus === 0 || local.status === 'DELETED')) continue;
+
+            if (data.status === 'DELETED') {
+                await this.productRepo.deleteProduct(data.id);
+                continue;
+            }
+
+            const productToInsert = {
+              id: data.id,
+              shopId: data.shopId,
+              categoryId: data.categoryId ?? (local ? local.categoryId : null),
+              name: data.name ?? (local ? local.name : 'Unknown Product'),
+              description: data.description ?? (local ? local.description : null),
+              barcode: data.barcode ?? (local ? local.barcode : null),
+              bulkBarcode: data.bulkBarcode ?? (local ? local.bulkBarcode : null),
+              bulkQuantity: data.bulkQuantity ?? (local ? local.bulkQuantity : 1),
+              bulkPrice: data.bulkPrice ?? (local ? local.bulkPrice : 0),
+              bulkStockQuantity: data.bulkStockQuantity ?? (local ? local.bulkStockQuantity : 0),
+              bulkUnit: data.bulkUnit ?? (local ? local.bulkUnit : 'Carton'),
+              price: data.price ?? (local ? local.price : 0),
+              costPrice: data.costPrice ?? (local ? local.costPrice : 0),
+              stockQuantity: data.stockQuantity ?? (local ? local.stockQuantity : 0),
+              minStockLevel: data.minStockLevel ?? (local ? local.minStockLevel : 0),
+              unit: data.unit ?? (local ? local.unit : 'pcs'),
+              supplierId: data.supplierId ?? (local ? local.supplierId : null),
+              status: data.status ?? (local ? local.status : 'ACTIVE'),
+              syncStatus: 1
+            };
+
+            await this.productRepo.insertProduct(productToInsert);
           }
         }
         this.onDataChangedCallback?.();
@@ -110,10 +122,21 @@ export class SyncManager {
         for (const change of snapshot.docChanges()) {
           if (change.type === 'added' || change.type === 'modified') {
             const data = change.doc.data();
-            await this.supplierRepo.db.executeSql(
-              'INSERT OR REPLACE INTO Supplier(id, shopId, name, contactInfo, syncStatus) VALUES (?, ?, ?, ?, 1)',
-              [data.id, data.shopId, data.name, data.contactInfo || null]
-            );
+            const local = await this.supplierRepo.getSupplierById(data.id);
+            if (local && local.syncStatus === 0) continue;
+
+            await this.supplierRepo.insertSupplier({
+              id: data.id,
+              shopId: data.shopId,
+              name: data.name ?? (local ? local.name : 'Unknown Supplier'),
+              contactPerson: data.contactPerson ?? (local ? local.contactPerson : null),
+              email: data.email ?? (local ? local.email : null),
+              phone: data.phone ?? (local ? local.phone : null),
+              address: data.address ?? (local ? local.address : null),
+              contactInfo: data.contactInfo ?? (local ? local.contactInfo : (data.phone ?? null)),
+              currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
+              syncStatus: 1
+            });
           }
         }
         this.onDataChangedCallback?.();
@@ -128,10 +151,18 @@ export class SyncManager {
         for (const change of snapshot.docChanges()) {
           if (change.type === 'added' || change.type === 'modified') {
             const data = change.doc.data();
-            await this.customerRepo.db.executeSql(
-              'INSERT OR REPLACE INTO Customer(id, shopId, name, phone, email, currentBalance, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
-              [data.id, data.shopId, data.name, data.phone || null, data.email || null, data.currentBalance || 0]
-            );
+            const local = await this.customerRepo.getCustomerById(data.id);
+            if (local && local.syncStatus === 0) continue;
+
+            await this.customerRepo.insertCustomer({
+              id: data.id,
+              shopId: data.shopId,
+              name: data.name ?? (local ? local.name : 'Unknown Customer'),
+              phone: data.phone ?? (local ? local.phone : null),
+              email: data.email ?? (local ? local.email : null),
+              currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
+              syncStatus: 1
+            });
           }
         }
         this.onDataChangedCallback?.();
@@ -174,6 +205,7 @@ export class SyncManager {
   }
 
   public stopRealtimeSync() {
+    if (this.realtimeUnsubscribers.length === 0) return;
     this.realtimeUnsubscribers.forEach(unsub => unsub());
     this.realtimeUnsubscribers = [];
   }
@@ -194,42 +226,54 @@ export class SyncManager {
 
   async triggerSync(shopId?: string) {
     if (this.status === SyncStatus.Syncing) return;
+    if (!shopId) {
+        console.log('SyncManager (Native): No active shopId, skipping sync-up.');
+        return;
+    }
 
     this.status = SyncStatus.Syncing;
     try {
-      const syncTasks = [
-        this.syncSales(),
-        this.syncProducts(),
-        this.syncSuppliers(),
-        this.syncCustomers(),
-        this.syncPayments()
-      ];
+      // 1. First Push Local Changes (Sync Up)
+      // These should be sequential to avoid transaction conflicts and ensure data integrity
+      await this.safeSync('Sales', () => this.syncSales(shopId));
+      await this.safeSync('Products', () => this.syncProducts(shopId));
+      await this.safeSync('Categories', () => this.syncCategories(shopId));
+      await this.safeSync('Suppliers', () => this.syncSuppliers(shopId));
+      await this.safeSync('Customers', () => this.syncCustomers(shopId));
+      await this.safeSync('Payments', () => this.syncPayments(shopId));
+      await this.safeSync('SupplierPayments', () => this.syncSupplierPayments(shopId));
 
-      // If shopId is provided, also pull changes from remote
-      if (shopId) {
-        syncTasks.push(
-          this.pullProducts(shopId),
-          this.pullCategories(shopId),
-          this.pullSuppliers(shopId),
-          this.pullCustomers(shopId),
-          this.pullSales(shopId),
-          this.pullExpenses(shopId)
-        );
-      }
+      // 2. Then Pull Remote Changes (Sync Down)
+      // Now that we've pushed our changes, Firestore should have the latest state
+      await this.safeSync('PullProducts', () => this.pullProducts(shopId));
+      await this.safeSync('PullCategories', () => this.pullCategories(shopId));
+      await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId));
+      await this.safeSync('PullCustomers', () => this.pullCustomers(shopId));
+      await this.safeSync('PullSales', () => this.pullSales(shopId));
+      await this.safeSync('PullExpenses', () => this.pullExpenses(shopId));
 
-      await Promise.all(syncTasks);
       this.status = SyncStatus.Success;
       this.lastSynced = Date.now();
     } catch (error) {
       console.error('Sync failed:', error);
       this.status = SyncStatus.Error;
     } finally {
+      this.onDataChangedCallback?.();
       // Return to idle status
       setTimeout(() => {
         if (this.status !== SyncStatus.Syncing) {
           this.status = SyncStatus.Idle;
+          this.onDataChangedCallback?.();
         }
       }, 3000);
+    }
+  }
+
+  private async safeSync(name: string, syncFn: () => Promise<void>) {
+    try {
+        await syncFn();
+    } catch (e: any) {
+        console.error(`Native Sync failed for [${name}]:`, e.message);
     }
   }
 
@@ -243,25 +287,47 @@ export class SyncManager {
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        await this.productRepo.insertProduct({
-          id: data.id,
-          shopId: data.shopId,
-          categoryId: data.categoryId || null,
-          name: data.name,
-          description: data.description || null,
-          barcode: data.barcode || null,
-          bulkBarcode: data.bulkBarcode || null,
-          bulkQuantity: data.bulkQuantity || 1,
-          bulkPrice: data.bulkPrice || 0,
-          bulkStockQuantity: data.bulkStockQuantity || 0,
-          price: data.price || 0,
-          costPrice: data.costPrice || 0,
-          stockQuantity: data.stockQuantity || 0,
-          minStockLevel: data.minStockLevel || 0,
-          unit: data.unit || 'pcs',
-          supplierId: data.supplierId || null,
-          syncStatus: 1 // Already synced
-        });
+        const local = await this.productRepo.getProductById(data.id);
+        if (local && (local.syncStatus === 0 || local.status === 'DELETED')) continue;
+
+        if (data.status === 'DELETED') {
+            await this.productRepo.deleteProduct(data.id);
+            continue;
+        }
+
+                const productToInsert = {
+                  id: data.id,
+                  shopId: data.shopId,
+                  categoryId: data.categoryId ?? (local ? local.categoryId : null),
+                  name: data.name ?? (local ? local.name : 'Unknown Product'),
+                  description: data.description ?? (local ? local.description : null),
+                  barcode: data.barcode ?? (local ? local.barcode : null),
+                  bulkBarcode: data.bulkBarcode ?? (local ? local.bulkBarcode : null),
+                  bulkQuantity: data.bulkQuantity ?? (local ? local.bulkQuantity : 1),
+                  bulkPrice: data.bulkPrice ?? (local ? local.bulkPrice : 0),
+                  bulkStockQuantity: data.bulkStockQuantity ?? (local ? local.bulkStockQuantity : 0),
+                  bulkUnit: data.bulkUnit ?? (local ? local.bulkUnit : 'Carton'),
+                  price: data.price ?? (local ? local.price : 0),
+                  costPrice: data.costPrice ?? (local ? local.costPrice : 0),
+                  stockQuantity: data.stockQuantity ?? (local ? local.stockQuantity : 0),
+                  minStockLevel: data.minStockLevel ?? (local ? local.minStockLevel : 0),
+                  unit: data.unit ?? (local ? local.unit : 'pcs'),
+                  supplierId: data.supplierId ?? (local ? local.supplierId : null),
+                  status: data.status ?? (local ? local.status : 'ACTIVE'),
+                  syncStatus: 1
+                };
+
+                // CRITICAL FIX: If local stock/price is > 0 but remote is 0,
+                // and we just created/updated this locally, don't let the remote
+                // wipe it out if the remote might be stale or corrupted.
+                if (local) {
+                    if (data.stockQuantity === 0 && local.stockQuantity > 0) productToInsert.stockQuantity = local.stockQuantity;
+                    if (data.price === 0 && local.price > 0) productToInsert.price = local.price;
+                    if (data.costPrice === 0 && local.costPrice > 0) productToInsert.costPrice = local.costPrice;
+                    if (data.bulkStockQuantity === 0 && local.bulkStockQuantity > 0) productToInsert.bulkStockQuantity = local.bulkStockQuantity;
+                }
+
+        await this.productRepo.insertProduct(productToInsert);
       }
     } catch (e) {
       console.error('Pull Products Error:', e);
@@ -298,10 +364,21 @@ export class SyncManager {
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        await this.supplierRepo.db.executeSql(
-          'INSERT OR REPLACE INTO Supplier(id, shopId, name, contactInfo, syncStatus) VALUES (?, ?, ?, ?, 1)',
-          [data.id, data.shopId, data.name, data.contactInfo || null]
-        );
+        const local = await this.supplierRepo.getSupplierById(data.id);
+        if (local && local.syncStatus === 0) continue;
+
+        await this.supplierRepo.insertSupplier({
+          id: data.id,
+          shopId: data.shopId,
+          name: data.name ?? (local ? local.name : 'Unknown Supplier'),
+          contactPerson: data.contactPerson ?? (local ? local.contactPerson : null),
+          email: data.email ?? (local ? local.email : null),
+          phone: data.phone ?? (local ? local.phone : null),
+          address: data.address ?? (local ? local.address : null),
+          contactInfo: data.contactInfo ?? (local ? local.contactInfo : (data.phone ?? null)),
+          currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
+          syncStatus: 1
+        });
       }
     } catch (e) {
       console.error('Pull Suppliers Error:', e);
@@ -318,10 +395,18 @@ export class SyncManager {
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        await this.customerRepo.db.executeSql(
-          'INSERT OR REPLACE INTO Customer(id, shopId, name, phone, email, currentBalance, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
-          [data.id, data.shopId, data.name, data.phone || null, data.email || null, data.currentBalance || 0]
-        );
+        const local = await this.customerRepo.getCustomerById(data.id);
+        if (local && local.syncStatus === 0) continue;
+
+        await this.customerRepo.insertCustomer({
+          id: data.id,
+          shopId: data.shopId,
+          name: data.name ?? (local ? local.name : 'Unknown Customer'),
+          phone: data.phone ?? (local ? local.phone : null),
+          email: data.email ?? (local ? local.email : null),
+          currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
+          syncStatus: 1
+        });
       }
     } catch (e) {
       console.error('Pull Customers Error:', e);
@@ -365,8 +450,8 @@ export class SyncManager {
     }
   }
 
-  private async syncSales() {
-    const unsynced = await this.saleRepo.getUnsyncedSales();
+  private async syncSales(shopId?: string) {
+    const unsynced = await this.saleRepo.getUnsyncedSales(shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -374,7 +459,20 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const sale of unsynced) {
-      const saleRef = firestore().collection('shops').doc(sale.shopId).collection('sales').doc(sale.id);
+      let targetShopId = sale.shopId;
+
+      // Self-healing: repair orphaned sales
+      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
+          console.warn(`SyncManager: Repairing orphaned sale ${sale.id} with current shopId ${shopId}`);
+          targetShopId = shopId;
+          await this.saleRepo.db.executeSql('UPDATE Sale SET shopId = ? WHERE id = ?', [shopId, sale.id]);
+      }
+
+      if (!targetShopId || targetShopId === 'undefined') {
+        console.warn('Sync Sanitizer (Native): Skipping sale with invalid shopId', sale.id);
+        continue;
+      }
+      const saleRef = firestore().collection('shops').doc(targetShopId).collection('sales').doc(sale.id);
 
       if (sale.isReverted === 1) {
         batch.delete(saleRef);
@@ -382,18 +480,19 @@ export class SyncManager {
         const items = await this.saleRepo.getItemsForSale(sale.id);
         const saleData = {
           id: sale.id,
-          shopId: sale.shopId,
-          employeeId: sale.employeeId,
-          timestamp: sale.timestamp,
-          totalAmount: sale.totalAmount,
+          shopId: targetShopId,
+          employeeId: sale.employeeId || "",
+          timestamp: sale.timestamp || Date.now(),
+          totalAmount: sale.totalAmount ?? 0,
           isReverted: sale.isReverted === 1,
           items: items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            priceAtSale: item.priceAtSale
+            productId: item.productId || "",
+            quantity: item.quantity ?? 0,
+            priceAtSale: item.priceAtSale ?? 0,
+            isBulk: item.isBulk === 1
           }))
         };
-        batch.set(saleRef, saleData);
+        batch.set(saleRef, saleData, { merge: true });
       }
 
       count++;
@@ -414,8 +513,8 @@ export class SyncManager {
     }
   }
 
-  private async syncProducts() {
-    const unsynced = await this.productRepo.getUnsyncedProducts();
+  private async syncProducts(shopId?: string) {
+    const unsynced = await this.productRepo.getUnsyncedProducts(shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -423,24 +522,50 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const product of unsynced) {
-      const productRef = firestore().collection('shops').doc(product.shopId).collection('products').doc(product.id);
+      let targetShopId = product.shopId;
 
-      const productData = {
-        id: product.id,
-        shopId: product.shopId,
-        name: product.name,
-        description: product.description,
-        barcode: product.barcode,
-        bulkBarcode: product.bulkBarcode,
-        bulkQuantity: product.bulkQuantity,
-        price: product.price,
-        costPrice: product.costPrice,
-        stockQuantity: product.stockQuantity,
-        unit: product.unit,
-        supplierId: product.supplierId
-      };
+      // Self-healing: if product has invalid shopId, try to use the one passed to triggerSync
+      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
+        console.warn(`SyncManager: Repairing orphaned product ${product.id} with current shopId ${shopId}`);
+        targetShopId = shopId;
+        // Also update local DB
+        await this.productRepo.db.executeSql('UPDATE Product SET shopId = ? WHERE id = ?', [shopId, product.id]);
+      }
 
-      batch.set(productRef, productData);
+      if (!targetShopId || targetShopId === 'undefined') {
+        console.warn('Sync Sanitizer (Native): Skipping product with invalid shopId', product.id);
+        // DO NOT mark as synced if it didn't actually sync!
+        continue;
+      }
+
+      const productRef = firestore().collection('shops').doc(targetShopId).collection('products').doc(product.id);
+
+      if (product.status === 'DELETED') {
+          batch.delete(productRef);
+      } else {
+          const productData = {
+            id: product.id,
+            shopId: targetShopId,
+            categoryId: product.categoryId || null,
+            name: product.name || "Unknown Product",
+            description: product.description || null,
+            barcode: product.barcode || null,
+            bulkBarcode: product.bulkBarcode || null,
+            bulkQuantity: product.bulkQuantity ?? 1,
+            bulkUnit: product.bulkUnit || 'Carton',
+            price: product.price ?? 0,
+            bulkPrice: product.bulkPrice ?? 0,
+            costPrice: product.costPrice ?? 0,
+            stockQuantity: product.stockQuantity ?? 0,
+            bulkStockQuantity: product.bulkStockQuantity ?? 0,
+            minStockLevel: product.minStockLevel ?? 0,
+            unit: product.unit || "pcs",
+            supplierId: product.supplierId || null,
+            status: product.status || 'ACTIVE'
+          };
+          batch.set(productRef, productData, { merge: true });
+      }
+
       count++;
       syncedIds.push(product.id);
 
@@ -459,8 +584,50 @@ export class SyncManager {
     }
   }
 
-  private async syncSuppliers() {
-    const unsynced = await this.supplierRepo.getUnsyncedSuppliers();
+  private async syncCategories(shopId?: string) {
+    const unsynced = await this.categoryRepo.getUnsyncedCategories(shopId);
+    if (unsynced.length === 0) return;
+
+    let batch = firestore().batch();
+    let count = 0;
+    const syncedIds: string[] = [];
+
+    for (const cat of unsynced) {
+      let targetShopId = cat.shopId;
+      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
+          targetShopId = shopId;
+          await this.categoryRepo.db.executeSql('UPDATE Category SET shopId = ? WHERE id = ?', [shopId, cat.id]);
+      }
+
+      if (!targetShopId || targetShopId === 'undefined') continue;
+
+      const ref = firestore().collection('shops').doc(targetShopId).collection('categories').doc(cat.id);
+      const data = {
+        id: cat.id,
+        shopId: targetShopId,
+        name: cat.name || "Unnamed Category"
+      };
+      batch.set(ref, data, { merge: true });
+      count++;
+      syncedIds.push(cat.id);
+
+      if (count === this.BATCH_LIMIT) {
+        await batch.commit();
+        for (const id of syncedIds) await this.categoryRepo.markCategorySynced(id);
+        batch = firestore().batch();
+        count = 0;
+        syncedIds.length = 0;
+      }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+      for (const id of syncedIds) await this.categoryRepo.markCategorySynced(id);
+    }
+  }
+
+  private async syncSuppliers(shopId?: string) {
+    const unsynced = await this.supplierRepo.getUnsyncedSuppliers(shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -468,16 +635,34 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const supplier of unsynced) {
-      const supplierRef = firestore().collection('shops').doc(supplier.shopId).collection('suppliers').doc(supplier.id);
+      let targetShopId = supplier.shopId;
+
+      // Self-healing: repair orphaned suppliers
+      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
+          console.warn(`SyncManager: Repairing orphaned supplier ${supplier.id} with current shopId ${shopId}`);
+          targetShopId = shopId;
+          await this.supplierRepo.db.executeSql('UPDATE Supplier SET shopId = ? WHERE id = ?', [shopId, supplier.id]);
+      }
+
+      if (!targetShopId || targetShopId === 'undefined') {
+        console.warn('Sync Sanitizer (Native): Skipping supplier with invalid shopId', supplier.id);
+        continue;
+      }
+      const supplierRef = firestore().collection('shops').doc(targetShopId).collection('suppliers').doc(supplier.id);
 
       const supplierData = {
         id: supplier.id,
-        shopId: supplier.shopId,
-        name: supplier.name,
-        contactInfo: supplier.contactInfo
+        shopId: targetShopId,
+        name: supplier.name || "Unknown Supplier",
+        contactPerson: supplier.contactPerson || null,
+        email: supplier.email || null,
+        phone: supplier.phone || null,
+        address: supplier.address || null,
+        contactInfo: supplier.contactInfo || null,
+        currentBalance: supplier.currentBalance ?? 0
       };
 
-      batch.set(supplierRef, supplierData);
+      batch.set(supplierRef, supplierData, { merge: true });
       count++;
       syncedIds.push(supplier.id);
 
@@ -496,8 +681,8 @@ export class SyncManager {
     }
   }
 
-  private async syncCustomers() {
-    const unsynced = await this.customerRepo.getUnsyncedCustomers();
+  private async syncCustomers(shopId?: string) {
+    const unsynced = await this.customerRepo.getUnsyncedCustomers(shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -505,18 +690,31 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const customer of unsynced) {
-      const customerRef = firestore().collection('shops').doc(customer.shopId).collection('customers').doc(customer.id);
+      let targetShopId = customer.shopId;
+
+      // Self-healing: repair orphaned customers
+      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
+          console.warn(`SyncManager: Repairing orphaned customer ${customer.id} with current shopId ${shopId}`);
+          targetShopId = shopId;
+          await this.customerRepo.db.executeSql('UPDATE Customer SET shopId = ? WHERE id = ?', [shopId, customer.id]);
+      }
+
+      if (!targetShopId || targetShopId === 'undefined') {
+        console.warn('Sync Sanitizer (Native): Skipping customer with invalid shopId', customer.id);
+        continue;
+      }
+      const customerRef = firestore().collection('shops').doc(targetShopId).collection('customers').doc(customer.id);
 
       const customerData = {
         id: customer.id,
-        shopId: customer.shopId,
-        name: customer.name,
-        phone: customer.phone,
-        email: customer.email,
-        currentBalance: customer.currentBalance
+        shopId: targetShopId,
+        name: customer.name || "Unknown Customer",
+        phone: customer.phone || null,
+        email: customer.email || null,
+        currentBalance: customer.currentBalance ?? 0
       };
 
-      batch.set(customerRef, customerData);
+      batch.set(customerRef, customerData, { merge: true });
       count++;
       syncedIds.push(customer.id);
 
@@ -535,8 +733,8 @@ export class SyncManager {
     }
   }
 
-  private async syncPayments() {
-    const unsynced = await this.customerRepo.getUnsyncedPayments();
+  private async syncPayments(shopId?: string) {
+    const unsynced = await this.customerRepo.getUnsyncedPayments(shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -544,19 +742,31 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const payment of unsynced) {
-      const paymentRef = firestore().collection('shops').doc(payment.shopId).collection('payments').doc(payment.id);
+      let targetShopId = payment.shopId;
+
+      // Self-healing: repair orphaned payments
+      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
+          targetShopId = shopId;
+          await this.customerRepo.db.executeSql('UPDATE DebtPayment SET shopId = ? WHERE id = ?', [shopId, payment.id]);
+      }
+
+      if (!targetShopId || targetShopId === 'undefined') {
+        console.warn('Sync Sanitizer (Native): Skipping payment with invalid shopId', payment.id);
+        continue;
+      }
+      const paymentRef = firestore().collection('shops').doc(targetShopId).collection('payments').doc(payment.id);
 
       const paymentData = {
         id: payment.id,
-        customerId: payment.customerId,
-        shopId: payment.shopId,
-        amount: payment.amount,
-        paymentMethod: payment.paymentMethod,
-        timestamp: payment.timestamp,
-        note: payment.note
+        customerId: payment.customerId || "",
+        shopId: targetShopId,
+        amount: payment.amount ?? 0,
+        paymentMethod: payment.paymentMethod || "CASH",
+        timestamp: payment.timestamp || Date.now(),
+        note: payment.note || null
       };
 
-      batch.set(paymentRef, paymentData);
+      batch.set(paymentRef, paymentData, { merge: true });
       count++;
       syncedIds.push(payment.id);
 
@@ -572,6 +782,40 @@ export class SyncManager {
     if (count > 0) {
       await batch.commit();
       for (const id of syncedIds) await this.customerRepo.markPaymentSynced(id);
+    }
+  }
+
+  private async syncSupplierPayments(shopId?: string) {
+    try {
+        const results = await this.supplierRepo.getUnsyncedSupplierPayments(shopId);
+        if (results.length === 0) return;
+
+        let batch = firestore().batch();
+        for (const p of results) {
+            if (!p.shopId || p.shopId === 'undefined') {
+                console.warn('Sync Sanitizer (Native): Skipping supplier payment with invalid shopId', p.id);
+                await this.supplierRepo.markSupplierPaymentSynced(p.id);
+                continue;
+            }
+            const ref = firestore().collection('shops').doc(p.shopId).collection('supplier_payments').doc(p.id);
+            const data = {
+                id: p.id,
+                supplierId: p.supplierId || "",
+                shopId: p.shopId || "",
+                amount: p.amount ?? 0,
+                paymentMethod: p.paymentMethod || "CASH",
+                reference: p.reference || null,
+                timestamp: p.timestamp || Date.now(),
+                note: p.note || null
+            };
+            batch.set(ref, data, { merge: true });
+        }
+        await batch.commit();
+        for (const p of results) {
+            await this.supplierRepo.markSupplierPaymentSynced(p.id);
+        }
+    } catch (e) {
+        console.error('Native Supplier Payment Sync Error:', e);
     }
   }
 

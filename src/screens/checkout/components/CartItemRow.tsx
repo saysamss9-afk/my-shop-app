@@ -20,12 +20,22 @@ interface Props {
 }
 
 const CartItemRow: React.FC<Props> = ({ item, currency, onUpdateQuantity, onRemove }) => {
+  const price = item.isBulk ? item.product.bulkPrice : item.product.price;
+  const unitLabel = item.isBulk ? (item.product.bulkUnit || 'Bulk') : 'Unit';
+
   return (
     <Box bg="$white" p="$4" rounded="$2xl" mb="$3" borderWidth={1} borderColor="$borderLight">
         <HStack space="md" alignItems="center">
             <VStack flex={1} space="xs">
-                <Text fontWeight="$bold" color="$text900">{item.product.name}</Text>
-                <Text size="xs" color="$text500">{currency}{item.product.price.toFixed(2)} / unit</Text>
+                <HStack space="xs" alignItems="center">
+                    <Text fontWeight="$bold" color="$text900">{item.product.name}</Text>
+                    {item.isBulk && (
+                        <Box bg="$warning50" px="$2" py="$0.5" rounded="$md">
+                            <Text size="xxs" color="$warning700" fontWeight="$bold">{item.product.bulkUnit?.toUpperCase() || 'BULK'}</Text>
+                        </Box>
+                    )}
+                </HStack>
+                <Text size="xs" color="$text500">{currency}{price.toFixed(2)} / {unitLabel}</Text>
             </VStack>
             <HStack alignItems="center" space="sm" bg="$backgroundLight50" p="$1" rounded="$lg">
                 <Pressable p="$1" onPress={() => onUpdateQuantity(item.product.id, item.quantity - 1, item.isBulk)}>
@@ -37,7 +47,7 @@ const CartItemRow: React.FC<Props> = ({ item, currency, onUpdateQuantity, onRemo
                 </Pressable>
             </HStack>
             <VStack alignItems="flex-end" minWidth={70}>
-                <Text fontWeight="$bold" color="$primary800">{currency}{(item.product.price * item.quantity).toFixed(2)}</Text>
+                <Text fontWeight="$bold" color="$primary800">{currency}{(price * item.quantity).toFixed(2)}</Text>
                 <Pressable onPress={() => onRemove(item.product.id, item.isBulk)} mt="$1">
                     <Icon as={TrashIcon} size="sm" color="$error600" />
                 </Pressable>

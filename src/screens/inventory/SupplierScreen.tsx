@@ -5,7 +5,7 @@ import {
   VStack,
   HStack,
   Heading,
-  Text,
+  Text as GlueText,
   Icon,
   Pressable,
   Center,
@@ -26,14 +26,19 @@ import ScreenWrapper from '../../components/common/ScreenWrapper';
 import SupplierListItem from './components/SupplierListItem';
 import AddSupplierModal from './components/AddSupplierModal';
 import SupplierPaymentModal from './components/SupplierPaymentModal';
+import SupplierDetailModal from './components/SupplierDetailModal';
 import { getAppShadow } from '../../utils/platformStyles';
 import { SyncStatus } from '../../sync/SyncManager';
 
 const SupplierScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { suppliers, stats, isLoading, syncStatus, currency, addSupplier, recordPayment, triggerManualSync } = useSuppliers(shopId);
+  const {
+    suppliers, stats, isLoading, syncStatus, currency,
+    addSupplier, recordPayment, triggerManualSync, getSupplierProducts
+  } = useSuppliers(shopId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -55,9 +60,20 @@ const SupplierScreen = ({ route, navigation }: any) => {
     navigation.navigate('Purchase', { shopId, initialSupplierId: supplier.id });
   }, [navigation, shopId]);
 
+  const handleProfilePress = useCallback((supplier: any) => {
+    setSelectedSupplier(supplier);
+    setIsDetailModalOpen(true);
+  }, []);
+
   const renderItem = useCallback(({ item }: any) => (
-    <SupplierListItem item={item} currency={currency} onPay={handlePay} onPurchase={handlePurchase} />
-  ), [currency, handlePay, handlePurchase]);
+    <SupplierListItem
+        item={item}
+        currency={currency}
+        onPay={handlePay}
+        onPurchase={handlePurchase}
+        onPress={() => handleProfilePress(item)}
+    />
+  ), [currency, handlePay, handlePurchase, handleProfilePress]);
 
   const SummaryCard = ({ title, value, subValue, icon, color }: any) => (
     <Box
@@ -73,11 +89,11 @@ const SupplierScreen = ({ route, navigation }: any) => {
                 <Center w={32} h={32} bg={`${color}10`} rounded="$lg">
                     <Icon as={icon} color={color} size="sm" />
                 </Center>
-                <Text size="xxs" color="$text400" fontWeight="$bold">{title}</Text>
+                <GlueText size="2xs" color="$text400" fontWeight="$bold">{title}</GlueText>
             </HStack>
             <VStack>
                 <Heading size="md" color="$text900" fontWeight="$black">{value}</Heading>
-                <Text size="xxs" color="$text500">{subValue}</Text>
+                <GlueText size="2xs" color="$text500">{subValue}</GlueText>
             </VStack>
         </VStack>
     </Box>
@@ -96,7 +112,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
             </Pressable>
             <VStack>
               <Heading size="lg" color="$text900" fontWeight="$black">Suppliers</Heading>
-              <Text size="xs" color="$text500">Inventory Sourcing</Text>
+              <GlueText size="xs" color="$text500">Inventory Sourcing</GlueText>
             </VStack>
           </HStack>
 
@@ -114,7 +130,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
             {syncStatus === SyncStatus.Syncing ? (
                 <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
                     <Spinner color="$primary600" size="small" />
-                    <Text size="xs" color="$primary600" fontWeight="$bold">Syncing...</Text>
+                    <GlueText size="xs" color="$primary600" fontWeight="$bold">Syncing...</GlueText>
                 </HStack>
             ) : (
                 <Pressable
@@ -131,9 +147,9 @@ const SupplierScreen = ({ route, navigation }: any) => {
                             color="$white"
                             size="xs"
                         />
-                        <Text size="xs" color="$white" fontWeight="$bold">
+                        <GlueText size="xs" color="$white" fontWeight="$bold">
                             {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync'}
-                        </Text>
+                        </GlueText>
                     </HStack>
                 </Pressable>
             )}
@@ -206,9 +222,9 @@ const SupplierScreen = ({ route, navigation }: any) => {
                 <Center w={100} h={100} bg="$backgroundLight100" rounded="$full">
                     <Icon as={Store} size="xl" color="$text300" />
                 </Center>
-                <Text color="$text400">
+                <GlueText color="$text400">
                     {searchQuery ? 'No matching suppliers.' : 'No suppliers added yet.'}
-                </Text>
+                </GlueText>
               </VStack>
             </Center>
           }
@@ -242,6 +258,17 @@ const SupplierScreen = ({ route, navigation }: any) => {
         onSave={recordPayment}
         supplier={selectedSupplier}
         currency={currency}
+      />
+
+      <SupplierDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedSupplier(null);
+        }}
+        supplier={selectedSupplier}
+        currency={currency}
+        fetchProducts={getSupplierProducts}
       />
     </ScreenWrapper>
   );

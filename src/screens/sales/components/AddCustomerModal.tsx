@@ -56,7 +56,7 @@ const AddCustomerModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
                     placeholder="Customer Name"
                     value={name}
                     onChangeText={setName}
-                    autoCorrect={true}
+                    autoCorrect={false}
                     autoCapitalize="words"
                 />
               </Input>

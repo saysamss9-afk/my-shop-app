@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
 import { SaleRepository } from '../repositories/SaleRepository';
-import { Sale } from '../db/types';
+import type { Sale } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 
 export const useSales = (shopId: string) => {

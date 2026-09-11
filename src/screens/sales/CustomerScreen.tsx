@@ -32,16 +32,22 @@ import CustomerListItem from './components/CustomerListItem';
 import AddCustomerModal from './components/AddCustomerModal';
 import PaymentModal from './components/PaymentModal';
 import ReturnModal from './components/ReturnModal';
+import CustomerDetailModal from './components/CustomerDetailModal';
 import { getAppShadow } from '../../utils/platformStyles';
-import { Customer } from '../../db/types';
+import type { Customer } from '../../db/types';
 import { SyncStatus } from '../../sync/SyncManager';
 
 const CustomerScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { customers, products, isLoading, syncStatus, currency, addCustomer, recordPayment, returnProduct, triggerManualSync, error } = useCustomers(shopId);
+  const {
+    customers, isLoading, syncStatus, currency,
+    addCustomer, recordPayment, returnProduct, triggerManualSync, error,
+    getCustomerHistory, getItemsTakenOnCredit
+  } = useCustomers(shopId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -64,6 +70,11 @@ const CustomerScreen = ({ route, navigation }: any) => {
   const handleReturn = useCallback((customer: Customer) => {
     setSelectedCustomer(customer);
     setIsReturnModalOpen(true);
+  }, []);
+
+  const handleProfilePress = useCallback((customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsDetailModalOpen(true);
   }, []);
 
   const onAddCustomer = async (name: string, phone: string) => {
@@ -124,8 +135,14 @@ const CustomerScreen = ({ route, navigation }: any) => {
   };
 
   const renderItem = useCallback(({ item }: any) => (
-    <CustomerListItem item={item} currency={currency} onPay={handlePay} onReturn={handleReturn} />
-  ), [currency, handlePay, handleReturn]);
+    <CustomerListItem
+        item={item}
+        currency={currency}
+        onPay={handlePay}
+        onReturn={handleReturn}
+        onPress={() => handleProfilePress(item)}
+    />
+  ), [currency, handlePay, handleReturn, handleProfilePress]);
 
   return (
     <ScreenWrapper withHeader>
@@ -264,8 +281,19 @@ const CustomerScreen = ({ route, navigation }: any) => {
         }}
         onSave={handleReturnProduct}
         customer={selectedCustomer}
-        products={products}
         currency={currency}
+        fetchItemsTaken={getItemsTakenOnCredit}
+      />
+
+      <CustomerDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedCustomer(null);
+        }}
+        customer={selectedCustomer}
+        currency={currency}
+        fetchHistory={getCustomerHistory}
       />
     </ScreenWrapper>
   );

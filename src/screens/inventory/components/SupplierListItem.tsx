@@ -15,7 +15,7 @@ import {
   ButtonIcon,
 } from '@gluestack-ui/themed';
 import { Store, Phone, CloudOff, CheckCircle2, Package, Wallet, ShoppingCart } from 'lucide-react-native';
-import { Supplier } from '../../../db/types';
+import type { Supplier } from '../../../db/types';
 import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
@@ -27,7 +27,9 @@ interface Props {
 }
 
 const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, onPress }) => {
-  const isOwing = item.currentBalance > 0;
+  const currentBalance = Number(item?.currentBalance ?? 0);
+  const productCount = Number(item?.productCount ?? 0);
+  const isOwing = currentBalance > 0;
 
   return (
     <Box
@@ -60,11 +62,13 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
                 <HStack space="md" alignItems="center">
                     <HStack space="xs" alignItems="center">
                         <Icon as={Phone} size="xs" color="$text400" />
-                        <Text size="xs" color="$text500">{item.contactInfo || 'No contact'}</Text>
+                        <Text size="xs" color="$text500">
+                            {item.phone || item.contactInfo || item.email || 'No contact'}
+                        </Text>
                     </HStack>
                     <HStack space="xs" alignItems="center">
                         <Icon as={Package} size="xs" color="$text400" />
-                        <Text size="xs" color="$text500">{item.productCount} Products</Text>
+                        <Text size="xs" color="$text500">{productCount} Products</Text>
                     </HStack>
                 </HStack>
             </VStack>
@@ -72,7 +76,7 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
             <VStack alignItems="flex-end" space="xs">
                 <Text size="xs" fontWeight="$bold" color="$text500">Balance</Text>
                 <Text size="md" color={isOwing ? '$error600' : '$success600'} fontWeight="$black">
-                    {currency}{item.currentBalance.toFixed(2)}
+                    {currency}{currentBalance.toFixed(2)}
                 </Text>
                 <Badge size="sm" variant="solid" action={isOwing ? "error" : "success"} borderRadius="$full">
                     <BadgeText size="xxs">{isOwing ? 'Owing' : 'Paid'}</BadgeText>

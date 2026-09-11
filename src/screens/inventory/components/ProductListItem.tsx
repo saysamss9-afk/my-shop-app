@@ -11,8 +11,8 @@ import {
   BadgeText,
   Pressable,
 } from '@gluestack-ui/themed';
-import { CloudOff, CheckCircle2, Scan, AlertCircle } from 'lucide-react-native';
-import { Product } from '../../../db/types';
+import { CloudOff, CheckCircle2, Scan, AlertCircle, Trash2 } from 'lucide-react-native';
+import type { Product } from '../../../db/types';
 import AppIcon from '../../../components/common/AppIcon';
 import { getAppShadow } from '../../../utils/platformStyles';
 
@@ -20,9 +20,10 @@ interface Props {
   item: Product;
   currency: string;
   onPress?: () => void;
+    onDelete?: () => void;
 }
 
-const ProductListItem: React.FC<Props> = ({ item, currency, onPress }) => {
+const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete }) => {
   const isLowStock = item.stockQuantity <= item.minStockLevel;
   const isDraft = item.status === 'DRAFT';
 
@@ -81,40 +82,42 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress }) => {
                                 <BadgeText size="xxs">UNIT</BadgeText>
                             </Badge>
                             <Text size="xs" color="$text500">
-                            {item.stockQuantity} {item.unit} @ {currency}{item.price.toFixed(2)}
+                            {item.stockQuantity} {item.unit} @ {currency}{(item.price ?? 0).toFixed(2)}
                             </Text>
                         </HStack>
                         {item.barcode && (
                             <HStack space="xs" alignItems="center" ml="$4">
-                                <Icon as={Scan} size="xxs" color="$text400" />
+                                <Icon as={Scan} size="xs" color="$text400" />
                                 <Text size="xxs" color="$text400" fontWeight="$bold">{item.barcode}</Text>
                             </HStack>
                         )}
                     </VStack>
 
-                    <VStack space="xxs">
-                        <HStack space="xs" alignItems="center">
-                            <Badge action="warning" variant="solid" size="sm" rounded="$full">
-                                <BadgeText size="xxs">BULK</BadgeText>
-                            </Badge>
-                            <Text size="xs" color="$text500">
-                            {item.bulkStockQuantity} cartons @ {currency}{item.bulkPrice.toFixed(2)}
-                            </Text>
-                        </HStack>
-                        {item.bulkBarcode && (
-                            <HStack space="xs" alignItems="center" ml="$4">
-                                <Icon as={Scan} size="xxs" color="$text400" />
-                                <Text size="xxs" color="$text400" fontWeight="$bold">{item.bulkBarcode}</Text>
+                    {item.bulkPrice > 0 && (
+                        <VStack space="xxs">
+                            <HStack space="xs" alignItems="center">
+                                <Badge action="warning" variant="solid" size="sm" rounded="$full">
+                                    <BadgeText size="xxs">{(item.bulkUnit || 'BULK').toUpperCase()}</BadgeText>
+                                </Badge>
+                                <Text size="xs" color="$text500">
+                                {item.bulkStockQuantity} {item.bulkUnit || 'items'} @ {currency}{(item.bulkPrice ?? 0).toFixed(2)}
+                                </Text>
                             </HStack>
-                        )}
-                    </VStack>
+                            {item.bulkBarcode && (
+                                <HStack space="xs" alignItems="center" ml="$4">
+                                    <Icon as={Scan} size="xs" color="$text400" />
+                                    <Text size="xxs" color="$text400" fontWeight="$bold">{item.bulkBarcode}</Text>
+                                </HStack>
+                            )}
+                        </VStack>
+                    )}
                 </VStack>
             )}
             </VStack>
             <VStack alignItems="flex-end" space="xs">
             {!isDraft && (
                 <Text size="md" fontWeight="$black" color="$text900">
-                    {currency}{item.price.toFixed(2)}
+                    {currency}{(item.price ?? 0).toFixed(2)}
                 </Text>
             )}
             {isLowStock && !isDraft && (
@@ -122,6 +125,12 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress }) => {
                 <BadgeText size="xxs" fontWeight="$bold">LOW STOCK</BadgeText>
                 </Badge>
             )}
+            {/** Delete action */}
+                        <Pressable onPress={(e: any) => { e?.stopPropagation?.(); onDelete && onDelete(); }}>
+                            <Box mt="$2">
+                                <Icon as={Trash2} size="sm" color="$text400" />
+                            </Box>
+                        </Pressable>
             </VStack>
         </HStack>
         </Box>

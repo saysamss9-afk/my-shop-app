@@ -3,7 +3,7 @@ import { FlatList, StatusBar, Alert } from 'react-native';
 import {
   Box,
   VStack,
-  Text,
+  Text as GlueText,
   Icon,
   Center,
   Spinner,
@@ -24,7 +24,7 @@ import {
   Pressable,
 } from '@gluestack-ui/themed';
 import { useInventory } from '../../hooks/useInventory';
-import { Product } from '../../db/types';
+import type { Product } from '../../db/types';
 import { ScannerView } from '../../components/ScannerView';
 import { getAppShadow } from '../../utils/platformStyles';
 
@@ -48,6 +48,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
     showLowStockOnly,
     addProduct,
     updateProduct,
+    deleteProduct,
     toggleLowStockFilter,
     generateBarcode,
     triggerManualSync,
@@ -63,17 +64,11 @@ const InventoryScreen = ({ route, navigation }: any) => {
   const [scanTarget, setScanTarget] = useState<'unit' | 'bulk' | null>(null);
 
   const handleSave = async (productData: any) => {
-    const isUnitMode = entryMode === 'UNIT';
-    const hasRequiredFields = isUnitMode
-      ? (productData.name && productData.price)
-      : (productData.name && productData.bulkPrice);
+    if (!productData.name) return;
 
-    if (!hasRequiredFields) return;
-
+    // Robust parsing of all numeric fields to ensure they don't default to 0 incorrectly
     await addProduct({
-      name: productData.name,
-      barcode: productData.barcode || null,
-      bulkBarcode: productData.bulkBarcode || null,
+      ...productData,
       bulkQuantity: parseFloat(productData.bulkQuantity) || 1,
       bulkPrice: parseFloat(productData.bulkPrice) || 0,
       bulkStockQuantity: parseFloat(productData.bulkStockQuantity) || 0,
@@ -81,10 +76,8 @@ const InventoryScreen = ({ route, navigation }: any) => {
       costPrice: parseFloat(productData.costPrice) || 0,
       stockQuantity: parseFloat(productData.stockQuantity) || 0,
       minStockLevel: parseFloat(productData.minStockLevel) || 0,
-      unit: productData.unit,
-      categoryId: productData.categoryId,
-      description: null,
-      supplierId: null,
+      description: productData.description || null,
+      supplierId: productData.supplierId || null,
       status: 'ACTIVE',
     });
     setIsModalOpen(false);
@@ -107,7 +100,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
                          (p.id && p.id.includes(searchQuery));
 
     if (activeTab === 'PENDING') return matchesSearch && p.status === 'DRAFT';
-    return matchesSearch && p.status !== 'ARCHIVED';
+    return matchesSearch && p.status !== 'ARCHIVED' && p.status !== 'DELETED';
   });
 
   const handleItemPress = (product: Product) => {
@@ -115,8 +108,27 @@ const InventoryScreen = ({ route, navigation }: any) => {
       setIsEditModalOpen(true);
   };
 
+  const handleDelete = (product: Product) => {
+    const message = `Remove "${product.name}" from inventory? This cannot be undone.`;
+
+    if (typeof window !== 'undefined' && (window as any).confirm) {
+      if (window.confirm(message)) {
+        deleteProduct(product.id);
+      }
+    } else {
+      Alert.alert(
+        'Delete item',
+        message,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: async () => { await deleteProduct(product.id); } }
+        ]
+      );
+    }
+  };
+
   const renderItem = useCallback(({ item }: { item: Product }) => (
-    <ProductListItem item={item} currency={currency} onPress={() => handleItemPress(item)} />
+    <ProductListItem item={item} currency={currency} onPress={() => handleItemPress(item)} onDelete={() => handleDelete(item)} />
   ), [currency]);
 
   return (
@@ -130,6 +142,8 @@ const InventoryScreen = ({ route, navigation }: any) => {
         shopName={shopName}
         syncStatus={syncStatus}
         onTriggerSync={triggerManualSync}
+        onAdd={() => setIsSelectionModalOpen(true)}
+        userRole={userRole}
       />
 
       <InventorySearch
@@ -137,24 +151,42 @@ const InventoryScreen = ({ route, navigation }: any) => {
         setSearchQuery={setSearchQuery}
       />
 
+      {/* Quick Add Action */}
+      {(userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'SALES') && (
+        <Box px="$5" mb="$4">
+            <Pressable
+                onPress={() => setIsSelectionModalOpen(true)}
+                bg="$primary600"
+                p="$3.5"
+                rounded="$2xl"
+                style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(110,59,230,0.25)' }) }}
+            >
+                <HStack space="sm" alignItems="center" justifyContent="center">
+                    <Icon as={AddIcon} color="white" size="sm" />
+                    <GlueText color="white" fontWeight="$bold">Add New Product</GlueText>
+                </HStack>
+            </Pressable>
+        </Box>
+      )}
+
       {/* Tabs */}
       <HStack px="$5" space="md" mb="$4">
           <Pressable onPress={() => setActiveTab('ALL')} flex={1}>
               <Box pb="$2" borderBottomWidth={2} borderBottomColor={activeTab === 'ALL' ? '$primary600' : 'transparent'}>
-                  <Text textAlign="center" fontWeight={activeTab === 'ALL' ? '$bold' : '$medium'} color={activeTab === 'ALL' ? '$primary600' : '$text400'}>
+                  <GlueText textAlign="center" fontWeight={activeTab === 'ALL' ? '$bold' : '$medium'} color={activeTab === 'ALL' ? '$primary600' : '$text400'}>
                       Inventory
-                  </Text>
+                  </GlueText>
               </Box>
           </Pressable>
           <Pressable onPress={() => setActiveTab('PENDING')} flex={1}>
               <HStack justifyContent="center" space="xs" pb="$2" borderBottomWidth={2} borderBottomColor={activeTab === 'PENDING' ? '$warning600' : 'transparent'}>
-                  <Text fontWeight={activeTab === 'PENDING' ? '$bold' : '$medium'} color={activeTab === 'PENDING' ? '$warning600' : '$text400'}>
+                  <GlueText fontWeight={activeTab === 'PENDING' ? '$bold' : '$medium'} color={activeTab === 'PENDING' ? '$warning600' : '$text400'}>
                       Pending Review
-                  </Text>
+                  </GlueText>
                   {pendingCount > 0 && (
                       <Box bg="$warning600" px="$2" rounded="$full" justifyContent="center">
-                          <Text color="white" size="xxs" fontWeight="$bold">{pendingCount}</Text>
-                      </Box>
+                            <GlueText color="white"size="2xs" fontWeight="$bold">{pendingCount}</GlueText>
+                        </Box>
                   )}
               </HStack>
           </Pressable>
@@ -176,9 +208,9 @@ const InventoryScreen = ({ route, navigation }: any) => {
                 <Center w={100} h={100} bg="$backgroundLight100" rounded="$full">
                     <Icon as={SearchIcon} size="xl" color="$text300" />
                 </Center>
-                <Text color="$text400">
+                <GlueText color="$text400">
                     {activeTab === 'PENDING' ? 'No pending items to review.' : 'No items found in inventory.'}
-                </Text>
+                </GlueText>
               </VStack>
             </Center>
           }
@@ -213,6 +245,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         entryMode={entryMode}
+        categories={categories}
         onSave={handleSave}
         onScanPress={setScanTarget}
         generateBarcode={generateBarcode}
@@ -229,6 +262,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onSave={handleUpdate}
         onScanPress={setScanTarget}
         generateBarcode={generateBarcode}
+        canEdit={userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'ADMIN'}
       />
 
       {/* Camera Scanner Modal */}

@@ -33,7 +33,7 @@ const StaffMemberItem: React.FC<Props> = ({ item }) => {
                     <BadgeText size="xs">{item.role}</BadgeText>
                 </Badge>
                 {item.joinedAt && (
-                    <Text size="xxs" color="$text400">Joined: {new Date(item.joinedAt.seconds * 1000).toLocaleDateString()}</Text>
+                    <Text size="2xs" color="$text400">Joined: {new Date(item.joinedAt.seconds * 1000).toLocaleDateString()}</Text>
                 )}
             </HStack>
           </VStack>

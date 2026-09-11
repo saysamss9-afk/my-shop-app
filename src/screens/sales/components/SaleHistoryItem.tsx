@@ -11,7 +11,7 @@ import {
 } from '@gluestack-ui/themed';
 import { RotateCcw } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Sale } from '../../../db/types';
+import type { Sale } from '../../../db/types';
 
 interface Props {
   item: Sale;

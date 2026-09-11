@@ -2,7 +2,9 @@
   "extends": "@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "rootDir": ".",
     "ignoreDeprecations": "6.0",
+    "verbatimModuleSyntax": true,
     "paths": {
       "*": ["src/*"]
     }

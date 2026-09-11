@@ -1,18 +1,31 @@
 import { SQLiteDatabase } from 'react-native-sqlite-storage';
-import { Customer, DebtPayment } from '../db/types';
+import type { Customer, DebtPayment } from '../db/types';
 import { generateUUID } from '../utils/uuid';
 
 export class CustomerRepository {
   constructor(public db: SQLiteDatabase) {}
 
+  async getCustomerById(id: string): Promise<Customer | null> {
+    const query = 'SELECT * FROM Customer WHERE id = ?';
+    const results = await this.db.executeSql(query, [id]);
+    if (results[0].rows.length > 0) {
+      return results[0].rows.item(0);
+    }
+    return null;
+  }
+
   async insertCustomer(customer: Customer) {
+    if (!customer.shopId || customer.shopId === 'undefined') {
+        throw new Error(`Invalid Shop ID: Customer ${customer.id} must be linked to a shop.`);
+    }
+
     const query = `
       INSERT OR REPLACE INTO Customer(id, shopId, name, phone, email, currentBalance, syncStatus)
-      VALUES (?, ?, ?, ?, ?, ?, 0)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       customer.id, customer.shopId, customer.name, customer.phone,
-      customer.email || null, customer.currentBalance
+      customer.email || null, customer.currentBalance, customer.syncStatus ?? 0
     ];
     await this.db.executeSql(query, params);
   }
@@ -54,9 +67,12 @@ export class CustomerRepository {
     await this.db.executeSql(query, [id]);
   }
 
-  async getUnsyncedPayments(): Promise<DebtPayment[]> {
-    const query = 'SELECT * FROM DebtPayment WHERE syncStatus = 0';
-    const results = await this.db.executeSql(query);
+  async getUnsyncedPayments(shopId?: string): Promise<DebtPayment[]> {
+    const query = shopId
+      ? 'SELECT * FROM DebtPayment WHERE syncStatus = 0 AND shopId = ?'
+      : 'SELECT * FROM DebtPayment WHERE syncStatus = 0';
+    const params = shopId ? [shopId] : [];
+    const results = await this.db.executeSql(query, params);
     const payments: DebtPayment[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       payments.push(results[0].rows.item(i));
@@ -100,7 +116,7 @@ export class CustomerRepository {
 
       // 3. Restore stock in Product table
       const column = returnOrder.isBulk ? 'bulkStockQuantity' : 'stockQuantity';
-      const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ? WHERE id = ?`;
+      const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ?, syncStatus = 0 WHERE id = ?`;
       await tx.executeSql(restoreStockQuery, [returnOrder.quantity, returnOrder.productId]);
 
       // 4. Record in AuditLog
@@ -120,13 +136,66 @@ export class CustomerRepository {
     });
   }
 
-  async getUnsyncedCustomers(): Promise<Customer[]> {
-    const query = 'SELECT * FROM Customer WHERE syncStatus = 0';
-    const results = await this.db.executeSql(query);
+  async getUnsyncedCustomers(shopId?: string): Promise<Customer[]> {
+    const query = shopId
+      ? 'SELECT * FROM Customer WHERE syncStatus = 0 AND shopId = ?'
+      : 'SELECT * FROM Customer WHERE syncStatus = 0';
+    const params = shopId ? [shopId] : [];
+    const results = await this.db.executeSql(query, params);
     const customers: Customer[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       customers.push(results[0].rows.item(i));
     }
     return customers;
+  }
+
+  async getCustomerHistory(customerId: string): Promise<any[]> {
+    const query = `
+      SELECT
+        s.id as saleId,
+        s.timestamp,
+        si.productId,
+        p.name as productName,
+        si.quantity,
+        si.priceAtSale,
+        si.isBulk,
+        p.unit,
+        p.bulkUnit
+      FROM Sale s
+      JOIN SaleItem si ON s.id = si.saleId
+      JOIN Product p ON si.productId = p.id
+      WHERE s.customerId = ? AND s.isReverted = 0
+      ORDER BY s.timestamp DESC
+    `;
+    const results = await this.db.executeSql(query, [customerId]);
+    const history: any[] = [];
+    for (let i = 0; i < results[0].rows.length; i++) {
+        history.push(results[0].rows.item(i));
+    }
+    return history;
+  }
+
+  async getItemsTakenOnCredit(customerId: string): Promise<any[]> {
+    const query = `
+      SELECT
+        p.id,
+        p.name,
+        SUM(si.quantity) as totalTaken,
+        si.isBulk,
+        si.priceAtSale,
+        p.unit,
+        p.bulkUnit
+      FROM Sale s
+      JOIN SaleItem si ON s.id = si.saleId
+      JOIN Product p ON si.productId = p.id
+      WHERE s.customerId = ? AND s.paymentStatus = 'DEBT' AND s.isReverted = 0
+      GROUP BY p.id, si.isBulk
+    `;
+    const results = await this.db.executeSql(query, [customerId]);
+    const items: any[] = [];
+    for (let i = 0; i < results[0].rows.length; i++) {
+        items.push(results[0].rows.item(i));
+    }
+    return items;
   }
 }

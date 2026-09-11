@@ -74,7 +74,7 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
                   {item.supplierName}
                 </Heading>
                 <Badge size="sm" action={isDebt ? 'error' : 'success'} variant="solid" rounded="$full">
-                  <BadgeText size="xxs">{item.paymentStatus}</BadgeText>
+                  <BadgeText size="2xs">{item.paymentStatus}</BadgeText>
                 </Badge>
               </HStack>
 
@@ -96,7 +96,7 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
                 ₵{item.totalCost.toFixed(2)}
               </Heading>
               {isDebt && (
-                <Text size="xxs" color="$error600" fontWeight="$bold">
+                <Text size="2xs" color="$error600" fontWeight="$bold">
                   Bal: ₵{item.balance.toFixed(2)}
                 </Text>
               )}

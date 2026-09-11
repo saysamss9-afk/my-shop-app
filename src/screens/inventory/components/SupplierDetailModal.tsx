@@ -1,0 +1,171 @@
+import React, { useState, useEffect } from 'react';
+import { ScrollView, FlatList } from 'react-native';
+import {
+  Heading,
+  Icon,
+  Button,
+  ButtonText,
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalCloseButton,
+  ModalBody,
+  VStack,
+  HStack,
+  CloseIcon,
+  Text as GlueText,
+  Box,
+  Divider,
+  Center,
+  Spinner,
+} from '@gluestack-ui/themed';
+import { Phone, Mail, MapPin, Package, User, Wallet } from 'lucide-react-native';
+import type { Supplier, Product } from '../../../db/types';
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  supplier: (Supplier & { productCount: number }) | null;
+  currency: string;
+  fetchProducts: (id: string) => Promise<Product[]>;
+}
+
+const SupplierDetailModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  supplier,
+  currency,
+  fetchProducts,
+}) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && supplier) {
+      setLoading(true);
+      fetchProducts(supplier.id).then(data => {
+        setProducts(data);
+        setLoading(false);
+      });
+    }
+  }, [isOpen, supplier, fetchProducts]);
+
+  if (!supplier) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <ModalBackdrop />
+      <ModalContent rounded="$3xl" h="80%">
+        <ModalHeader>
+          <VStack>
+            <Heading size="lg" fontWeight="$black">{supplier.name}</Heading>
+            <GlueText size="xs" color="$text500">Supplier Profile & Inventory</GlueText>
+          </VStack>
+          <ModalCloseButton>
+            <Icon as={CloseIcon} />
+          </ModalCloseButton>
+        </ModalHeader>
+        <ModalBody>
+          <VStack space="lg" py="$4">
+            {/* Contact Info Card */}
+            <Box bg="$backgroundLight50" p="$4" rounded="$2xl">
+              <VStack space="md">
+                <HStack space="md" alignItems="center">
+                  <Icon as={User} size="sm" color="$primary600" />
+                  <GlueText size="sm" fontWeight="$bold">{supplier.contactPerson || 'No contact person'}</GlueText>
+                </HStack>
+                {(supplier.phone || supplier.contactInfo) && (
+                  <HStack space="md" alignItems="center">
+                    <Icon as={Phone} size="sm" color="$primary600" />
+                    <GlueText size="sm">{supplier.phone || supplier.contactInfo}</GlueText>
+                  </HStack>
+                )}
+                {supplier.email && (
+                  <HStack space="md" alignItems="center">
+                    <Icon as={Mail} size="sm" color="$primary600" />
+                    <GlueText size="sm">{supplier.email}</GlueText>
+                  </HStack>
+                )}
+                {supplier.address && (
+                  <HStack space="md" alignItems="center">
+                    <Icon as={MapPin} size="sm" color="$primary600" />
+                    <GlueText size="sm" flex={1}>{supplier.address}</GlueText>
+                  </HStack>
+                )}
+              </VStack>
+            </Box>
+
+            {/* Financial Summary */}
+            <HStack space="md">
+               <Box flex={1} bg="$error50" p="$3" rounded="$xl">
+                  <HStack space="xs" alignItems="center" mb="$1">
+                    <Icon as={Wallet} size="xs" color="$error600" />
+                    <GlueText size="xs" color="$error600" fontWeight="$bold">BALANCE</GlueText>
+                  </HStack>
+                  <Heading size="md" color="$error700">{currency}{supplier.currentBalance.toLocaleString()}</Heading>
+               </Box>
+               <Box flex={1} bg="$primary50" p="$3" rounded="$xl">
+                  <HStack space="xs" alignItems="center" mb="$1">
+                    <Icon as={Package} size="xs" color="$primary600" />
+                    <GlueText size="xs" color="$primary600" fontWeight="$bold">PRODUCTS</GlueText>
+                  </HStack>
+                  <Heading size="md" color="$primary700">{products.length}</Heading>
+               </Box>
+            </HStack>
+
+            <Divider my="$2" />
+
+            <Heading size="sm" fontWeight="$bold">Associated Products</Heading>
+
+            {loading ? (
+              <Center py="$10">
+                <Spinner color="$primary600" />
+              </Center>
+            ) : products.length === 0 ? (
+              <Center py="$10">
+                <GlueText color="$text400">No products linked to this supplier.</GlueText>
+              </Center>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <VStack space="sm">
+                  {products.map((item) => (
+                    <HStack
+                        key={item.id}
+                        bg="$white"
+                        p="$3"
+                        rounded="$xl"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        borderWidth={1}
+                        borderColor="$borderLight"
+                    >
+                      <VStack flex={1}>
+                        <GlueText fontWeight="$bold" color="$text900">{item.name}</GlueText>
+                        <GlueText size="xs" color="$text500">{item.barcode || 'No barcode'}</GlueText>
+                      </VStack>
+                      <VStack alignItems="flex-end">
+                        <GlueText size="sm" fontWeight="$bold" color={item.stockQuantity <= item.minStockLevel ? "$error600" : "$success600"}>
+                          {item.stockQuantity} {item.unit}
+                        </GlueText>
+                        <GlueText size="2xs" color="$text400">In Stock</GlueText>
+                      </VStack>
+                    </HStack>
+                  ))}
+                </VStack>
+              </ScrollView>
+            )}
+          </VStack>
+        </ModalBody>
+        <ModalFooter>
+          <Button action="secondary" variant="outline" onPress={onClose} borderRadius={16} w="100%">
+            <ButtonText>Close Profile</ButtonText>
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+};
+
+export default SupplierDetailModal;

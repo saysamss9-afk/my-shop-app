@@ -18,6 +18,7 @@ import AppIcon from '../../components/common/AppIcon';
 import { getAppShadow } from '../../utils/platformStyles';
 import { useAuthContext } from '../../auth/AuthContext';
 import firebase from '../../firebase-config';
+import { resolveLandingRedirect } from './landingRedirect';
 
 type Props = StackScreenProps<RootStackParamList, 'Landing'>;
 
@@ -25,36 +26,38 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
   const { user, employeeData, isRestoringSession } = useAuthContext();
 
   React.useEffect(() => {
-    if (!isRestoringSession && user) {
-      const redirect = async () => {
-        if (user.uid === "l2JP5nnzVSP6gd8aSDEqI60Tbfl2") {
-          navigation.replace('AdminDashboard');
-          return;
-        }
-
-        if (employeeData) {
-          let shopName = 'Your Shop';
-          try {
-            const shopSnap = await firebase.firestore().collection('registered_shops').doc(employeeData.shopId).get();
-            if (shopSnap.exists) {
-              shopName = shopSnap.data()?.name || shopName;
-            }
-          } catch (error) {
-            console.warn('LandingScreen: Failed to fetch shop name:', error);
-          }
-
-          navigation.replace('Dashboard', {
-            shopId: employeeData.shopId,
-            employeeId: user.uid,
-            userRole: employeeData.role,
-            shopName,
-          });
-        } else {
-          navigation.replace('ShopSetup');
-        }
-      };
-      redirect();
+    if (isRestoringSession) {
+      return;
     }
+
+    const redirect = resolveLandingRedirect({ user, employeeData, isRestoringSession });
+    if (!redirect) {
+      return;
+    }
+
+    const navigateToRedirect = async () => {
+      if (redirect.name === 'Dashboard' && redirect.params?.shopId) {
+        let shopName = redirect.params.shopName || 'Your Shop';
+        try {
+          const shopSnap = await firebase.firestore().collection('registered_shops').doc(redirect.params.shopId).get();
+          if (shopSnap.exists) {
+            shopName = shopSnap.data()?.name || shopName;
+          }
+        } catch (error) {
+          console.warn('LandingScreen: Failed to fetch shop name:', error);
+        }
+
+        navigation.replace('Dashboard', {
+          ...redirect.params,
+          shopName,
+        });
+        return;
+      }
+
+      navigation.replace(redirect.name as any, redirect.params as any);
+    };
+
+    navigateToRedirect();
   }, [user, employeeData, isRestoringSession, navigation]);
 
   const featureCards = [
@@ -197,7 +200,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
                   </Center>
                   <VStack alignItems="center" space="xs">
                     <Heading size="xs" color="$text900">New Shop</Heading>
-                    <Text size="xxs" color="$text500" textAlign="center">Registration</Text>
+                    <Text size="2xs" color="$text500" textAlign="center">Registration</Text>
                   </VStack>
                 </VStack>
               </Center>
@@ -221,7 +224,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
                   </Center>
                   <VStack alignItems="center" space="xs">
                     <Heading size="xs" color="$text900">Join Team</Heading>
-                    <Text size="xxs" color="$text500" textAlign="center">Staff Access</Text>
+                    <Text size="2xs" color="$text500" textAlign="center">Staff Access</Text>
                   </VStack>
                 </VStack>
               </Center>

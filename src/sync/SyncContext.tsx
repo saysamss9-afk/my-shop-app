@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useMemo } from 'react';
 import { SyncManager, SyncStatus } from './SyncManager';
 import { getDBConnection } from '../db/database';
 import { ProductRepository } from '../repositories/ProductRepository';
@@ -11,7 +11,7 @@ interface SyncContextType {
   syncManager: SyncManager | null;
   syncStatus: SyncStatus;
   dataChangeTick: number;
-  triggerSync: (shopId?: string) => Promise<void>;
+  triggerSync: (shopId?: string, deepSync?: boolean) => Promise<void>;
   startRealtimeSync: (shopId: string) => void;
   stopRealtimeSync: () => void;
 }
@@ -20,7 +20,7 @@ const SyncContext = createContext<SyncContextType>({
   syncManager: null,
   syncStatus: SyncStatus.Idle,
   dataChangeTick: 0,
-  triggerSync: async (shopId?: string) => {},
+  triggerSync: async (shopId?: string, deepSync?: boolean) => {},
   startRealtimeSync: (shopId: string) => {},
   stopRealtimeSync: () => {},
 });
@@ -59,32 +59,34 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const triggerSync = async (shopId?: string) => {
+  const triggerSync = useCallback(async (shopId?: string, deepSync = false) => {
     if (manager) {
       setSyncStatus(SyncStatus.Syncing);
-      await manager.triggerSync(shopId);
+      await manager.triggerSync(shopId, deepSync);
       setSyncStatus(manager.getStatus());
       setDataChangeTick(prev => prev + 1);
     }
-  };
+  }, [manager]);
 
-  const startRealtimeSync = (shopId: string) => {
+  const startRealtimeSync = useCallback((shopId: string) => {
     if (manager) manager.startRealtimeSync(shopId);
-  };
+  }, [manager]);
 
-  const stopRealtimeSync = () => {
+  const stopRealtimeSync = useCallback(() => {
     if (manager) manager.stopRealtimeSync();
-  };
+  }, [manager]);
+
+  const contextValue = React.useMemo(() => ({
+    syncManager: manager,
+    syncStatus,
+    dataChangeTick,
+    triggerSync,
+    startRealtimeSync,
+    stopRealtimeSync
+  }), [manager, syncStatus, dataChangeTick, triggerSync, startRealtimeSync, stopRealtimeSync]);
 
   return (
-    <SyncContext.Provider value={{
-      syncManager: manager,
-      syncStatus,
-      dataChangeTick,
-      triggerSync,
-      startRealtimeSync,
-      stopRealtimeSync
-    }}>
+    <SyncContext.Provider value={contextValue}>
       {children}
     </SyncContext.Provider>
   );

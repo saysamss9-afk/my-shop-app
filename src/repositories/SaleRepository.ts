@@ -1,5 +1,5 @@
 import { SQLiteDatabase } from 'react-native-sqlite-storage';
-import { Sale, SaleItem } from '../db/types';
+import type { Sale, SaleItem } from '../db/types';
 
 export class SaleRepository {
   constructor(public db: SQLiteDatabase) {}
@@ -39,7 +39,7 @@ export class SaleRepository {
           throw new Error(`Insufficient stock for sale item: requested ${item.quantity}, available ${availableStock}.`);
         }
 
-        const decrementStockQuery = `UPDATE Product SET ${column} = ${column} - ? WHERE id = ?`;
+        const decrementStockQuery = `UPDATE Product SET ${column} = ${column} - ?, syncStatus = 0 WHERE id = ?`;
         await tx.executeSql(decrementStockQuery, [item.quantity, item.productId]);
       }
     });
@@ -65,9 +65,12 @@ export class SaleRepository {
     return items;
   }
 
-  async getUnsyncedSales(): Promise<Sale[]> {
-    const query = 'SELECT * FROM Sale WHERE syncStatus = 0';
-    const results = await this.db.executeSql(query);
+  async getUnsyncedSales(shopId?: string): Promise<Sale[]> {
+    const query = shopId
+      ? 'SELECT * FROM Sale WHERE syncStatus = 0 AND shopId = ?'
+      : 'SELECT * FROM Sale WHERE syncStatus = 0';
+    const params = shopId ? [shopId] : [];
+    const results = await this.db.executeSql(query, params);
     const sales: Sale[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       sales.push(results[0].rows.item(i));
@@ -132,7 +135,7 @@ export class SaleRepository {
       for (let i = 0; i < itemsResults.rows.length; i++) {
         const item = itemsResults.rows.item(i);
         const column = item.isBulk === 1 ? 'bulkStockQuantity' : 'stockQuantity';
-        const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ? WHERE id = ?`;
+        const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ?, syncStatus = 0 WHERE id = ?`;
         await tx.executeSql(restoreStockQuery, [item.quantity, item.productId]);
       }
     });

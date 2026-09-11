@@ -13,20 +13,34 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == "l2JP5nnzVSP6gd8aSDEqI60Tbfl2";
     }
 
+    // Check if user is the direct owner of the shop in registered_shops
+    function isShopOwner(shopId) {
+      return isAuthenticated() && (
+        isAppOwner() ||
+        (exists(/databases/$(database)/documents/registered_shops/$(shopId)) &&
+         get(/databases/$(database)/documents/registered_shops/$(shopId)).data.ownerId == request.auth.uid)
+      );
+    }
+
     // Check if user is staff of a shop
     function isStaff(shopId) {
       return isAuthenticated() && (
         isAppOwner() ||
-        get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.shopId == shopId
+        isShopOwner(shopId) ||
+        (exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.shopId == shopId)
       );
     }
 
     // Check if user is Manager or Owner of a shop
     function isManager(shopId) {
-      let employeeData = get(/databases/$(database)/documents/employees/$(request.auth.uid)).data;
       return isAuthenticated() && (
         isAppOwner() ||
-        (employeeData.shopId == shopId && (employeeData.role == "OWNER" || employeeData.role == "MANAGER"))
+        isShopOwner(shopId) ||
+        (exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.shopId == shopId &&
+         (get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == "OWNER" ||
+          get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == "MANAGER"))
       );
     }
 
@@ -54,50 +68,52 @@ service cloud.firestore {
 
     // Root Employees collection (used for login and staff management)
     match /employees/{uid} {
-      // Users can read their own profile. Managers can read their shop's staff.
-      allow read: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.shopId));
-      // Users can create their own record during registration
-      allow create: if isAuthenticated() && request.auth.uid == uid;
-      // Managers can update staff records for their shop
-      allow update, delete: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.shopId));
+      // Users can read and write their own profile
+      allow read, write: if isAuthenticated() && request.auth.uid == uid;
+      // Managers can read and update staff records for their shop
+      allow read, update, delete: if isAuthenticated() && isManager(resource.data.shopId);
     }
 
     // Shop-scoped data
     match /shops/{shopId} {
+      allow get: if isAuthenticated();
 
-      // Products & Inventory: Staff can read and create, Managers can update/delete
+      // Products & Inventory: Staff can manage daily operations, Managers can delete
       match /products/{productId} {
-        allow read: if isStaff(shopId);
-        allow create: if isStaff(shopId);
-        allow update, delete: if isManager(shopId);
+        allow read, create, update: if isStaff(shopId);
+        allow delete: if isManager(shopId);
       }
 
       match /categories/{categoryId} {
-        allow read: if isStaff(shopId);
-        allow create: if isStaff(shopId);
-        allow update, delete: if isManager(shopId);
+        allow read, create, update: if isStaff(shopId);
+        allow delete: if isManager(shopId);
       }
 
       // Sales: Staff can record sales, Managers can view/edit history
       match /sales/{saleId} {
-        allow read: if isStaff(shopId);
-        allow create: if isStaff(shopId);
+        allow read, create: if isStaff(shopId);
         allow update, delete: if isManager(shopId);
       }
 
-      // Suppliers: Staff can read, Managers can manage
+      // Suppliers: Staff can manage contacts, Managers can delete
       match /suppliers/{supplierId} {
-        allow read: if isStaff(shopId);
-        allow write: if isManager(shopId);
+        allow read, create, update: if isStaff(shopId);
+        allow delete: if isManager(shopId);
       }
 
-      // Customers & Debts: Staff can manage customer relationships
+      // Payments (Customer Debt Payments)
+      match /payments/{paymentId} {
+        allow read, write: if isStaff(shopId);
+      }
+
+      // Supplier Payments
+      match /supplier_payments/{paymentId} {
+        allow read, write: if isStaff(shopId);
+      }
+
+      // Customers & Debts
       match /customers/{customerId} {
         allow read, write: if isStaff(shopId);
-
-        match /payments/{paymentId} {
-          allow read, write: if isStaff(shopId);
-        }
       }
 
       // Expenses & Audit Logs: Restricted to Managers

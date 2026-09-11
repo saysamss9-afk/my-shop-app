@@ -11,11 +11,11 @@ import {
   Center,
   Spinner,
   Divider,
+  ArrowLeftIcon,
 } from '@gluestack-ui/themed';
-import { Appbar } from 'react-native-paper';
 import { RefreshCw, AlertTriangle } from 'lucide-react-native';
 import { useSales } from '../../hooks/useSales';
-import { Sale } from '../../db/types';
+import type { Sale } from '../../db/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getAppShadow } from '../../utils/platformStyles';
 import { SyncStatus } from '../../sync/SyncManager';
@@ -37,44 +37,50 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
 
   return (
     <Box flex={1} bg="$backgroundLight50">
-      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
 
-      {/* Modern Solid Header */}
-      <Box bg="$primary800">
-        <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
-          <Appbar.BackAction color="white" onPress={() => navigation.goBack()} />
-          <Appbar.Content
-            title="Sales History"
-            titleStyle={{ color: 'white', fontWeight: '900', fontSize: 20 }}
-          />
-          {syncStatus === SyncStatus.Syncing ? (
-            <HStack mr="$4" space="xs" alignItems="center" bg="rgba(255,255,255,0.1)" px="$3" py="$1.5" rounded="$full">
-                <Spinner color="white" size="small" />
-                <Text size="xs" color="white" fontWeight="$bold">Syncing...</Text>
-            </HStack>
-          ) : (
-            <Pressable
-                onPress={triggerManualSync}
-                mr="$4"
-                bg={syncStatus === SyncStatus.Error ? "$error500" : "white"}
-                px="$3"
-                py="$1.5"
-                rounded="$full"
-                style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(0,0,0,0.1)' }) }}
-            >
-                <HStack space="xs" alignItems="center">
-                    <Icon
-                        as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
-                        color={syncStatus === SyncStatus.Error ? "white" : "$primary800"}
-                        size="xs"
-                    />
-                    <Text size="xs" color={syncStatus === SyncStatus.Error ? "white" : "$primary800"} fontWeight="$black">
-                        {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync'}
-                    </Text>
-                </HStack>
+      {/* Modern Header */}
+      <Box px="$4" pt="$2" pb="$4">
+        <HStack justifyContent="space-between" alignItems="center">
+          <HStack space="md" alignItems="center">
+            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <Icon as={ArrowLeftIcon} color="$text900" />
             </Pressable>
-          )}
-        </Appbar.Header>
+            <VStack>
+              <Heading size="lg" color="$text900" fontWeight="$black">Sales History</Heading>
+              <Text size="xs" color="$text500">Track and manage past sales</Text>
+            </VStack>
+          </HStack>
+
+          <HStack space="sm" alignItems="center">
+            {syncStatus === SyncStatus.Syncing ? (
+                <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
+                    <Spinner color="$primary600" size="small" />
+                    <Text size="xs" color="$primary600" fontWeight="$bold">Syncing...</Text>
+                </HStack>
+            ) : (
+                <Pressable
+                    onPress={triggerManualSync}
+                    bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
+                    px="$4"
+                    py="$2"
+                    rounded="$full"
+                    style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
+                >
+                    <HStack space="xs" alignItems="center">
+                        <Icon
+                            as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
+                            color="$white"
+                            size="xs"
+                        />
+                        <Text size="xs" color="$white" fontWeight="$bold">
+                            {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync'}
+                        </Text>
+                    </HStack>
+                </Pressable>
+            )}
+          </HStack>
+        </HStack>
       </Box>
 
       {/* Stats Summary Bar */}

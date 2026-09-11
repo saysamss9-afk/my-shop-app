@@ -8,8 +8,9 @@ import {
   Icon,
   Pressable,
   ArrowLeftIcon,
+  AddIcon,
 } from '@gluestack-ui/themed';
-import { Filter, RefreshCw, AlertTriangle } from 'lucide-react-native';
+import { Filter, RefreshCw, AlertTriangle, Plus } from 'lucide-react-native';
 import { Spinner } from '@gluestack-ui/themed';
 import { SyncStatus } from '../../../sync/SyncManager';
 import { getAppShadow } from '../../../utils/platformStyles';
@@ -21,6 +22,8 @@ interface Props {
   shopName?: string;
   syncStatus?: SyncStatus;
   onTriggerSync?: () => void;
+  onAdd?: () => void;
+  userRole?: string;
 }
 
 const InventoryHeader: React.FC<Props> = ({
@@ -29,8 +32,11 @@ const InventoryHeader: React.FC<Props> = ({
     showLowStockOnly,
     shopName,
     syncStatus,
-    onTriggerSync
+    onTriggerSync,
+    onAdd,
+    userRole
 }) => {
+  const canAdd = userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'SALES';
   return (
     <Box px="$2" pt="$2" pb="$4">
       <HStack justifyContent="space-between" alignItems="center">
@@ -83,6 +89,7 @@ const InventoryHeader: React.FC<Props> = ({
                 p="$3"
                 bg={showLowStockOnly ? '$error50' : '$white'}
                 rounded="$full"
+                style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
             >
                 <Icon
                     as={Filter}
@@ -90,6 +97,18 @@ const InventoryHeader: React.FC<Props> = ({
                     size="sm"
                 />
             </Pressable>
+
+            {onAdd && canAdd && (
+                <Pressable
+                    onPress={onAdd}
+                    p="$3"
+                    bg="$primary600"
+                    rounded="$full"
+                    style={{ ...getAppShadow({ offsetY: 4, radius: 10, color: 'rgba(110,59,230,0.3)' }) }}
+                >
+                    <Icon as={Plus} color="white" size="sm" />
+                </Pressable>
+            )}
         </HStack>
       </HStack>
     </Box>

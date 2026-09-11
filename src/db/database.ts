@@ -45,6 +45,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         bulkQuantity REAL NOT NULL DEFAULT 1.0,
         bulkPrice REAL NOT NULL DEFAULT 0.0,
         bulkStockQuantity REAL NOT NULL DEFAULT 0.0,
+        bulkUnit TEXT DEFAULT 'Carton',
         price REAL NOT NULL,
         costPrice REAL NOT NULL DEFAULT 0.0,
         stockQuantity REAL NOT NULL,
@@ -61,6 +62,10 @@ export const createTables = async (db: SQLiteDatabase) => {
         id TEXT PRIMARY KEY,
         shopId TEXT NOT NULL,
         name TEXT NOT NULL,
+        contactPerson TEXT,
+        email TEXT,
+        phone TEXT,
+        address TEXT,
         contactInfo TEXT,
         currentBalance REAL NOT NULL DEFAULT 0.0,
         syncStatus INTEGER NOT NULL DEFAULT 0,
@@ -168,7 +173,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         supplierId TEXT NOT NULL,
         productId TEXT NOT NULL,
         quantity REAL NOT NULL,
-        value REAL NOT NULL,
+        returnValue REAL NOT NULL,
         reason TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
         syncStatus INTEGER NOT NULL DEFAULT 0,
@@ -212,5 +217,21 @@ export const createTables = async (db: SQLiteDatabase) => {
 
   for (const query of queries) {
     await db.executeSql(query);
+  }
+
+  // Schema Migrations (v2 additions)
+  try {
+      await db.executeSql('ALTER TABLE Supplier ADD COLUMN contactPerson TEXT');
+      await db.executeSql('ALTER TABLE Supplier ADD COLUMN email TEXT');
+      await db.executeSql('ALTER TABLE Supplier ADD COLUMN phone TEXT');
+      await db.executeSql('ALTER TABLE Supplier ADD COLUMN address TEXT');
+  } catch (e) {
+      // Columns likely already exist
+  }
+
+  try {
+      await db.executeSql('ALTER TABLE Product ADD COLUMN bulkUnit TEXT DEFAULT \'Carton\'');
+  } catch (e) {
+      // Column likely already exists
   }
 };

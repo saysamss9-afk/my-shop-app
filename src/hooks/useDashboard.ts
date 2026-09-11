@@ -60,7 +60,8 @@ export const useDashboard = (shopId: string) => {
 
   const triggerSync = useCallback(async () => {
     setSyncStatus(SyncStatus.Syncing);
-    await triggerGlobalSync(shopId);
+    // Manual sync button triggers a deep sync for full reconciliation
+    await triggerGlobalSync(shopId, true);
     await loadStats();
     setLastSynced(Date.now());
     setTimeout(() => setSyncStatus(SyncStatus.Idle), 3000);

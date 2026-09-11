@@ -14,6 +14,8 @@ export interface Receipt {
   items: ReceiptItem[];
   total: number;
   employeeName: string;
+  customerName?: string;
+  paymentMethod: string;
 }
 
 export class PrintingService {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
 import { SupplierRepository } from '../repositories/SupplierRepository';
-import { Supplier, SupplierPayment } from '../db/types';
+import type { Supplier, SupplierPayment } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 import { generateUUID } from '../utils/uuid';
 
@@ -27,8 +27,10 @@ export const useSuppliers = (shopId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('₵');
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent && !hasLoaded) setIsLoading(true);
     setError(null);
     try {
       const db = await getDBConnection();
@@ -44,32 +46,44 @@ export const useSuppliers = (shopId: string) => {
 
       const dashboardStats = await repo.getDashboardStats(shopId);
       setStats(dashboardStats);
+      setHasLoaded(true);
     } catch (e: any) {
       setError(e.message);
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, hasLoaded]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, dataChangeTick]);
+    loadData(hasLoaded);
+  }, [dataChangeTick]); // loadData(true) if already loaded once
 
-  const addSupplier = useCallback(async (name: string, contactInfo: string) => {
+  const addSupplier = useCallback(async (supplierData: Partial<Supplier>) => {
     try {
       const db = await getDBConnection();
       const repo = new SupplierRepository(db);
+
+      const safeShopId = typeof shopId === 'object' ? (shopId as any).shopId : shopId;
+      if (!safeShopId || safeShopId === 'undefined' || safeShopId === '[object Object]') {
+        console.error("useSuppliers: Invalid shopId", shopId);
+        return;
+      }
+
       const newSupplier: Supplier = {
         id: generateUUID(),
-        shopId,
-        name,
-        contactInfo,
+        shopId: safeShopId,
+        name: supplierData.name || '',
+        contactPerson: supplierData.contactPerson || null,
+        email: supplierData.email || null,
+        phone: supplierData.phone || null,
+        address: supplierData.address || null,
+        contactInfo: supplierData.contactInfo || null,
         currentBalance: 0,
         syncStatus: 0,
       };
       await repo.insertSupplier(newSupplier);
       await loadData();
-      triggerSync(shopId);
+      triggerSync(safeShopId);
     } catch (e: any) {
       setError(e.message);
     }
@@ -98,8 +112,19 @@ export const useSuppliers = (shopId: string) => {
   }, [shopId, loadData, triggerSync]);
 
   const triggerManualSync = () => {
-    triggerSync(shopId);
+    triggerSync(shopId, true);
   };
+
+  const getSupplierProducts = useCallback(async (supplierId: string) => {
+    try {
+      const db = await getDBConnection();
+      const repo = new SupplierRepository(db);
+      return await repo.getSupplierProducts(supplierId);
+    } catch (e: any) {
+      console.error('Failed to fetch supplier products:', e.message);
+      return [];
+    }
+  }, []);
 
   return {
     suppliers,
@@ -111,6 +136,7 @@ export const useSuppliers = (shopId: string) => {
     addSupplier,
     recordPayment,
     triggerManualSync,
+    getSupplierProducts,
     refreshSuppliers: loadData,
   };
 };

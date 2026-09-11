@@ -36,7 +36,7 @@ import {
   Box,
 } from '@gluestack-ui/themed';
 import { getButtonHeight } from '../../../utils/platformStyles';
-import { Supplier } from '../../../db/types';
+import type { Supplier } from '../../../db/types';
 
 interface Props {
   isOpen: boolean;
@@ -80,7 +80,7 @@ const SupplierPaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, suppli
                 <HStack justifyContent="space-between" alignItems="center">
                     <Text size="sm" color="$text600">Outstanding Balance</Text>
                     <Text size="lg" color="$error600" fontWeight="$black">
-                        {currency}{supplier.currentBalance.toFixed(2)}
+                        {currency}{(supplier.currentBalance ?? 0).toFixed(2)}
                     </Text>
                 </HStack>
             </Box>
@@ -125,6 +125,7 @@ const SupplierPaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, suppli
                     value={reference}
                     onChangeText={setReference}
                     autoCapitalize="characters"
+                    autoCorrect={false}
                 />
               </Input>
             </FormControl>
@@ -132,7 +133,12 @@ const SupplierPaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, suppli
             <FormControl>
               <FormControlLabel mb="$1"><FormControlLabelText>Notes</FormControlLabelText></FormControlLabel>
               <Textarea borderRadius={16} bg="$backgroundLight50">
-                <TextareaInput placeholder="e.g. Part payment for August delivery" value={note} onChangeText={setNote} />
+                <TextareaInput
+                    placeholder="e.g. Part payment for August delivery"
+                    value={note}
+                    onChangeText={setNote}
+                    autoCorrect={false}
+                />
               </Textarea>
             </FormControl>
           </VStack>

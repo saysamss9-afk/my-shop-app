@@ -1,24 +1,39 @@
 import { SQLiteDatabase } from 'react-native-sqlite-storage';
-import { Supplier, SupplierPayment } from '../db/types';
+import type { Supplier, SupplierPayment, Product } from '../db/types';
 
 export class SupplierRepository {
   constructor(public db: SQLiteDatabase) {}
 
   async insertSupplier(supplier: Supplier) {
+    if (!supplier.shopId || supplier.shopId === 'undefined') {
+        throw new Error(`Invalid Shop ID: Supplier ${supplier.id} must be linked to a shop.`);
+    }
+
     const query = `
-      INSERT OR REPLACE INTO Supplier(id, shopId, name, contactInfo, currentBalance, syncStatus)
-      VALUES (?, ?, ?, ?, ?, 0)
+      INSERT OR REPLACE INTO Supplier(id, shopId, name, contactPerson, email, phone, address, contactInfo, currentBalance, syncStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       supplier.id, supplier.shopId, supplier.name,
-      supplier.contactInfo, supplier.currentBalance || 0
+      supplier.contactPerson || null, supplier.email || null,
+      supplier.phone || null, supplier.address || null,
+      supplier.contactInfo || null, supplier.currentBalance || 0,
+      supplier.syncStatus ?? 0
     ];
     await this.db.executeSql(query, params);
   }
 
   async getSuppliersWithStats(shopId: string): Promise<(Supplier & { productCount: number })[]> {
     const query = `
-      SELECT s.*, (SELECT COUNT(*) FROM Product p WHERE p.supplierId = s.id) as productCount
+      SELECT s.*,
+      (
+        SELECT COUNT(DISTINCT p.id)
+        FROM Product p
+        LEFT JOIN PurchaseOrderItem poi ON p.id = poi.productId
+        LEFT JOIN PurchaseOrder po ON poi.purchaseOrderId = po.id
+        WHERE (p.supplierId = s.id OR po.supplierId = s.id)
+        AND p.status != 'DELETED'
+      ) as productCount
       FROM Supplier s
       WHERE s.shopId = ?
     `;
@@ -76,6 +91,15 @@ export class SupplierRepository {
     };
   }
 
+  async getSupplierById(id: string): Promise<Supplier | null> {
+    const query = 'SELECT * FROM Supplier WHERE id = ?';
+    const results = await this.db.executeSql(query, [id]);
+    if (results[0].rows.length > 0) {
+      return results[0].rows.item(0);
+    }
+    return null;
+  }
+
   async getSuppliersByShop(shopId: string): Promise<Supplier[]> {
     const query = 'SELECT * FROM Supplier WHERE shopId = ?';
     const results = await this.db.executeSql(query, [shopId]);
@@ -86,9 +110,12 @@ export class SupplierRepository {
     return suppliers;
   }
 
-  async getUnsyncedSuppliers(): Promise<Supplier[]> {
-    const query = 'SELECT * FROM Supplier WHERE syncStatus = 0';
-    const results = await this.db.executeSql(query);
+  async getUnsyncedSuppliers(shopId?: string): Promise<Supplier[]> {
+    const query = shopId
+      ? 'SELECT * FROM Supplier WHERE syncStatus = 0 AND shopId = ?'
+      : 'SELECT * FROM Supplier WHERE syncStatus = 0';
+    const params = shopId ? [shopId] : [];
+    const results = await this.db.executeSql(query, params);
     const suppliers: Supplier[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       suppliers.push(results[0].rows.item(i));
@@ -99,5 +126,40 @@ export class SupplierRepository {
   async markSupplierSynced(id: string) {
     const query = 'UPDATE Supplier SET syncStatus = 1 WHERE id = ?';
     await this.db.executeSql(query, [id]);
+  }
+
+  async getUnsyncedSupplierPayments(shopId?: string): Promise<SupplierPayment[]> {
+    const query = shopId
+      ? 'SELECT * FROM SupplierPayment WHERE syncStatus = 0 AND shopId = ?'
+      : 'SELECT * FROM SupplierPayment WHERE syncStatus = 0';
+    const params = shopId ? [shopId] : [];
+    const results = await this.db.executeSql(query, params);
+    const payments: SupplierPayment[] = [];
+    for (let i = 0; i < results[0].rows.length; i++) {
+      payments.push(results[0].rows.item(i));
+    }
+    return payments;
+  }
+
+  async markSupplierPaymentSynced(id: string) {
+    const query = 'UPDATE SupplierPayment SET syncStatus = 1 WHERE id = ?';
+    await this.db.executeSql(query, [id]);
+  }
+
+  async getSupplierProducts(supplierId: string): Promise<Product[]> {
+    const query = `
+      SELECT DISTINCT p.*
+      FROM Product p
+      LEFT JOIN PurchaseOrderItem poi ON p.id = poi.productId
+      LEFT JOIN PurchaseOrder po ON poi.purchaseOrderId = po.id
+      WHERE p.supplierId = ? OR po.supplierId = ?
+      AND p.status != 'DELETED'
+    `;
+    const results = await this.db.executeSql(query, [supplierId, supplierId]);
+    const products: Product[] = [];
+    for (let i = 0; i < results[0].rows.length; i++) {
+        products.push(results[0].rows.item(i));
+    }
+    return products;
   }
 }

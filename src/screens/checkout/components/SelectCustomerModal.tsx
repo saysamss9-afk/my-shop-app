@@ -23,7 +23,7 @@ import {
   Box,
 } from '@gluestack-ui/themed';
 import { User, CheckCircle2 } from 'lucide-react-native';
-import { Customer } from '../../../db/types';
+import type { Customer } from '../../../db/types';
 
 interface Props {
   isOpen: boolean;
@@ -88,7 +88,7 @@ const SelectCustomerModal: React.FC<Props> = ({ isOpen, onClose, customers, onSe
                     </VStack>
                     <VStack alignItems="flex-end">
                         <Text size="xs" color="$text400">Debt</Text>
-                        <Text size="sm" color="$error600" fontWeight="$bold">{item.currentBalance.toFixed(2)}</Text>
+                        <Text size="sm" color="$error600" fontWeight="$bold">{(Number(item.currentBalance) || 0).toFixed(2)}</Text>
                     </VStack>
                     {selectedCustomerId === item.id && (
                         <Icon as={CheckCircle2} color="$primary600" size="sm" />

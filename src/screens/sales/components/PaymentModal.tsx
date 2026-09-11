@@ -10,6 +10,7 @@ import {
   ModalHeader,
   ModalCloseButton,
   ModalBody,
+  Box,
   ModalFooter,
   VStack,
   FormControl,
@@ -35,7 +36,7 @@ import {
   TextareaInput,
 } from '@gluestack-ui/themed';
 import { getButtonHeight } from '../../../utils/platformStyles';
-import { Customer } from '../../../db/types';
+import type { Customer } from '../../../db/types';
 
 interface Props {
   isOpen: boolean;
@@ -77,7 +78,7 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, customer, curr
                 <HStack justifyContent="space-between" alignItems="center">
                     <Text size="sm" color="$text600">Current Debt</Text>
                     <Text size="lg" color="$error600" fontWeight="$black">
-                        {currency}{customer.currentBalance.toFixed(2)}
+                        {currency}{(customer.currentBalance ?? 0).toFixed(2)}
                     </Text>
                 </HStack>
             </Box>
@@ -116,7 +117,12 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, customer, curr
             <FormControl>
               <FormControlLabel mb="$1"><FormControlLabelText>Notes</FormControlLabelText></FormControlLabel>
               <Textarea borderRadius={16} bg="$backgroundLight50">
-                <TextareaInput placeholder="Add a note (optional)" value={note} onChangeText={setNote} />
+                <TextareaInput
+                    placeholder="Add a note (optional)"
+                    value={note}
+                    onChangeText={setNote}
+                    autoCorrect={false}
+                />
               </Textarea>
             </FormControl>
           </VStack>

@@ -1,5 +1,5 @@
 import { SQLiteDatabase } from 'react-native-sqlite-storage';
-import { PurchaseOrder, PurchaseOrderItem, Product, SupplierPayment } from '../db/types';
+import type { PurchaseOrder, PurchaseOrderItem, Product, SupplierPayment, PurchaseReturn } from '../db/types';
 import { generateUUID } from '../utils/uuid';
 
 export class PurchaseRepository {
@@ -28,8 +28,12 @@ export class PurchaseRepository {
         if (item.isNew || !productId) {
           productId = generateUUID();
           const newProductQuery = `
-            INSERT INTO Product(id, shopId, name, costPrice, stockQuantity, unit, supplierId, status, syncStatus)
-            VALUES (?, ?, ?, ?, 0, 'pcs', ?, 'DRAFT', 0)
+            INSERT INTO Product(
+                id, shopId, name, categoryId, description, barcode, bulkBarcode,
+                bulkQuantity, bulkPrice, bulkStockQuantity, bulkUnit, price, costPrice,
+                stockQuantity, minStockLevel, unit, supplierId, status, syncStatus
+            )
+            VALUES (?, ?, ?, NULL, NULL, NULL, NULL, 1, 0, 0, 'Carton', 0, ?, 0, 0, 'pcs', ?, 'DRAFT', 0)
           `;
           await tx.executeSql(newProductQuery, [
             productId, order.shopId, item.productName, item.costPrice, order.supplierId
@@ -47,8 +51,14 @@ export class PurchaseRepository {
 
         // Increase Inventory Stock
         const column = item.isBulk === 1 ? 'bulkStockQuantity' : 'stockQuantity';
-        const updateStockQuery = `UPDATE Product SET ${column} = ${column} + ? WHERE id = ?`;
+        const updateStockQuery = `UPDATE Product SET ${column} = ${column} + ?, syncStatus = 0 WHERE id = ?`;
         await tx.executeSql(updateStockQuery, [item.quantity, productId]);
+
+        // Link product to this supplier if it doesn't have one assigned
+        await tx.executeSql(
+            'UPDATE Product SET supplierId = ?, syncStatus = 0 WHERE id = ? AND (supplierId IS NULL OR supplierId = "")',
+            [order.supplierId, productId]
+        );
       }
 
       // 3. Update Supplier Balance (Increase by the unpaid balance)
@@ -105,7 +115,7 @@ export class PurchaseRepository {
     await this.db.transaction(async (tx: any) => {
       // 1. Insert Purchase Return record
       const returnQuery = `
-        INSERT INTO PurchaseReturn(id, purchaseOrderId, shopId, supplierId, productId, quantity, value, reason, timestamp, syncStatus)
+        INSERT INTO PurchaseReturn(id, purchaseOrderId, shopId, supplierId, productId, quantity, returnValue, reason, timestamp, syncStatus)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `;
       await tx.executeSql(returnQuery, [
@@ -115,7 +125,7 @@ export class PurchaseRepository {
 
       // 2. Reduce Inventory Stock
       const column = isBulk ? 'bulkStockQuantity' : 'stockQuantity';
-      const updateStockQuery = `UPDATE Product SET ${column} = ${column} - ? WHERE id = ?`;
+      const updateStockQuery = `UPDATE Product SET ${column} = ${column} - ?, syncStatus = 0 WHERE id = ?`;
       await tx.executeSql(updateStockQuery, [purchaseReturn.quantity, purchaseReturn.productId]);
 
       // 3. Update Purchase Order (Reduce value and balance)

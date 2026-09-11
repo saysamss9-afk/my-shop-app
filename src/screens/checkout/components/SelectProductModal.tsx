@@ -25,12 +25,13 @@ import {
   Badge,
   BadgeText,
 } from '@gluestack-ui/themed';
-import { Product } from '../../../db/types';
+import type { Product, Category } from '../../../db/types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   products: Product[];
+  categories: Category[];
   currency: string;
   onSelect: (product: Product, isBulk: boolean) => void;
 }
@@ -39,6 +40,7 @@ const SelectProductModal: React.FC<Props> = ({
   isOpen,
   onClose,
   products,
+  categories,
   currency,
   onSelect,
 }) => {
@@ -54,13 +56,18 @@ const SelectProductModal: React.FC<Props> = ({
   }, [localQuery]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(p =>
-      (p.stockQuantity > 0 || p.bulkStockQuantity > 0) &&
-      (p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.barcode && p.barcode.includes(searchQuery)) ||
-      (p.bulkBarcode && p.bulkBarcode.includes(searchQuery)))
-    );
-  }, [products, searchQuery]);
+    return products.filter(p => {
+      const category = categories.find(c => c.id === p.categoryId);
+      const categoryName = category ? category.name.toLowerCase() : '';
+      const lowerQuery = searchQuery.toLowerCase();
+
+      return p.status === 'ACTIVE' &&
+        (p.name.toLowerCase().includes(lowerQuery) ||
+        categoryName.includes(lowerQuery) ||
+        (p.barcode && p.barcode.includes(searchQuery)) ||
+        (p.bulkBarcode && p.bulkBarcode.includes(searchQuery)));
+    });
+  }, [products, categories, searchQuery]);
 
   const renderItem = ({ item }: { item: Product }) => (
     <Box
@@ -99,9 +106,9 @@ const SelectProductModal: React.FC<Props> = ({
               alignItems="center"
               space="xs"
             >
-              <Text size="xxs" fontWeight="$bold" color="$primary700">UNIT</Text>
-              <Text size="sm" fontWeight="$bold" color="$text900">{currency}{item.price.toFixed(2)}</Text>
-              <Text size="xxs" color="$text500">Stock: {item.stockQuantity}</Text>
+              <Text size="2xs" fontWeight="$bold" color="$primary700">UNIT</Text>
+              <Text size="sm" fontWeight="$bold" color="$text900">{currency}{(Number(item.price) || 0).toFixed(2)}</Text>
+              <Text size="2xs" color="$text500">Stock: {item.stockQuantity ?? 0}</Text>
             </VStack>
           </Pressable>
 
@@ -122,9 +129,9 @@ const SelectProductModal: React.FC<Props> = ({
                 alignItems="center"
                 space="xs"
               >
-                <Text size="xxs" fontWeight="$bold" color="$secondary700">CARTON ({item.bulkQuantity})</Text>
-                <Text size="sm" fontWeight="$bold" color="$text900">{currency}{item.bulkPrice.toFixed(2)}</Text>
-                <Text size="xxs" color="$text500">Stock: {item.bulkStockQuantity}</Text>
+                <Text size="2xs" fontWeight="$bold" color="$secondary700">{(item.bulkUnit || 'BULK').toUpperCase()} ({item.bulkQuantity ?? 1})</Text>
+                <Text size="sm" fontWeight="$bold" color="$text900">{currency}{(Number(item.bulkPrice) || 0).toFixed(2)}</Text>
+                <Text size="2xs" color="$text500">Stock: {item.bulkStockQuantity ?? 0}</Text>
               </VStack>
             </Pressable>
           )}

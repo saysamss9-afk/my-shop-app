@@ -33,7 +33,7 @@ import {
   ChevronDownIcon,
 } from '@gluestack-ui/themed';
 import { getButtonHeight } from '../../../utils/platformStyles';
-import { Product } from '../../../db/types';
+import type { Product } from '../../../db/types';
 
 interface Props {
   isOpen: boolean;
@@ -90,7 +90,7 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
               <Select onValueChange={(val) => {
                   setSelectedProductId(val);
                   const p = products.find(prod => prod.id === val);
-                  if (p) setCostPrice(p.costPrice.toString());
+                  if (p) setCostPrice((p.costPrice ?? 0).toString());
               }} selectedValue={selectedProductId}>
                 <SelectTrigger borderRadius={16} bg="$backgroundLight50">
                   <SelectInput placeholder="Search existing or New" />
@@ -118,6 +118,7 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
                             value={newName}
                             onChangeText={setNewName}
                             autoCapitalize="words"
+                            autoCorrect={false}
                         />
                     </Input>
                 </FormControl>
@@ -131,7 +132,7 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
                     flex={1}
                     borderRadius={12}
                 >
-                    <ButtonText size="xs">Unit (pcs)</ButtonText>
+                    <ButtonText size="xs">Unit ({selectedProduct?.unit || 'pcs'})</ButtonText>
                 </Button>
                 <Button
                     variant={isBulk ? "solid" : "outline"}
@@ -140,7 +141,7 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
                     flex={1}
                     borderRadius={12}
                 >
-                    <ButtonText size="xs">Carton (bulk)</ButtonText>
+                    <ButtonText size="xs">{selectedProduct?.bulkUnit || 'Bulk'}</ButtonText>
                 </Button>
             </HStack>
 

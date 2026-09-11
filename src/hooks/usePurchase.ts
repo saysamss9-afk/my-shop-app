@@ -3,7 +3,7 @@ import { getDBConnection } from '../db/database';
 import { PurchaseRepository } from '../repositories/PurchaseRepository';
 import { SupplierRepository } from '../repositories/SupplierRepository';
 import { ProductRepository } from '../repositories/ProductRepository';
-import { Supplier, Product, PurchaseOrder, PurchaseOrderItem } from '../db/types';
+import type { Supplier, Product, PurchaseOrder, PurchaseOrderItem } from '../db/types';
 import { generateUUID } from '../utils/uuid';
 import { useSync } from '../sync/SyncContext';
 
@@ -71,6 +71,11 @@ export const usePurchase = (shopId: string) => {
     amountPaid: number,
     date: number = Date.now()
   ) => {
+    if (!shopId) {
+      setError('Invalid Shop ID. Please try logging in again.');
+      return;
+    }
+
     if (!supplierId || purchaseCart.length === 0) {
       setError('Please select a supplier and add items.');
       return;

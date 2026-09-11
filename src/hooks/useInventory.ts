@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
 import { ProductRepository } from '../repositories/ProductRepository';
 import { CategoryRepository } from '../repositories/CategoryRepository';
-import { Product, Category } from '../db/types';
+import type { Product, Category } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 import { generateUUID } from '../utils/uuid';
 
-import { SyncStatus } from '../sync/SyncManager';
+import type { SyncStatus } from '../sync/SyncManager';
 
 export const useInventory = (shopId: string) => {
   const { triggerSync, dataChangeTick, syncStatus } = useSync();
@@ -51,12 +51,57 @@ export const useInventory = (shopId: string) => {
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'shopId' | 'syncStatus'>) => {
     try {
+      console.log('useInventory: addProduct called with shopId:', shopId, 'type:', typeof shopId);
+
+      const safeShopId = typeof shopId === 'object' ? (shopId as any).shopId : shopId;
+
+      if (!safeShopId || safeShopId === 'undefined' || safeShopId === '[object Object]') {
+        Alert.alert("Sync Error", "Inventory cannot be updated because no active shop is selected. Please try logging in again.");
+        return;
+      }
+
       const db = await getDBConnection();
       const productRepo = new ProductRepository(db);
+
+      // Barcode collision detection and automatic merging
+      if (productData.barcode) {
+        const existingProduct = await productRepo.getProductByBarcode(productData.barcode, safeShopId);
+        if (existingProduct) {
+          const updatedProduct: Product = {
+            ...existingProduct,
+            stockQuantity: existingProduct.stockQuantity + (productData.stockQuantity ?? 0),
+            bulkStockQuantity: existingProduct.bulkStockQuantity + (productData.bulkStockQuantity ?? 0),
+            // Optionally update prices if supplied as non-zero
+            price: productData.price || existingProduct.price,
+            costPrice: productData.costPrice || existingProduct.costPrice,
+            syncStatus: 0 // Mark as pending sync
+          };
+          await productRepo.updateProduct(updatedProduct);
+          setProducts(prev => prev.map(p => p.id === existingProduct.id ? updatedProduct : p));
+          triggerSync(safeShopId);
+          return;
+        }
+      }
+
       const newProduct: Product = {
         ...productData,
         id: generateUUID(),
-        shopId,
+        shopId: safeShopId,
+        // Ensure sensible defaults for numeric and optional fields
+        price: productData.price ?? 0,
+        costPrice: productData.costPrice ?? 0,
+        stockQuantity: productData.stockQuantity ?? 0,
+        minStockLevel: productData.minStockLevel ?? 0,
+        bulkQuantity: productData.bulkQuantity ?? 1,
+        bulkPrice: productData.bulkPrice ?? 0,
+        bulkStockQuantity: productData.bulkStockQuantity ?? 0,
+        unit: productData.unit ?? 'pcs',
+        bulkUnit: productData.bulkUnit ?? 'Carton',
+        barcode: productData.barcode ?? null,
+        bulkBarcode: productData.bulkBarcode ?? null,
+        supplierId: productData.supplierId ?? null,
+        categoryId: productData.categoryId ?? null,
+        description: productData.description ?? null,
         status: 'ACTIVE',
         syncStatus: 0,
       };
@@ -68,7 +113,7 @@ export const useInventory = (shopId: string) => {
       setProducts(prev => [newProduct, ...prev]);
 
       // 3. Trigger background sync
-      triggerSync(shopId);
+      triggerSync(safeShopId);
 
       // 4. Silently refresh categories or other metadata if needed,
       // but don't call loadData() with isLoading=true
@@ -89,6 +134,18 @@ export const useInventory = (shopId: string) => {
     }
   }, [shopId, triggerSync]);
 
+  const deleteProduct = useCallback(async (productId: string) => {
+    try {
+      const db = await getDBConnection();
+      const productRepo = new ProductRepository(db);
+      await productRepo.deleteProduct(productId);
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      triggerSync(shopId);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }, [shopId, triggerSync]);
+
   const toggleLowStockFilter = () => {
     setShowLowStockOnly(!showLowStockOnly);
   };
@@ -102,7 +159,8 @@ export const useInventory = (shopId: string) => {
     : products;
 
   const triggerManualSync = () => {
-    triggerSync(shopId);
+    // Perform a deep sync to fully reconcile local device data with remote
+    triggerSync(shopId, true);
   };
 
   return {
@@ -115,9 +173,11 @@ export const useInventory = (shopId: string) => {
     error,
     showLowStockOnly,
     addProduct,
+    updateProduct,
     toggleLowStockFilter,
     generateBarcode,
     triggerManualSync,
     refreshInventory: loadData,
+    deleteProduct,
   };
 };
