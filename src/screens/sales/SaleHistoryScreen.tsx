@@ -145,6 +145,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         employeeName: sale.staffName || 'Staff',
         customerName: sale.customerName || undefined,
         paymentMethod: sale.paymentMethod,
+        currency: currency,
       });
     } catch (e) {
       console.error('Print error', e);

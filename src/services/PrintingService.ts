@@ -16,6 +16,7 @@ export interface Receipt {
   employeeName: string;
   customerName?: string;
   paymentMethod: string;
+  currency: string;
 }
 
 export class PrintingService {
@@ -50,8 +51,8 @@ export class PrintingService {
           `<tr>
             <td>${item.name}</td>
             <td>${item.quantity}</td>
-            <td>$${item.price.toFixed(2)}</td>
-            <td style="text-align: right;">$${(item.quantity * item.price).toFixed(2)}</td>
+            <td>${receipt.currency}${item.price.toFixed(2)}</td>
+            <td style="text-align: right;">${receipt.currency}${(item.quantity * item.price).toFixed(2)}</td>
           </tr>`
       )
       .join('');
@@ -73,7 +74,7 @@ export class PrintingService {
             </tbody>
           </table>
           <hr/>
-          <h3 style='text-align: right;'>Total: $${receipt.total.toFixed(2)}</h3>
+          <h3 style='text-align: right;'>Total: ${receipt.currency}${receipt.total.toFixed(2)}</h3>
           <p>Served by: ${receipt.employeeName}</p>
           <p style='text-align: center; margin-top: 20px;'>Thank you for choosing us! We value your presence and hope to see you again soon.</p>
         </body>

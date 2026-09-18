@@ -24,7 +24,7 @@ export const usePurchase = (shopId: string) => {
   const [purchases, setPurchases] = useState<(PurchaseOrder & { supplierName?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currency, setCurrency] = useState('₵');
+  const [currency, setCurrency] = useState('');
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -40,7 +40,7 @@ export const usePurchase = (shopId: string) => {
 
       const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
       if (shopResults[0].rows.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '₵');
+        setCurrency(shopResults[0].rows.item(0).currency || '');
       }
 
       setSuppliers(sData);

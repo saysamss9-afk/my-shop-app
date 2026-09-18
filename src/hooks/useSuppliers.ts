@@ -25,7 +25,7 @@ export const useSuppliers = (shopId: string) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currency, setCurrency] = useState('₵');
+  const [currency, setCurrency] = useState('');
 
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -38,7 +38,7 @@ export const useSuppliers = (shopId: string) => {
 
       const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
       if (shopResults[0].rows.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '₵');
+        setCurrency(shopResults[0].rows.item(0).currency || '');
       }
 
       const supplierData = await repo.getSuppliersWithStats(shopId);

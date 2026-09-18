@@ -82,10 +82,10 @@ const PurchaseDetailModal: React.FC<Props> = ({ isOpen, onClose, purchase, onRet
                         <HStack justifyContent="space-between" alignItems="center">
                             <VStack flex={1}>
                                 <Text size="sm" fontWeight="$bold" color="$text900">{item.productName}</Text>
-                                <Text size="xs" color="$text500">{item.quantity} {item.isBulk ? 'Cartons' : 'Units'} @ {purchase.currency || '₵'}{item.costPrice.toFixed(2)}</Text>
+                                <Text size="xs" color="$text500">{item.quantity} {item.isBulk ? 'Cartons' : 'Units'} @ {purchase.currency || ''}{item.costPrice.toFixed(2)}</Text>
                             </VStack>
                             <HStack space="md" alignItems="center">
-                                <Text size="sm" fontWeight="$black">{purchase.currency || '₵'}{(item.quantity * item.costPrice).toFixed(2)}</Text>
+                                <Text size="sm" fontWeight="$black">{purchase.currency || ''}{(item.quantity * item.costPrice).toFixed(2)}</Text>
                                 <Pressable onPress={() => handleReturnPress(item)} p="$2" bg="$error50" rounded="$lg">
                                     <Icon as={RotateCcw} color="$error600" size="xs" />
                                 </Pressable>
@@ -100,16 +100,16 @@ const PurchaseDetailModal: React.FC<Props> = ({ isOpen, onClose, purchase, onRet
               <Box borderTopWidth={1} borderColor="$borderLight" pt="$4">
                 <HStack justifyContent="space-between" mb="$1">
                     <Text size="sm">Subtotal</Text>
-                    <Text size="sm" fontWeight="$bold">{purchase.currency || '₵'}{purchase.totalCost.toFixed(2)}</Text>
+                    <Text size="sm" fontWeight="$bold">{purchase.currency || ''}{purchase.totalCost.toFixed(2)}</Text>
                 </HStack>
                 <HStack justifyContent="space-between" mb="$1">
                     <Text size="sm" color="$success700">Amount Paid</Text>
-                    <Text size="sm" fontWeight="$bold" color="$success700">- {purchase.currency || '₵'}{purchase.amountPaid.toFixed(2)}</Text>
+                    <Text size="sm" fontWeight="$bold" color="$success700">- {purchase.currency || ''}{purchase.amountPaid.toFixed(2)}</Text>
                 </HStack>
                 <Divider my="$2" />
                 <HStack justifyContent="space-between">
                     <Heading size="sm">Balance Owed</Heading>
-                    <Heading size="sm" color="$error600">{purchase.currency || '₵'}{purchase.balance.toFixed(2)}</Heading>
+                    <Heading size="sm" color="$error600">{purchase.currency || ''}{purchase.balance.toFixed(2)}</Heading>
                 </HStack>
               </Box>
             </VStack>

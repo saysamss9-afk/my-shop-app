@@ -93,11 +93,11 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
             <VStack alignItems="flex-end" space="xs">
               <Text size="xs" color="$text400" fontWeight="$bold">Total Value</Text>
               <Heading size="md" color="$primary600" fontWeight="$black">
-                {item.currency || purchases.find((p: any) => p.id === item.id)?.currency || '₵'}{item.totalCost.toFixed(2)}
+                {currency || item.currency || '₵'}{item.totalCost.toFixed(2)}
               </Heading>
               {isDebt && (
                 <Text size="2xs" color="$error600" fontWeight="$bold">
-                  Bal: {item.currency || purchases.find((p: any) => p.id === item.id)?.currency || '₵'}{item.balance.toFixed(2)}
+                  Bal: {currency || item.currency || '₵'}{item.balance.toFixed(2)}
                 </Text>
               )}
             </VStack>
