@@ -6,12 +6,12 @@ import { useSync } from '../sync/SyncContext';
 
 export const useSales = (shopId: string) => {
   const { triggerSync, dataChangeTick, syncStatus } = useSync();
-  const [sales, setSales] = useState<Sale[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('$');
 
-  const loadSales = useCallback(async () => {
+  const loadSales = useCallback(async (start?: number, end?: number) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -23,7 +23,9 @@ export const useSales = (shopId: string) => {
         setCurrency(shopResults[0].rows.item(0).currency || '$');
       }
 
-      const allSales = await saleRepo.getSalesByShop(shopId);
+      const allSales = start !== undefined && end !== undefined
+        ? await saleRepo.getSalesByShopAndRange(shopId, start, end)
+        : await saleRepo.getSalesByShop(shopId);
       setSales(allSales);
     } catch (e: any) {
       setError(e.message);
@@ -33,6 +35,8 @@ export const useSales = (shopId: string) => {
   }, [shopId]);
 
   useEffect(() => {
+    // Default to current month if no range provided?
+    // Actually, the component should handle the range.
     loadSales();
   }, [loadSales, dataChangeTick]);
 
@@ -42,7 +46,6 @@ export const useSales = (shopId: string) => {
       const db = await getDBConnection();
       const saleRepo = new SaleRepository(db);
       await saleRepo.revertSale(saleId);
-      triggerSync(shopId); // Trigger background sync
       await loadSales();
     } catch (e: any) {
       setError(e.message);
@@ -51,9 +54,49 @@ export const useSales = (shopId: string) => {
     }
   }, [loadSales, shopId, triggerSync]);
 
+  const refundSaleItem = useCallback(async (saleItemId: string, qty: number) => {
+    setIsLoading(true);
+    try {
+      const db = await getDBConnection();
+      const saleRepo = new SaleRepository(db);
+      await saleRepo.refundSingleSaleItem(saleItemId, qty);
+      await loadSales();
+      return true;
+    } catch (e: any) {
+      setError(e.message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadSales]);
+
   const triggerManualSync = () => {
     triggerSync(shopId);
   };
+
+  const getSaleDetails = useCallback(async (saleId: string) => {
+    try {
+      const db = await getDBConnection();
+      const saleRepo = new SaleRepository(db);
+      return await saleRepo.getDetailedItemsForSale(saleId);
+    } catch (e) {
+      console.error("Failed to fetch sale details", e);
+      return [];
+    }
+  }, []);
+
+  const getShopInfo = useCallback(async () => {
+    try {
+      const db = await getDBConnection();
+      const results = await db.executeSql('SELECT name, address FROM Shop WHERE id = ?', [shopId]);
+      if (results[0].rows.length > 0) {
+        return results[0].rows.item(0);
+      }
+    } catch (e) {
+      console.error('Failed to fetch shop info:', e);
+    }
+    return { name: 'My Shop', address: '' };
+  }, [shopId]);
 
   return {
     sales,
@@ -63,6 +106,9 @@ export const useSales = (shopId: string) => {
     currency,
     revertSale,
     triggerManualSync,
+    getSaleDetails,
+    getShopInfo,
     refreshSales: loadSales,
+    refundSaleItem,
   };
 };

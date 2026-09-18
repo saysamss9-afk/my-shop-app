@@ -83,7 +83,6 @@ export const useSuppliers = (shopId: string) => {
       };
       await repo.insertSupplier(newSupplier);
       await loadData();
-      triggerSync(safeShopId);
     } catch (e: any) {
       setError(e.message);
     }
@@ -105,7 +104,6 @@ export const useSuppliers = (shopId: string) => {
       };
       await repo.recordPayment(payment);
       await loadData();
-      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }

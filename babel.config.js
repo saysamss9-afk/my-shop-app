@@ -9,7 +9,6 @@ module.exports = {
   ],
   plugins: [
     '@babel/plugin-transform-class-static-block',
-    'react-native-web',
     ['react-native-reanimated/plugin', { processNestedWorklets: true }],
     'transform-inline-environment-variables'
   ],

@@ -113,7 +113,6 @@ const CheckoutScreen = ({ route, navigation }: any) => {
 
       <CheckoutHeader
         onBack={() => navigation.goBack()}
-        onOpenScanner={() => setIsScannerVisible(true)}
       />
 
       {/* Scanner Native Modal */}
@@ -152,11 +151,28 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         </Box>
       </RNModal>
 
-      {/* Search Section */}
+      {/* Action Section: Scan -> Customer -> Search */}
       <Box px="$5" pb="$4" zIndex={10}>
-        <HStack space="md" mb="$4">
+        <VStack space="md">
+          {/* PRIORITY 1: SCAN */}
+          <Button
+            size="lg"
+            variant="solid"
+            action="primary"
+            onPress={() => setIsScannerVisible(true)}
+            borderRadius="$xl"
+            bg="$primary600"
+            h={getButtonHeight(56)}
+            style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(110,59,230,0.3)' }) }}
+          >
+            <ButtonText fontWeight="$bold" fontSize="$md">Scan Barcode</ButtonText>
+            <Box ml="$2">
+                <Icon as={Scan} color="white" size="md" />
+            </Box>
+          </Button>
+
+          {/* PRIORITY 2: CUSTOMER */}
           <Pressable
-            flex={1}
             onPress={() => setShowCustomerModal(true)}
             bg="$white"
             p="$3"
@@ -184,49 +200,55 @@ const CheckoutScreen = ({ route, navigation }: any) => {
               )}
             </HStack>
           </Pressable>
-        </HStack>
 
-        <HStack space="sm" alignItems="center">
-          <Input flex={1} variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
-            <InputSlot pl="$4">
-              <InputIcon as={SearchIcon} color="$primary600" />
-            </InputSlot>
-            <InputField
-              placeholder="Quick search..."
-              value={localSearchQuery}
-              onChangeText={setLocalSearchQuery}
-              placeholderTextColor="$text400"
-              autoCorrect={false}
+          {/* PRIORITY 3: SEARCH & BROWSE */}
+          <VStack space="xs" position="relative">
+            <HStack space="sm" alignItems="center">
+              <Input flex={1} variant="outline" size="md" borderRadius={20} bg="$white" borderWidth={0} style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.04)' }) }}>
+                <InputSlot pl="$4">
+                  <InputIcon as={SearchIcon} color="$primary600" />
+                </InputSlot>
+                <InputField
+                  placeholder="Quick search..."
+                  value={localSearchQuery}
+                  onChangeText={setLocalSearchQuery}
+                  placeholderTextColor="$text400"
+                  autoCorrect={false}
+                />
+                {localSearchQuery.length > 0 && (
+                   <InputSlot pr="$4" onPress={() => { setLocalSearchQuery(''); setSearchQuery(''); }}>
+                     <InputIcon as={CloseIcon} />
+                   </InputSlot>
+                )}
+              </Input>
+
+              <Button
+                size="md"
+                variant="solid"
+                action="secondary"
+                onPress={() => setShowProductModal(true)}
+                borderRadius={20}
+                bg="$white"
+                borderWidth={1}
+                borderColor="$primary600"
+                px="$4"
+                style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' }) }}
+              >
+                <ButtonText fontWeight="$bold" size="sm" color="$primary600">Browse</ButtonText>
+              </Button>
+            </HStack>
+
+            <ProductSearchOverlay
+                filteredProducts={filteredProducts}
+                currency={currency}
+                onSelect={(product) => {
+                    addToCart(product);
+                    setSearchQuery('');
+                    setLocalSearchQuery('');
+                }}
             />
-            {localSearchQuery.length > 0 && (
-               <InputSlot pr="$4" onPress={() => { setLocalSearchQuery(''); setSearchQuery(''); }}>
-                 <InputIcon as={CloseIcon} />
-               </InputSlot>
-            )}
-          </Input>
-
-          <Button
-            size="md"
-            variant="solid"
-            action="primary"
-            onPress={() => setShowProductModal(true)}
-            borderRadius={20}
-            bg="$primary600"
-            px="$4"
-            style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(110,59,230,0.2)' }) }}
-          >
-            <ButtonText fontWeight="$bold" size="sm">Browse</ButtonText>
-          </Button>
-        </HStack>
-
-        <ProductSearchOverlay
-            filteredProducts={filteredProducts}
-            currency={currency}
-            onSelect={(product) => {
-                addToCart(product);
-                setSearchQuery('');
-            }}
-        />
+          </VStack>
+        </VStack>
       </Box>
 
       {/* Cart Items List */}

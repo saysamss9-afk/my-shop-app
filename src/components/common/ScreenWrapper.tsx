@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StatusBar } from 'react-native';
+import { ScrollView, StatusBar, useWindowDimensions } from 'react-native';
 import { Box } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getResponsivePadding } from '../../utils/platformStyles';
@@ -18,7 +18,8 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   contentContainerStyle,
 }) => {
   const insets = useSafeAreaInsets();
-  const horizontalPadding = getResponsivePadding(24);
+  const { width } = useWindowDimensions();
+  const horizontalPadding = getResponsivePadding(width, 24);
 
   const content = (
     <Box
@@ -28,7 +29,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       bg="$surfaceLavender"
       style={{
         background: 'linear-gradient(180deg, #F3ECFF 0%, #E7DBFF 100%)',
-      }}
+      } as any}
     >
       <StatusBar
         barStyle="dark-content"

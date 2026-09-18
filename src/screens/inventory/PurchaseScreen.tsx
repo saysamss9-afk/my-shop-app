@@ -47,7 +47,8 @@ const PurchaseScreen = ({ route, navigation }: any) => {
     isLoading,
     submitPurchase,
     addToCart,
-    removeFromCart
+    removeFromCart,
+    currency
   } = usePurchase(shopId);
 
   const [supplierId, setSupplierId] = useState(initialSupplierId || '');
@@ -104,7 +105,10 @@ const PurchaseScreen = ({ route, navigation }: any) => {
                     <FormControlLabel><FormControlLabelText>Supplier</FormControlLabelText></FormControlLabel>
                     <Select onValueChange={setSupplierId} selectedValue={supplierId}>
                         <SelectTrigger borderRadius={16} bg="$backgroundLight50">
-                            <SelectInput placeholder="Select Supplier" />
+                            <SelectInput
+                                placeholder="Select Supplier"
+                                value={suppliers.find(s => s.id === supplierId)?.name || ''}
+                            />
                             <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
                         </SelectTrigger>
                         <SelectPortal>
@@ -169,11 +173,11 @@ const PurchaseScreen = ({ route, navigation }: any) => {
                             <VStack flex={1}>
                                 <Heading size="xs">{item.name}</Heading>
                                 <GlueText size="xs" color="$text500">
-                                    {item.quantity} {item.isBulk ? 'Cartons' : 'Units'} @ ₵{(item.costPrice ?? 0).toFixed(2)}
+                                    {item.quantity} {item.isBulk ? 'Cartons' : 'Units'} @ {currency}{(item.costPrice ?? 0).toFixed(2)}
                                 </GlueText>
                             </VStack>
                             <HStack space="md" alignItems="center">
-                                <Heading size="sm" color="$primary600">₵{((item.quantity || 0) * (item.costPrice || 0)).toFixed(2)}</Heading>
+                                <Heading size="sm" color="$primary600">{currency}{((item.quantity || 0) * (item.costPrice || 0)).toFixed(2)}</Heading>
                                 <Pressable onPress={() => removeFromCart(index)}>
                                     <Icon as={TrashIcon} color="$error500" size="sm" />
                                 </Pressable>
@@ -189,7 +193,7 @@ const PurchaseScreen = ({ route, navigation }: any) => {
             <VStack space="lg">
                 <HStack justifyContent="space-between">
                     <GlueText size="sm" color="$text600">Subtotal</GlueText>
-                    <Heading size="md" fontWeight="$black">₵{(subtotal ?? 0).toFixed(2)}</Heading>
+                    <Heading size="md" fontWeight="$black">{currency}{(subtotal ?? 0).toFixed(2)}</Heading>
                 </HStack>
 
                 <FormControl>
@@ -206,7 +210,7 @@ const PurchaseScreen = ({ route, navigation }: any) => {
 
                 <HStack justifyContent="space-between" bg="$error50" p="$3" rounded="$xl">
                     <GlueText size="sm" color="$error700" fontWeight="$bold">Balance (Credit)</GlueText>
-                    <Heading size="md" color="$error700" fontWeight="$black">₵{(balance ?? 0).toFixed(2)}</Heading>
+                    <Heading size="md" color="$error700" fontWeight="$black">{currency}{(balance ?? 0).toFixed(2)}</Heading>
                 </HStack>
             </VStack>
           </Box>

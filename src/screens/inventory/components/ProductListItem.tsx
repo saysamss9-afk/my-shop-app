@@ -20,11 +20,15 @@ interface Props {
   item: Product;
   currency: string;
   onPress?: () => void;
-    onDelete?: () => void;
+  onDelete?: () => void;
+  isSelected?: boolean;
+  onSelectToggle?: () => void;
 }
 
-const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete }) => {
+const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete, isSelected = false, onSelectToggle }) => {
   const isLowStock = item.stockQuantity <= item.minStockLevel;
+  const isMediumStock = !isLowStock && item.stockQuantity <= item.minStockLevel * 2;
+  const isHighStock = !isLowStock && !isMediumStock;
   const isDraft = item.status === 'DRAFT';
 
   return (
@@ -34,16 +38,23 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete })
         p="$5"
         rounded="$3xl"
         mb="$4"
-        borderWidth={1}
-        borderColor={isDraft ? "$warning300" : "$borderLight"}
+        borderWidth={2}
+        borderColor={isSelected ? "$primary600" : (isDraft ? "$warning300" : "$borderLight")}
         style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
         >
         <HStack space="md" alignItems="center">
+            {onSelectToggle && (
+                <Pressable onPress={(e: any) => { e.stopPropagation(); onSelectToggle(); }}>
+                    <Center w={24} h={24} rounded="$full" borderWidth={2} borderColor={isSelected ? "$primary600" : "$text300"} bg={isSelected ? "$primary600" : "transparent"} mr="$1">
+                        {isSelected && <Icon as={CheckCircle2} size="xs" color="white" />}
+                    </Center>
+                </Pressable>
+            )}
             <Center
             w={56}
             h={56}
             rounded={18}
-            bg={isDraft ? "$warning50" : (isLowStock ? '$error50' : '$primary50')}
+            bg={isDraft ? "$warning50" : (isLowStock ? '$error50' : (isMediumStock ? '$warning50' : '$success50'))}
             >
             {isDraft ? (
                 <Icon as={AlertCircle} color="$warning600" size="md" />
@@ -51,7 +62,7 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete })
                 <AppIcon
                     name="package"
                     size={28}
-                    color={isLowStock ? '#D32F2F' : '#6E3BE6'}
+                    color={isLowStock ? '#D32F2F' : (isMediumStock ? '#D97706' : '#16A34A')}
                 />
             )}
             </Center>
@@ -123,6 +134,16 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete })
             {isLowStock && !isDraft && (
                 <Badge action="error" variant="outline" size="sm" rounded="$lg">
                 <BadgeText size="xxs" fontWeight="$bold">LOW STOCK</BadgeText>
+                </Badge>
+            )}
+            {isMediumStock && !isDraft && (
+                <Badge action="warning" variant="outline" size="sm" rounded="$lg">
+                <BadgeText size="xxs" fontWeight="$bold">MEDIUM STOCK</BadgeText>
+                </Badge>
+            )}
+            {isHighStock && !isDraft && (
+                <Badge action="success" variant="outline" size="sm" rounded="$lg">
+                <BadgeText size="xxs" fontWeight="$bold">HIGH STOCK</BadgeText>
                 </Badge>
             )}
             {/** Delete action */}

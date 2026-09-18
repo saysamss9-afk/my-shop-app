@@ -157,7 +157,6 @@ export const useCheckout = (shopId: string, employeeId: string) => {
       await saleRepo.insertSale(sale, items);
       clearCart();
       setSelectedCustomerId(null);
-      triggerSync(); // Trigger background sync
       return saleId;
     } catch (e: any) {
       setError(e.message || 'Unable to process sale.');

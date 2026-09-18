@@ -24,6 +24,7 @@ export const usePurchase = (shopId: string) => {
   const [purchases, setPurchases] = useState<(PurchaseOrder & { supplierName?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currency, setCurrency] = useState('₵');
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -36,6 +37,11 @@ export const usePurchase = (shopId: string) => {
       const sData = await sRepo.getSuppliersByShop(shopId);
       const pData = await pRepo.getProductsByShop(shopId);
       const purData = await purRepo.getPurchasesByShop(shopId);
+
+      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
+      if (shopResults[0].rows.length > 0) {
+        setCurrency(shopResults[0].rows.item(0).currency || '₵');
+      }
 
       setSuppliers(sData);
       setProducts(pData);
@@ -114,7 +120,6 @@ export const usePurchase = (shopId: string) => {
       await repo.createPurchase(order, items);
       setPurchaseCart([]);
       await loadData(); // Refresh history
-      triggerSync(shopId);
       return true;
     } catch (e: any) {
       setError(e.message);
@@ -164,7 +169,6 @@ export const usePurchase = (shopId: string) => {
 
       await repo.recordReturn(purchaseReturn, isBulk);
       await loadData();
-      triggerSync(shopId);
       return true;
     } catch (e: any) {
       setError(e.message);
@@ -186,6 +190,7 @@ export const usePurchase = (shopId: string) => {
     submitPurchase,
     getPurchaseItems,
     returnPurchaseItem,
-    refresh: loadData
+    refresh: loadData,
+    currency
   };
 };

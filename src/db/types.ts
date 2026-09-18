@@ -6,6 +6,10 @@ export interface Shop {
   region: string;
   location: string;
   ownerId: string;
+  plan: 'STARTER' | 'BUSINESS' | 'PREMIUM';
+  parentShopId: string | null;
+  shopCode?: string;
+  branchCount?: number;
 }
 
 export interface Category {

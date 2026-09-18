@@ -50,13 +50,26 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, customer, curr
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [note, setNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSave = () => {
+  React.useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  const handleSave = async () => {
+    if (isSubmitting) return;
     if (!customer || !amount || parseFloat(amount) <= 0) return;
-    onSave(customer.id, parseFloat(amount), paymentMethod, note);
-    setAmount('');
-    setNote('');
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await onSave(customer.id, parseFloat(amount), paymentMethod, note);
+      setAmount('');
+      setNote('');
+      onClose();
+    } catch (e) {
+      setIsSubmitting(false);
+    }
   };
 
   if (!customer) return null;
@@ -91,13 +104,14 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, customer, curr
                     value={amount}
                     onChangeText={setAmount}
                     keyboardType="numeric"
+                    editable={!isSubmitting}
                 />
               </Input>
             </FormControl>
 
             <FormControl>
               <FormControlLabel mb="$1"><FormControlLabelText>Payment Method</FormControlLabelText></FormControlLabel>
-              <Select onValueChange={setPaymentMethod} defaultValue="CASH">
+              <Select onValueChange={setPaymentMethod} defaultValue="CASH" isDisabled={isSubmitting}>
                 <SelectTrigger borderRadius={16} bg="$backgroundLight50">
                   <SelectInput placeholder="Select method" />
                   <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
@@ -122,17 +136,18 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, customer, curr
                     value={note}
                     onChangeText={setNote}
                     autoCorrect={false}
+                    editable={!isSubmitting}
                 />
               </Textarea>
             </FormControl>
           </VStack>
         </ModalBody>
         <ModalFooter>
-          <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
+          <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16} isDisabled={isSubmitting}>
             <ButtonText>Cancel</ButtonText>
           </Button>
-          <Button action="primary" onPress={handleSave} borderRadius={16} bg="$success600" style={{ height: getButtonHeight(50) }}>
-            <ButtonText fontWeight="$bold">Confirm Payment</ButtonText>
+          <Button action="primary" onPress={handleSave} borderRadius={16} bg="$success600" style={{ height: getButtonHeight(50) }} isDisabled={isSubmitting}>
+            <ButtonText fontWeight="$bold">{isSubmitting ? 'Saving...' : 'Confirm Payment'}</ButtonText>
           </Button>
         </ModalFooter>
       </ModalContent>

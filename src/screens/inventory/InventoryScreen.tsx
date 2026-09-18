@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { FlatList, StatusBar, Alert } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   Box,
   VStack,
@@ -27,6 +28,7 @@ import { useInventory } from '../../hooks/useInventory';
 import type { Product } from '../../db/types';
 import { ScannerView } from '../../components/ScannerView';
 import { getAppShadow } from '../../utils/platformStyles';
+import { useResponsive } from '../../hooks/useResponsive';
 
 // Sub-components
 import ProductListItem from './components/ProductListItem';
@@ -35,9 +37,11 @@ import EditProductModal from './components/EditProductModal';
 import EntryTypeModal from './components/EntryTypeModal';
 import InventoryHeader from './components/InventoryHeader';
 import InventorySearch from './components/InventorySearch';
+import { PrintingService } from '../../services/PrintingService';
 
 const InventoryScreen = ({ route, navigation }: any) => {
   const { shopId, userRole } = route.params;
+  const { isTablet, isLandscape } = useResponsive();
   const {
     products,
     categories,
@@ -62,6 +66,24 @@ const InventoryScreen = ({ route, navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING'>('ALL');
   const [scanTarget, setScanTarget] = useState<'unit' | 'bulk' | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  const numColumns = isTablet ? (isLandscape ? 3 : 2) : 1;
+
+  const toggleSelectProduct = (id: string) => {
+    setSelectedProductIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handlePrintSelectedBarcodes = () => {
+    const itemsToPrint = products.filter(p => selectedProductIds.includes(p.id));
+    if (itemsToPrint.length === 0) {
+      Alert.alert('Selection Empty', 'Please select at least one item below by checking it first to print barcodes.');
+      return;
+    }
+    PrintingService.printBarcodes(itemsToPrint);
+  };
 
   const handleSave = async (productData: any) => {
     if (!productData.name) return;
@@ -128,8 +150,17 @@ const InventoryScreen = ({ route, navigation }: any) => {
   };
 
   const renderItem = useCallback(({ item }: { item: Product }) => (
-    <ProductListItem item={item} currency={currency} onPress={() => handleItemPress(item)} onDelete={() => handleDelete(item)} />
-  ), [currency]);
+    <Box flex={1} mx={numColumns > 1 ? "$2" : "$0"}>
+      <ProductListItem
+        item={item}
+        currency={currency}
+        onPress={() => handleItemPress(item)}
+        onDelete={() => handleDelete(item)}
+        isSelected={selectedProductIds.includes(item.id)}
+        onSelectToggle={() => toggleSelectProduct(item.id)}
+      />
+    </Box>
+  ), [currency, selectedProductIds, numColumns]);
 
   return (
     <Box flex={1} bg="$surfaceLavender">
@@ -151,22 +182,41 @@ const InventoryScreen = ({ route, navigation }: any) => {
         setSearchQuery={setSearchQuery}
       />
 
-      {/* Quick Add Action */}
+      {/* Quick Add / Print Barcodes Actions Row */}
       {(userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'SALES') && (
-        <Box px="$5" mb="$4">
+        <HStack px="$5" mb="$4" space="sm">
             <Pressable
                 onPress={() => setIsSelectionModalOpen(true)}
                 bg="$primary600"
                 p="$3.5"
                 rounded="$2xl"
+                flex={1}
                 style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(110,59,230,0.25)' }) }}
             >
                 <HStack space="sm" alignItems="center" justifyContent="center">
                     <Icon as={AddIcon} color="white" size="sm" />
-                    <GlueText color="white" fontWeight="$bold">Add New Product</GlueText>
+                    <GlueText color="white" fontWeight="$bold" size="sm">Add Product</GlueText>
                 </HStack>
             </Pressable>
-        </Box>
+
+            <Pressable
+                onPress={handlePrintSelectedBarcodes}
+                bg={selectedProductIds.length > 0 ? "$success600" : "$white"}
+                borderWidth={1}
+                borderColor={selectedProductIds.length > 0 ? "$success600" : "$primary600"}
+                p="$3.5"
+                rounded="$2xl"
+                flex={1}
+                style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
+            >
+                <HStack space="sm" alignItems="center" justifyContent="center">
+                    <MaterialCommunityIcons name="printer-matrix" size={16} color={selectedProductIds.length > 0 ? "#fff" : "#6E3BE6"} />
+                    <GlueText color={selectedProductIds.length > 0 ? "$white" : "$primary600"} fontWeight="$bold" size="sm">
+                        {selectedProductIds.length > 0 ? `Print (${selectedProductIds.length}) Selected` : 'Print Barcodes'}
+                    </GlueText>
+                </HStack>
+            </Pressable>
+        </HStack>
       )}
 
       {/* Tabs */}
@@ -198,7 +248,9 @@ const InventoryScreen = ({ route, navigation }: any) => {
         </Center>
       ) : (
         <FlatList
+          key={numColumns}
           data={filteredProducts}
+          numColumns={numColumns}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 20, paddingBottom: 120 }}

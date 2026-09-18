@@ -35,7 +35,8 @@ export function getButtonHeight(base = 52) {
   return base;
 }
 
-export function getResponsivePadding(base = 24) {
-  if (isWeb) return base;
-  return base - 2;
+export function getResponsivePadding(width: number, base = 24) {
+  if (width >= 1024) return base * 2; // Large screens (Web/Tablet Landscape)
+  if (width >= 600) return base * 1.5; // Medium screens (Tablet Portrait)
+  return base;
 }

@@ -93,7 +93,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <VStack space="xl" py="$6">
           {/* Top Bar */}
           <HStack alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
+            <Pressable onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Landing')} p="$2" bg="$white" rounded="$full">
               <Icon as={ArrowLeftIcon} size="md" color="$primary600" />
             </Pressable>
           </HStack>
@@ -181,10 +181,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Footer Actions */}
           <VStack space="md" alignItems="center" mt="$4">
-            <Pressable onPress={() => navigation.navigate('Register')}>
+            <Pressable onPress={() => navigation.navigate('JoinShop')}>
               <HStack space="xs">
-                <Text size="sm" color="$text500">Don't have an account?</Text>
-                <Text size="sm" color="$primary600" fontWeight="$bold">Register</Text>
+                <Text size="sm" color="$text500">Need to join a shop?</Text>
+                <Text size="sm" color="$primary600" fontWeight="$bold">Enter Shop Code</Text>
               </HStack>
             </Pressable>
 

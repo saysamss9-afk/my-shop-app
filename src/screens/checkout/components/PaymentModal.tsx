@@ -18,6 +18,7 @@ import {
   ButtonText,
   CloseIcon,
   Box,
+  Center,
   Pressable,
 } from '@gluestack-ui/themed';
 import { Wallet, CreditCard, User, Smartphone, ShoppingBag } from 'lucide-react-native';
@@ -36,6 +37,23 @@ interface Props {
 
 const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onConfirm, selectedCustomer, cart }) => {
   const [method, setMethod] = useState('CASH');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onConfirm(method);
+    } catch (e) {
+      setIsSubmitting(false);
+    }
+  };
 
   const PAYMENT_METHODS = [
     { id: 'CASH', label: 'Cash Payment', icon: Wallet, color: '$primary600', bgColor: '$primary50' },
@@ -101,7 +119,7 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
                                 key={m.id}
                                 flex={1}
                                 minWidth={140}
-                                onPress={() => setMethod(m.id)}
+                                onPress={() => !isSubmitting && setMethod(m.id)}
                               >
                                   <VStack
                                     space="xs"
@@ -124,7 +142,7 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
 
                       {/* Debt Option */}
                       {selectedCustomer ? (
-                          <Pressable onPress={() => setMethod('DEBT')}>
+                          <Pressable onPress={() => !isSubmitting && setMethod('DEBT')}>
                               <HStack
                                 space="md"
                                 alignItems="center"
@@ -162,17 +180,18 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
             </ScrollView>
         </ModalBody>
         <ModalFooter borderTopWidth={1} borderTopColor="$borderLight" pt="$4">
-          <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius="$xl" flex={1}>
+          <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius="$xl" flex={1} isDisabled={isSubmitting}>
             <ButtonText>Cancel</ButtonText>
           </Button>
           <Button
             action="primary"
-            onPress={() => onConfirm(method)}
+            onPress={handleConfirm}
             borderRadius="$xl"
             bg={method === 'DEBT' ? '$error600' : '$primary600'}
             flex={2}
+            isDisabled={isSubmitting}
           >
-            <ButtonText fontWeight="$bold">Finish & Save</ButtonText>
+            <ButtonText fontWeight="$bold">{isSubmitting ? 'Saving...' : 'Finish & Save'}</ButtonText>
           </Button>
         </ModalFooter>
       </ModalContent>

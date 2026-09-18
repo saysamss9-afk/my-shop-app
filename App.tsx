@@ -1,4 +1,5 @@
 import React from 'react';
+import './src/i18n/i18n'; // Initialize i18n
 import { Provider as PaperProvider, MD3LightTheme, adaptNavigationTheme } from 'react-native-paper';
 import { NavigationContainer, DefaultTheme as NavigationDefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { FlatList, Linking, Alert, Clipboard, StatusBar, Platform } from 'react-native';
+import { FlatList, SectionList, Linking, Alert, Clipboard, StatusBar, Platform } from 'react-native';
 import {
   Box,
   VStack,
   HStack,
   Text,
+  Heading,
   Center,
   Spinner,
   Input,
@@ -13,6 +14,8 @@ import {
   InputIcon,
   SearchIcon,
   Pressable,
+  Badge,
+  BadgeText,
 } from '@gluestack-ui/themed';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
@@ -27,6 +30,7 @@ import EditRequestModal from './components/EditRequestModal';
 const AdminDashboardScreen = ({ navigation }: any) => {
   const [requests, setRequests] = useState<any[]>([]);
   const [shops, setShops] = useState<any[]>([]);
+  const [upgrades, setUpgrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,19 +102,23 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   };
 
   useEffect(() => {
-    const unsubscribeAuth = firebase.auth().onAuthStateChanged(user => {
-      if (!user) {
-        navigation.replace('Landing');
-        return;
-      }
+    let unsubReq: any;
+    let unsubShops: any;
+    let unsubUpgrades: any;
 
-      if (user.uid !== "l2JP5nnzVSP6gd8aSDEqI60Tbfl2") {
+    const unsubscribeAuth = firebase.auth().onAuthStateChanged(user => {
+      // Clean up previous listeners if auth changes
+      if (unsubReq) unsubReq();
+      if (unsubShops) unsubShops();
+      if (unsubUpgrades) unsubUpgrades();
+
+      if (!user || user.uid !== "l2JP5nnzVSP6gd8aSDEqI60Tbfl2") {
         navigation.replace('Landing');
         return;
       }
 
       // Admin authenticated. Start listeners.
-      const unsubscribeReq = firebase.firestore().collection('shop_requests')
+      unsubReq = firebase.firestore().collection('shop_requests')
         .where('status', 'in', ['PENDING', 'REVIEWING'])
         .onSnapshot(snapshot => {
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
@@ -122,8 +130,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
           setLoading(false);
         });
 
-      const unsubscribeShops = firebase.firestore().collection('registered_shops')
-        .orderBy('createdAt', 'desc')
+      unsubShops = firebase.firestore().collection('registered_shops')
         .onSnapshot(snapshot => {
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setShops(data);
@@ -131,13 +138,22 @@ const AdminDashboardScreen = ({ navigation }: any) => {
           console.error("AdminDashboard: Error fetching registered_shops:", error);
         });
 
-      return () => {
-        unsubscribeReq();
-        unsubscribeShops();
-      };
+      unsubUpgrades = firebase.firestore().collection('plan_upgrade_requests')
+        .where('status', '==', 'PENDING')
+        .onSnapshot(snapshot => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setUpgrades(data);
+        }, error => {
+          console.error("AdminDashboard: Error fetching upgrade requests:", error);
+        });
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (unsubReq) unsubReq();
+      if (unsubShops) unsubShops();
+      if (unsubUpgrades) unsubUpgrades();
+    };
   }, [navigation]);
 
   const handleApprove = async (request: any) => {
@@ -149,6 +165,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
 
       await firebase.firestore().collection('registered_shops').doc(shopId).set({
         id: shopId,
+        ownerId: request.userId, // Link the ownerId from the request
         name: request.shopName,
         type: request.shopType,
         location: request.location,
@@ -156,6 +173,8 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         whatsappNumber: request.whatsappNumber,
         country: request.country || 'Ghana',
         currency: request.currency || 'GH₵',
+        plan: request.shopCategory || 'STARTER',
+        staffCount: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
@@ -167,7 +186,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
 
       if (Platform.OS === 'web') {
         window.alert(`Shop Created Successfully!\n\nShop Code: ${shopId}\n\nCopy this code and share it with the owner.`);
-        navigator.clipboard.writeText(shopId);
+        (navigator as any).clipboard.writeText(shopId);
       } else {
         Alert.alert(
           'Shop Created Successfully',
@@ -230,9 +249,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
 
   const copyToClipboard = (text: string) => {
     if (Platform.OS === 'web') {
-      navigator.clipboard.writeText(text).then(() => {
+      (navigator as any).clipboard.writeText(text).then(() => {
         window.alert("Copied to clipboard: " + text);
-      }).catch(err => {
+      }).catch((err: any) => {
         console.error('Failed to copy: ', err);
       });
     } else {
@@ -257,6 +276,21 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     );
   }, [shops, searchQuery]);
 
+  const shopSections = useMemo(() => {
+    const starters = filteredShops.filter(s => !(s.parentShopId || s.parentshopid) && (s.plan?.toUpperCase() === 'STARTER' || !s.plan));
+    const business = filteredShops.filter(s => !(s.parentShopId || s.parentshopid) && s.plan?.toUpperCase() === 'BUSINESS');
+    const premium = filteredShops.filter(s => !(s.parentShopId || s.parentshopid) && s.plan?.toUpperCase() === 'PREMIUM');
+    const branches = filteredShops.filter(s => s.parentShopId || s.parentshopid);
+
+    const sections: { title: string; data: any[] }[] = [];
+    if (premium.length > 0) sections.push({ title: 'Premium Plan', data: premium });
+    if (business.length > 0) sections.push({ title: 'Business Plan', data: business });
+    if (starters.length > 0) sections.push({ title: 'Starter Plan', data: starters });
+    if (branches.length > 0) sections.push({ title: 'Branch Locations', data: branches });
+
+    return sections;
+  }, [filteredShops]);
+
   const renderReqItem = useCallback(({ item }: any) => (
     <ShopRequestItem
         item={item}
@@ -275,6 +309,36 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         onWhatsApp={openWhatsApp}
         onDelete={handleDeleteShop}
     />
+  ), []);
+
+  const renderUpgradeItem = useCallback(({ item }: any) => (
+    <Box bg="$white" p="$4" rounded="$2xl" mb="$4" borderWidth={1} borderColor="$borderLight">
+      <VStack space="sm">
+        <Heading size="sm">{item.shopName}</Heading>
+        <HStack space="md" alignItems="center">
+          <Badge action="muted" variant="outline"><BadgeText>{item.currentPlan}</BadgeText></Badge>
+          <Text size="xs">→</Text>
+          <Badge action="success" variant="solid"><BadgeText>{item.requestedPlan}</BadgeText></Badge>
+        </HStack>
+        <Text size="xs">ID: {item.shopId}</Text>
+        <HStack space="md" mt="$2">
+          <Button size="xs" flex={1} action="primary" bg="$primary800" onPress={async () => {
+             try {
+                await firebase.firestore().collection('registered_shops').doc(item.shopId).update({ plan: item.requestedPlan });
+                await firebase.firestore().collection('plan_upgrade_requests').doc(item.id).update({ status: 'APPROVED' });
+                window.alert("Plan upgraded successfully!");
+             } catch(e: any) { window.alert(e.message); }
+          }}>
+            <ButtonText>Approve</ButtonText>
+          </Button>
+          <Button size="xs" flex={1} variant="outline" action="negative" onPress={async () => {
+             await firebase.firestore().collection('plan_upgrade_requests').doc(item.id).update({ status: 'REJECTED' });
+          }}>
+            <ButtonText>Reject</ButtonText>
+          </Button>
+        </HStack>
+      </VStack>
+    </Box>
   ), []);
 
   return (
@@ -317,6 +381,20 @@ const AdminDashboardScreen = ({ navigation }: any) => {
               </Text>
             </Center>
           </Pressable>
+          <Pressable
+            flex={1}
+            onPress={() => setViewMode('upgrades')}
+            bg={viewMode === 'upgrades' ? '$white' : 'transparent'}
+            p="$2"
+            rounded="$lg"
+            style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
+          >
+            <Center>
+              <Text size="sm" fontWeight="$bold" color={viewMode === 'upgrades' ? '$primary800' : '$text500'}>
+                Upgrades ({upgrades.length})
+              </Text>
+            </Center>
+          </Pressable>
         </HStack>
 
         <Input variant="outline" size="md" borderRadius={12}>
@@ -335,12 +413,29 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         <Center flex={1}>
           <Spinner size="large" color="$primary800" />
         </Center>
+      ) : viewMode === 'shops' ? (
+        <SectionList
+          sections={shopSections}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          renderItem={renderActiveShopItem}
+          renderSectionHeader={({ section: { title } }) => (
+            <Box bg="$white" py="$3" borderBottomWidth={1} borderColor="$borderLight200" mb="$3" mt="$4">
+              <Heading size="xs" color="$primary800" textTransform="uppercase" fontWeight="$bold">{title}</Heading>
+            </Box>
+          )}
+          ListEmptyComponent={
+            <Center mt="$20">
+              <Text color="$text400">No registered shops found.</Text>
+            </Center>
+          }
+        />
       ) : (
         <FlatList
-          data={viewMode === 'requests' ? filteredRequests : filteredShops}
+          data={viewMode === 'requests' ? filteredRequests : upgrades}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 20 }}
-          renderItem={viewMode === 'requests' ? renderReqItem : renderActiveShopItem}
+          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          renderItem={viewMode === 'requests' ? renderReqItem : renderUpgradeItem}
           ListEmptyComponent={
             <Center mt="$20">
               <Text color="$text400">Nothing found in the {viewMode === 'requests' ? 'queue' : 'database'}.</Text>

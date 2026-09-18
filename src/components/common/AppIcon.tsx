@@ -13,7 +13,10 @@ const PATHS = {
     package: "M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z",
     receipt: "M3,22L4.5,20.5L6,22L7.5,20.5L9,22L10.5,20.5L12,22L13.5,20.5L15,22L16.5,20.5L18,22L19.5,20.5L21,22V2L19.5,3.5L18,2L16.5,3.5L15,2L13.5,3.5L12,2L10.5,3.5L9,2L7.5,3.5L6,2L4.5,3.5L3,2V22M7,7H17V9H7V7M7,11H17V13H7V11M7,15H14V17H7V15Z",
     wallet: "M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V15C10,16.1 10.89,17 12,17H21M12,15H22V8H12V15M16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5Z",
-    layers: "M12,16L22,12L12,8L2,12L12,16M12,20L22,16L12,12L2,16L12,20Z"
+    layers: "M12,16L22,12L12,8L2,12L12,16M12,20L22,16L12,12L2,16L12,20Z",
+    cash: "M3,6H21V18H3V6M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M2,4A2,2 0 0,0 0,6V18A2,2 0 0,0 2,20H22A2,2 0 0,0 24,18V6A2,2 0 0,0 22,4H2Z",
+    "trending-up": "M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.58L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z",
+    list: "M3,4H21V6H3V4M3,11H21V13H3V11M3,18H21V20H3V18Z"
 };
 
 // Map custom names to MaterialCommunityIcons names for Native fallback
@@ -27,7 +30,10 @@ const MAPPING: { [key: string]: string } = {
     package: 'package-variant',
     receipt: 'receipt',
     wallet: 'wallet',
-    layers: 'layers'
+    layers: 'layers',
+    cash: 'cash',
+    'trending-up': 'chart-line',
+    list: 'format-list-bulleted'
 };
 
 export type IconName = keyof typeof PATHS;

@@ -12,8 +12,8 @@ import {
   ChevronRightIcon,
   Spinner,
 } from '@gluestack-ui/themed';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import AppIcon from '../../components/common/AppIcon';
 import { getAppShadow } from '../../utils/platformStyles';
 import { useAuthContext } from '../../auth/AuthContext';
@@ -23,43 +23,6 @@ import { resolveLandingRedirect } from './landingRedirect';
 type Props = StackScreenProps<RootStackParamList, 'Landing'>;
 
 const LandingScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, employeeData, isRestoringSession } = useAuthContext();
-
-  React.useEffect(() => {
-    if (isRestoringSession) {
-      return;
-    }
-
-    const redirect = resolveLandingRedirect({ user, employeeData, isRestoringSession });
-    if (!redirect) {
-      return;
-    }
-
-    const navigateToRedirect = async () => {
-      if (redirect.name === 'Dashboard' && redirect.params?.shopId) {
-        let shopName = redirect.params.shopName || 'Your Shop';
-        try {
-          const shopSnap = await firebase.firestore().collection('registered_shops').doc(redirect.params.shopId).get();
-          if (shopSnap.exists) {
-            shopName = shopSnap.data()?.name || shopName;
-          }
-        } catch (error) {
-          console.warn('LandingScreen: Failed to fetch shop name:', error);
-        }
-
-        navigation.replace('Dashboard', {
-          ...redirect.params,
-          shopName,
-        });
-        return;
-      }
-
-      navigation.replace(redirect.name as any, redirect.params as any);
-    };
-
-    navigateToRedirect();
-  }, [user, employeeData, isRestoringSession, navigation]);
-
   const featureCards = [
     {
       title: 'Fast Sales',
@@ -84,20 +47,6 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
     },
   ];
 
-  if (isRestoringSession) {
-    return (
-      <Box flex={1} bg="$surfaceLavender">
-        <Center flex={1}>
-          <VStack space="md" alignItems="center">
-            <AppIcon name="store" size={60} color="#6E3BE6" />
-            <Spinner size="large" color="$primary600" />
-            <Text size="sm" color="$text500">Restoring Session...</Text>
-          </VStack>
-        </Center>
-      </Box>
-    );
-  }
-
   return (
     <Box flex={1} bg="$surfaceLavender">
       <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
@@ -111,7 +60,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
         style={{
           background: 'linear-gradient(135deg, #6E3BE6 0%, #7E5BFF 46%, #8F6BFF 100%)',
           ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(110,59,230,0.20)' }),
-        }}
+        } as any}
       >
         <VStack space="md" alignItems="center" px="$8">
           <Center
@@ -119,7 +68,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
             h={110}
             rounded="$full"
             bg="$white"
-            style={{ boxShadow: '0 16px 26px rgba(44, 22, 88, 0.18)' }}
+            style={{ boxShadow: '0 16px 26px rgba(44, 22, 88, 0.18)' } as any}
           >
             <AppIcon name="store" size={58} color="#6E3BE6" />
           </Center>

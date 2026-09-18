@@ -25,6 +25,8 @@ export const createTables = async (db: SQLiteDatabase) => {
         ownerId TEXT NOT NULL,
         country TEXT,
         currency TEXT DEFAULT '$',
+        [plan] TEXT DEFAULT 'STARTER',
+        parentShopId TEXT,
         lastSynced INTEGER DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS Category (
@@ -225,13 +227,14 @@ export const createTables = async (db: SQLiteDatabase) => {
       await db.executeSql('ALTER TABLE Supplier ADD COLUMN email TEXT');
       await db.executeSql('ALTER TABLE Supplier ADD COLUMN phone TEXT');
       await db.executeSql('ALTER TABLE Supplier ADD COLUMN address TEXT');
-  } catch (e) {
-      // Columns likely already exist
-  }
+  } catch (e) {}
 
   try {
       await db.executeSql('ALTER TABLE Product ADD COLUMN bulkUnit TEXT DEFAULT \'Carton\'');
-  } catch (e) {
-      // Column likely already exists
-  }
+  } catch (e) {}
+
+  try {
+      await db.executeSql('ALTER TABLE Shop ADD COLUMN [plan] TEXT DEFAULT \'STARTER\'');
+      await db.executeSql('ALTER TABLE Shop ADD COLUMN parentShopId TEXT');
+  } catch (e) {}
 };

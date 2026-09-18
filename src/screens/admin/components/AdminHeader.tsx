@@ -5,7 +5,8 @@ import {
   Pressable,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
-import { ArrowLeftIcon, CheckIcon } from '@gluestack-ui/themed';
+import { ArrowLeftIcon } from '@gluestack-ui/themed';
+import { LogOut } from 'lucide-react-native';
 
 interface Props {
   viewMode: string;
@@ -27,7 +28,7 @@ const AdminHeader: React.FC<Props> = ({ viewMode, onBack, onSignOut }) => {
           subtitleStyle={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}
         />
         <Pressable onPress={onSignOut} p="$3">
-          <Icon as={CheckIcon} color="white" />
+          <Icon as={LogOut} color="white" size="sm" />
         </Pressable>
       </Appbar.Header>
     </Box>

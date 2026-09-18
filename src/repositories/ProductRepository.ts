@@ -5,7 +5,8 @@ export class ProductRepository {
   constructor(public db: SQLiteDatabase) {}
 
   async insertProduct(product: Product) {
-    if (!product.shopId || product.shopId === 'undefined') {
+    const safeShopId = product.shopId?.toString().trim();
+    if (!safeShopId || safeShopId === 'undefined') {
         throw new Error(`Invalid Shop ID: Product ${product.id} must be linked to a shop.`);
     }
 
@@ -14,7 +15,7 @@ export class ProductRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
-      product.id, product.shopId, product.categoryId, product.name, product.description,
+      product.id, safeShopId, product.categoryId, product.name, product.description,
       product.barcode, product.bulkBarcode, product.bulkQuantity, product.bulkPrice,
       product.bulkStockQuantity, product.bulkUnit || 'Carton', product.price, product.costPrice, product.stockQuantity,
       product.minStockLevel, product.unit, product.supplierId, product.status || 'ACTIVE',
@@ -82,7 +83,8 @@ export class ProductRepository {
   }
 
   async updateProduct(product: Product) {
-    if (!product.shopId || product.shopId === 'undefined') {
+    const safeShopId = product.shopId?.toString().trim();
+    if (!safeShopId || safeShopId === 'undefined') {
         throw new Error(`Invalid Shop ID: Product ${product.id} must be linked to a shop.`);
     }
 
@@ -92,13 +94,13 @@ export class ProductRepository {
         bulkQuantity = ?, bulkPrice = ?, bulkUnit = ?, price = ?, costPrice = ?,
         stockQuantity = ?, bulkStockQuantity = ?,
         minStockLevel = ?, unit = ?, status = ?, syncStatus = 0
-      WHERE id = ?
+      WHERE id = ? AND TRIM(shopId) = ?
     `;
     const params = [
       product.categoryId, product.name, product.description, product.barcode, product.bulkBarcode,
       product.bulkQuantity, product.bulkPrice, product.bulkUnit || 'Carton', product.price, product.costPrice,
       product.stockQuantity, product.bulkStockQuantity,
-      product.minStockLevel, product.unit, product.status, product.id
+      product.minStockLevel, product.unit, product.status, product.id, safeShopId
     ];
     await this.db.executeSql(query, params);
   }

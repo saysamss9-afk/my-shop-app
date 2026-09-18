@@ -28,24 +28,28 @@ import {
   CheckCircleIcon,
 } from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
-import { Scan, User, Phone } from 'lucide-react-native';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
+import { Scan, User, Phone, AlertTriangle } from 'lucide-react-native';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 
 type Props = StackScreenProps<RootStackParamList, 'JoinShop'>;
 
 interface ShopDetails {
+  id: string;
   name: string;
   ownerName: string;
   type: string;
+  plan: string;
+  staffCount: number;
 }
 
 const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   const [shopCode, setShopCode] = useState('');
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,7 +58,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   const [country, setCountry] = useState('Ghana');
   const [role, setRole] = useState('SALES');
 
-  const { register, isLoading, error, isSuccess, user } = useAuth();
+  const { register, linkUserToShop, isLoading, error, isSuccess, user } = useAuth();
 
   const handleVerifyCode = async () => {
     const cleanedCode = shopCode.trim().replace(/\s/g, '');
@@ -62,15 +66,35 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
 
     setIsVerifying(true);
     setShopDetails(null);
+    setLimitReached(false);
     try {
-      const shopDoc = await firebase.firestore().collection('registered_shops').doc(cleanedCode).get();
+      let finalShopId = cleanedCode;
+
+      // Check if it's a short code first
+      const codeDoc = await firebase.firestore().collection('shop_codes').doc(cleanedCode).get();
+      if (codeDoc.exists) {
+        finalShopId = codeDoc.data()?.shopId;
+      }
+
+      const shopDoc = await firebase.firestore().collection('registered_shops').doc(finalShopId).get();
       if (shopDoc.exists) {
         const data = shopDoc.data();
-        setShopCode(cleanedCode); // Update state with cleaned code
+        const staffCount = data?.staffCount || 0;
+        const plan = data?.plan || 'STARTER';
+
+        // Enforce Starter plan limit: 3 staff including owner
+        if (plan === 'STARTER' && staffCount >= 3) {
+          setLimitReached(true);
+        }
+
+        setShopCode(finalShopId);
         setShopDetails({
+          id: finalShopId,
           name: data?.name || '',
           ownerName: data?.ownerName || '',
-          type: data?.type || ''
+          type: data?.type || '',
+          plan: plan,
+          staffCount: staffCount,
         });
       } else {
         if (Platform.OS === 'web') {
@@ -80,37 +104,55 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
     } catch (e: any) {
-      Alert.alert('Error', 'Failed to verify shop code.');
+      console.error('Verify Code Error:', e);
+      Alert.alert('Error', 'Failed to verify shop code: ' + e.message);
     } finally {
       setIsVerifying(false);
     }
   };
 
+  const [localSuccess, setLocalSuccess] = useState(false);
+
   const handleJoin = async () => {
     if (!shopDetails) return;
-    if (!name || !phoneNumber || !email || !password || !country) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+
+    // Validate core fields
+    if (!name || !phoneNumber || !country) {
+      Alert.alert('Error', 'Please provide your name, phone and country.');
       return;
     }
 
     try {
       const cleanedCode = shopCode.trim().replace(/\s/g, '');
-      await register(email, password, cleanedCode, role, name, phoneNumber, country);
+
+      if (user) {
+        // Authenticated user: just link
+        await linkUserToShop(user.uid, user.email, cleanedCode, role, name, phoneNumber, country);
+        setLocalSuccess(true);
+      } else {
+        // New user: register + link
+        if (!email || !password) {
+            Alert.alert('Error', 'Email and password are required for new accounts.');
+            return;
+        }
+        await register(email, password, cleanedCode, role, name, phoneNumber, country);
+      }
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
   };
 
   React.useEffect(() => {
-    if (isSuccess && user) {
+    if ((isSuccess || localSuccess) && (user || firebase.auth().currentUser)) {
+        const activeUser = user || firebase.auth().currentUser;
         navigation.replace('Dashboard', {
             shopId: shopCode,
-            employeeId: user.uid,
+            employeeId: activeUser?.uid || '',
             userRole: role,
             shopName: shopDetails?.name || 'Your Shop'
         });
     }
-  }, [isSuccess, user, shopCode, role, shopDetails?.name]);
+  }, [isSuccess, localSuccess, user, shopCode, role, shopDetails?.name]);
 
   return (
     <ScreenWrapper scrollable>
@@ -133,7 +175,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
           </VStack>
 
           {!shopDetails ? (
-              <Box bg="$white" p="$6" rounded="$3xl" style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
+              <Box bg="$white" p="$6" rounded="$3xl" style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' } as any}>
                   <VStack space="lg">
                       <FormControl isRequired>
                         <FormControlLabel mb="$1">
@@ -168,16 +210,42 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
                   <Box bg="$primary50" p="$5" rounded="$2xl" borderWidth={1} borderColor="$primary100">
                       <HStack justifyContent="space-between" alignItems="center">
                           <VStack space="xs">
-                              <Heading size="md" color="$primary800">{shopDetails.name}</Heading>
+                              <HStack space="xs" alignItems="center">
+                                <Heading size="md" color="$primary800">{shopDetails.name}</Heading>
+                                <Badge action="info" variant="solid" size="sm" rounded="$md">
+                                    <BadgeText size="2xs">{shopDetails.plan}</BadgeText>
+                                </Badge>
+                              </HStack>
                               <Text size="xs" color="$primary600" fontWeight="$bold">{shopDetails.type}</Text>
                           </VStack>
-                          <Pressable onPress={() => setShopDetails(null)}>
+                          <Pressable onPress={() => { setShopDetails(null); setLimitReached(false); }}>
                               <Text size="xs" color="$primary600" underline>Change Code</Text>
                           </Pressable>
                       </HStack>
                   </Box>
 
-                  <Box bg="$white" p="$6" rounded="$3xl" style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
+                  {limitReached && (
+                      <Box bg="$error50" p="$4" rounded="$xl" borderWidth={1} borderColor="$error200">
+                          <HStack space="sm" alignItems="center">
+                              <Icon as={AlertTriangle} color="$error600" size="sm" />
+                              <VStack flex={1}>
+                                  <Text size="sm" fontWeight="$bold" color="$error700">Staff Limit Reached</Text>
+                                  <Text size="xs" color="$error600">
+                                      This shop is on the Starter plan and has reached its limit of 3 staff members. Please contact the owner to upgrade.
+                                  </Text>
+                              </VStack>
+                          </HStack>
+                      </Box>
+                  )}
+
+                  <Box
+                    bg="$white"
+                    p="$6"
+                    rounded="$3xl"
+                    style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' } as any}
+                    opacity={limitReached ? 0.5 : 1}
+                    pointerEvents={limitReached ? 'none' : 'auto'}
+                  >
                     <VStack space="lg">
                         <VStack space="sm">
                             <Text size="sm" fontWeight="$bold" color="$text900">Your Role</Text>
@@ -231,33 +299,37 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
                             </Input>
                         </FormControl>
 
-                        <FormControl isRequired>
-                            <FormControlLabel mb="$1"><FormControlLabelText size="sm">Email</FormControlLabelText></FormControlLabel>
-                            <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
-                                <InputSlot pl="$3"><InputIcon as={MailIcon} color="$primary600" /></InputSlot>
-                                <InputField placeholder="email@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-                            </Input>
-                        </FormControl>
+                        {!user && (
+                            <>
+                                <FormControl isRequired>
+                                    <FormControlLabel mb="$1"><FormControlLabelText size="sm">Email</FormControlLabelText></FormControlLabel>
+                                    <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
+                                        <InputSlot pl="$3"><InputIcon as={MailIcon} color="$primary600" /></InputSlot>
+                                        <InputField placeholder="email@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+                                    </Input>
+                                </FormControl>
 
-                        <FormControl isRequired>
-                            <FormControlLabel mb="$1"><FormControlLabelText size="sm">Password</FormControlLabelText></FormControlLabel>
-                            <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
-                                <InputSlot pl="$3"><InputIcon as={LockIcon} color="$primary600" /></InputSlot>
-                                <InputField placeholder="Min 6 characters" value={password} onChangeText={setPassword} secureTextEntry />
-                            </Input>
-                        </FormControl>
+                                <FormControl isRequired>
+                                    <FormControlLabel mb="$1"><FormControlLabelText size="sm">Password</FormControlLabelText></FormControlLabel>
+                                    <Input variant="outline" size="md" borderRadius={16} bg="$backgroundLight50">
+                                        <InputSlot pl="$3"><InputIcon as={LockIcon} color="$primary600" /></InputSlot>
+                                        <InputField placeholder="Min 6 characters" value={password} onChangeText={setPassword} secureTextEntry />
+                                    </Input>
+                                </FormControl>
+                            </>
+                        )}
 
                         {error && <Text size="xs" color="$error600" textAlign="center">{error}</Text>}
 
                         <Button
                             size="lg"
                             onPress={handleJoin}
-                            isDisabled={isLoading || !email || !password || !name || !phoneNumber}
+                            isDisabled={isLoading || (!user && (!email || !password)) || !name || !phoneNumber}
                             borderRadius={20}
                             bg="$primary600"
                             style={{ height: 56, marginTop: 10 }}
                         >
-                            {isLoading ? <Spinner color="white" /> : <ButtonText fontWeight="$black">Create Account & Join</ButtonText>}
+                            {isLoading ? <Spinner color="white" /> : <ButtonText fontWeight="$black">{user ? 'Join Shop' : 'Create Account & Join'}</ButtonText>}
                         </Button>
                     </VStack>
                   </Box>

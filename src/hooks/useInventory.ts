@@ -78,7 +78,6 @@ export const useInventory = (shopId: string) => {
           };
           await productRepo.updateProduct(updatedProduct);
           setProducts(prev => prev.map(p => p.id === existingProduct.id ? updatedProduct : p));
-          triggerSync(safeShopId);
           return;
         }
       }
@@ -112,10 +111,7 @@ export const useInventory = (shopId: string) => {
       // 2. Update local state immediately for instant UI feedback
       setProducts(prev => [newProduct, ...prev]);
 
-      // 3. Trigger background sync
-      triggerSync(safeShopId);
-
-      // 4. Silently refresh categories or other metadata if needed,
+      // 3. Silently refresh categories or other metadata if needed,
       // but don't call loadData() with isLoading=true
     } catch (e: any) {
       setError(e.message);
@@ -128,7 +124,6 @@ export const useInventory = (shopId: string) => {
       const productRepo = new ProductRepository(db);
       await productRepo.updateProduct(product);
       setProducts(prev => prev.map(p => p.id === product.id ? product : p));
-      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }
@@ -140,7 +135,6 @@ export const useInventory = (shopId: string) => {
       const productRepo = new ProductRepository(db);
       await productRepo.deleteProduct(productId);
       setProducts(prev => prev.filter(p => p.id !== productId));
-      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }

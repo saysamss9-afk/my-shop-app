@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Alert } from 'react-native';
 import {
   Heading,
   Icon,
@@ -32,6 +33,8 @@ import {
   SelectItem,
   ChevronDownIcon,
   Box,
+  Center,
+  Spinner,
 } from '@gluestack-ui/themed';
 import { getButtonHeight } from '../../../utils/platformStyles';
 import type { Customer, Product } from '../../../db/types';

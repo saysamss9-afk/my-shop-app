@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "register_business": "Register Business",
+    "register_business_desc": "Provide details to get your shop code.",
+    "business_identity": "Business Identity",
+    "full_name": "Full Name",
+    "owner_name_placeholder": "Owner Name",
+    "whatsapp_number": "WhatsApp Number",
+    "whatsapp_placeholder": "e.g. +233...",
+    "shop_name": "Shop Name",
+    "shop_name_placeholder": "Official Business Name",
+    "business_category": "Business Category",
+    "select_category": "Select Category",
+    "next_location": "Next: Location",
+    "location_currency": "Location & Currency",
+    "country": "Country",
+    "select_country": "Select Country",
+    "currency_auto": "Currency (Auto-filled)",
+    "business_address": "Business Address",
+    "full_address_placeholder": "Full Address",
+    "back": "Back",
+    "next_plan": "Next: Choose Plan",
+    "choose_plan": "Choose Registration Plan",
+    "per_annum": "per annum",
+    "submit_registration": "Submit Registration",
+    "admin_verify_note": "The admin will verify your details and generate a shop code for you.",
+    "request_submitted": "Request Submitted!",
+    "request_submitted_desc": "Your request has been received. Our team will contact you on WhatsApp with your unique shop code shortly.",
+    "back_to_start": "Back to Start"
+  },
+  "common": {
+    "missing_info": "Missing Info",
+    "missing_info_desc": "Please complete all fields in this step.",
+    "error": "Error",
+    "session_expired": "Your session has expired. Please log in again.",
+    "select_category_error": "Please select a shop category.",
+    "search_placeholder": "Search..."
+  }
+}

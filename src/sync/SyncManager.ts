@@ -21,6 +21,7 @@ export class SyncManager {
   private unsubscribeNetwork: (() => void) | null = null;
   private realtimeUnsubscribers: (() => void)[] = [];
   private onDataChangedCallback: (() => void) | null = null;
+  private readonly SYNC_BUFFER_MS = 300000; // 5 minute overlap to handle clock skew during delta sync
 
   constructor(
     private productRepo: ProductRepository,
@@ -29,6 +30,10 @@ export class SyncManager {
     private supplierRepo: SupplierRepository,
     private customerRepo: CustomerRepository
   ) {}
+
+  public getStatus(): SyncStatus {
+    return this.status;
+  }
 
   public setOnDataChanged(callback: () => void) {
     this.onDataChangedCallback = callback;
@@ -46,162 +51,8 @@ export class SyncManager {
   }
 
   public startRealtimeSync(shopId: string) {
-    if (this.realtimeUnsubscribers.length > 0) return;
-
-    console.log('Starting real-time sync for shop:', shopId);
-
-    const productUnsub = firestore()
-      .collection('shops')
-      .doc(shopId)
-      .collection('products')
-      .onSnapshot(async (snapshot) => {
-        if (!snapshot) return;
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added' || change.type === 'modified') {
-            const data = change.doc.data();
-            const local = await this.productRepo.getProductById(data.id);
-            if (local && (local.syncStatus === 0 || local.status === 'DELETED')) continue;
-
-            if (data.status === 'DELETED') {
-                await this.productRepo.deleteProduct(data.id);
-                continue;
-            }
-
-            const productToInsert = {
-              id: data.id,
-              shopId: data.shopId,
-              categoryId: data.categoryId ?? (local ? local.categoryId : null),
-              name: data.name ?? (local ? local.name : 'Unknown Product'),
-              description: data.description ?? (local ? local.description : null),
-              barcode: data.barcode ?? (local ? local.barcode : null),
-              bulkBarcode: data.bulkBarcode ?? (local ? local.bulkBarcode : null),
-              bulkQuantity: data.bulkQuantity ?? (local ? local.bulkQuantity : 1),
-              bulkPrice: data.bulkPrice ?? (local ? local.bulkPrice : 0),
-              bulkStockQuantity: data.bulkStockQuantity ?? (local ? local.bulkStockQuantity : 0),
-              bulkUnit: data.bulkUnit ?? (local ? local.bulkUnit : 'Carton'),
-              price: data.price ?? (local ? local.price : 0),
-              costPrice: data.costPrice ?? (local ? local.costPrice : 0),
-              stockQuantity: data.stockQuantity ?? (local ? local.stockQuantity : 0),
-              minStockLevel: data.minStockLevel ?? (local ? local.minStockLevel : 0),
-              unit: data.unit ?? (local ? local.unit : 'pcs'),
-              supplierId: data.supplierId ?? (local ? local.supplierId : null),
-              status: data.status ?? (local ? local.status : 'ACTIVE'),
-              syncStatus: 1
-            };
-
-            await this.productRepo.insertProduct(productToInsert);
-          }
-        }
-        this.onDataChangedCallback?.();
-      });
-
-    const categoryUnsub = firestore()
-      .collection('shops')
-      .doc(shopId)
-      .collection('categories')
-      .onSnapshot(async (snapshot) => {
-        if (!snapshot) return;
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added' || change.type === 'modified') {
-            const data = change.doc.data();
-            await this.categoryRepo.db.executeSql(
-                'INSERT OR REPLACE INTO Category(id, shopId, name, syncStatus) VALUES (?, ?, ?, 1)',
-                [data.id, data.shopId, data.name]
-            );
-          }
-        }
-        this.onDataChangedCallback?.();
-      });
-
-    const supplierUnsub = firestore()
-      .collection('shops')
-      .doc(shopId)
-      .collection('suppliers')
-      .onSnapshot(async (snapshot) => {
-        if (!snapshot) return;
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added' || change.type === 'modified') {
-            const data = change.doc.data();
-            const local = await this.supplierRepo.getSupplierById(data.id);
-            if (local && local.syncStatus === 0) continue;
-
-            await this.supplierRepo.insertSupplier({
-              id: data.id,
-              shopId: data.shopId,
-              name: data.name ?? (local ? local.name : 'Unknown Supplier'),
-              contactPerson: data.contactPerson ?? (local ? local.contactPerson : null),
-              email: data.email ?? (local ? local.email : null),
-              phone: data.phone ?? (local ? local.phone : null),
-              address: data.address ?? (local ? local.address : null),
-              contactInfo: data.contactInfo ?? (local ? local.contactInfo : (data.phone ?? null)),
-              currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
-              syncStatus: 1
-            });
-          }
-        }
-        this.onDataChangedCallback?.();
-      });
-
-    const customerUnsub = firestore()
-      .collection('shops')
-      .doc(shopId)
-      .collection('customers')
-      .onSnapshot(async (snapshot) => {
-        if (!snapshot) return;
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added' || change.type === 'modified') {
-            const data = change.doc.data();
-            const local = await this.customerRepo.getCustomerById(data.id);
-            if (local && local.syncStatus === 0) continue;
-
-            await this.customerRepo.insertCustomer({
-              id: data.id,
-              shopId: data.shopId,
-              name: data.name ?? (local ? local.name : 'Unknown Customer'),
-              phone: data.phone ?? (local ? local.phone : null),
-              email: data.email ?? (local ? local.email : null),
-              currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
-              syncStatus: 1
-            });
-          }
-        }
-        this.onDataChangedCallback?.();
-      });
-
-    const saleUnsub = firestore()
-      .collection('shops')
-      .doc(shopId)
-      .collection('sales')
-      .onSnapshot(async (snapshot) => {
-        if (!snapshot) return;
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added' || change.type === 'modified') {
-            const data = change.doc.data();
-            await this.saleRepo.upsertRemoteSale(data, data.items || []);
-          }
-        }
-        this.onDataChangedCallback?.();
-      });
-
-    const expenseUnsub = firestore()
-      .collection('shops')
-      .doc(shopId)
-      .collection('expenses')
-      .onSnapshot(async (snapshot) => {
-        if (!snapshot) return;
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added' || change.type === 'modified') {
-            const data = change.doc.data();
-            await this.productRepo.db.executeSql(
-              'INSERT OR REPLACE INTO Expense(id, shopId, category, amount, description, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
-              [data.id, data.shopId, data.category, data.amount, data.description || null, data.timestamp, 1]
-            );
-          }
-        }
-        this.onDataChangedCallback?.();
-      });
-
-    this.realtimeUnsubscribers.push(productUnsub, categoryUnsub, supplierUnsub, customerUnsub, saleUnsub, expenseUnsub);
+    // Pure offline-first: Real-time listeners disabled. Syncing only triggered manually.
+    console.log('Real-time sync disabled for offline-first design.');
   }
 
   public stopRealtimeSync() {
@@ -211,30 +62,28 @@ export class SyncManager {
   }
 
   private setupNetworkListener() {
-    if (this.isNetworkListenerActive) return;
-
-    this.isNetworkListenerActive = true;
-    this.unsubscribeNetwork = NetInfo.addEventListener(state => {
-      if (state.isConnected && state.isInternetReachable) {
-        console.log('Network is back online, triggering sync...');
-        // Note: Automatic network sync might not have shopId context here
-        // It will primarily sync UP local changes
-        this.triggerSync();
-      }
-    });
+    // Automatic background network sync disabled to prevent automated writes/pulls.
+    console.log('Auto-network sync listener disabled for offline-first design.');
   }
 
-  async triggerSync(shopId?: string) {
+  async triggerSync(shopIdInput?: string) {
     if (this.status === SyncStatus.Syncing) return;
-    if (!shopId) {
-        console.log('SyncManager (Native): No active shopId, skipping sync-up.');
+
+    // Support object input if passed by accident
+    const shopId = typeof shopIdInput === 'object' ? (shopIdInput as any).shopId : shopIdInput;
+
+    if (!shopId || shopId === 'undefined' || shopId === '[object Object]') {
+        console.log('SyncManager (Native): No active shopId, skipping sync-up. Input was:', shopIdInput);
         return;
     }
 
     this.status = SyncStatus.Syncing;
     try {
+      // 0. Pull Shop Details first to establish metadata and fix permissions (self-healing)
+      // This ensures subsequent pushes/pulls have correct permissions if ownerId was missing.
+      await this.safeSync('PullShopDetails', () => this.pullShopDetails(shopId));
+
       // 1. First Push Local Changes (Sync Up)
-      // These should be sequential to avoid transaction conflicts and ensure data integrity
       await this.safeSync('Sales', () => this.syncSales(shopId));
       await this.safeSync('Products', () => this.syncProducts(shopId));
       await this.safeSync('Categories', () => this.syncCategories(shopId));
@@ -242,24 +91,64 @@ export class SyncManager {
       await this.safeSync('Customers', () => this.syncCustomers(shopId));
       await this.safeSync('Payments', () => this.syncPayments(shopId));
       await this.safeSync('SupplierPayments', () => this.syncSupplierPayments(shopId));
+      await this.safeSync('ExpensesPush', () => this.syncExpenses(shopId));
 
-      // 2. Then Pull Remote Changes (Sync Down)
-      // Now that we've pushed our changes, Firestore should have the latest state
-      await this.safeSync('PullProducts', () => this.pullProducts(shopId));
-      await this.safeSync('PullCategories', () => this.pullCategories(shopId));
-      await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId));
-      await this.safeSync('PullCustomers', () => this.pullCustomers(shopId));
-      await this.safeSync('PullSales', () => this.pullSales(shopId));
-      await this.safeSync('PullExpenses', () => this.pullExpenses(shopId));
+      // Fetch persistent lastSynced timestamp for Delta Pull
+      let lastSyncedTime = 0;
+      try {
+        const shopResult = await this.productRepo.db.executeSql('SELECT lastSynced FROM Shop WHERE id = ?', [shopId]);
+        if (shopResult && shopResult[0] && shopResult[0].rows && shopResult[0].rows.length > 0) {
+          lastSyncedTime = shopResult[0].rows.item(0).lastSynced || 0;
+        }
+      } catch (err) {
+        console.error('Error fetching lastSynced from Shop:', err);
+      }
+
+      // 2. Then Pull Remote Changes (Delta Sync Down)
+      // Use a small overlap buffer to ensure no items are missed due to clock skew between devices.
+      const effectiveLastSynced = Math.max(0, lastSyncedTime - this.SYNC_BUFFER_MS);
+
+      // Fetch local user role to determine pull permissions
+      let userRole = 'SALES';
+      try {
+          const auth = require('@react-native-firebase/auth').default();
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+              const empResult = await this.productRepo.db.executeSql('SELECT role FROM Employee WHERE id = ?', [currentUser.uid]);
+              if (empResult[0]?.rows?.length > 0) {
+                  userRole = empResult[0].rows.item(0).role;
+              }
+          }
+      } catch (e) {}
+
+      const isManager = userRole === 'OWNER' || userRole === 'MANAGER';
+
+      if (isManager) {
+        await this.safeSync('PullEmployees', () => this.pullEmployees(shopId, effectiveLastSynced));
+      }
+      await this.safeSync('PullProducts', () => this.pullProducts(shopId, effectiveLastSynced));
+      await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced));
+      await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced));
+      await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced));
+      await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced));
+      if (isManager) {
+        await this.safeSync('PullExpenses', () => this.pullExpenses(shopId, effectiveLastSynced));
+      }
+
+      const syncCompletionTime = Date.now();
+      try {
+        await this.productRepo.db.executeSql('UPDATE Shop SET lastSynced = ? WHERE id = ?', [syncCompletionTime, shopId]);
+      } catch (err) {
+        console.error('Error updating lastSynced in Shop:', err);
+      }
 
       this.status = SyncStatus.Success;
-      this.lastSynced = Date.now();
+      this.lastSynced = syncCompletionTime;
     } catch (error) {
       console.error('Sync failed:', error);
       this.status = SyncStatus.Error;
     } finally {
       this.onDataChangedCallback?.();
-      // Return to idle status
       setTimeout(() => {
         if (this.status !== SyncStatus.Syncing) {
           this.status = SyncStatus.Idle;
@@ -277,13 +166,13 @@ export class SyncManager {
     }
   }
 
-  private async pullProducts(shopId: string) {
+  private async pullProducts(shopId: string, lastSyncedTime: number) {
     try {
-      const snapshot = await firestore()
-        .collection('shops')
-        .doc(shopId)
-        .collection('products')
-        .get();
+      let queryRef: any = firestore().collection('shops').doc(shopId).collection('products');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -317,9 +206,6 @@ export class SyncManager {
                   syncStatus: 1
                 };
 
-                // CRITICAL FIX: If local stock/price is > 0 but remote is 0,
-                // and we just created/updated this locally, don't let the remote
-                // wipe it out if the remote might be stale or corrupted.
                 if (local) {
                     if (data.stockQuantity === 0 && local.stockQuantity > 0) productToInsert.stockQuantity = local.stockQuantity;
                     if (data.price === 0 && local.price > 0) productToInsert.price = local.price;
@@ -334,13 +220,13 @@ export class SyncManager {
     }
   }
 
-  private async pullCategories(shopId: string) {
+  private async pullCategories(shopId: string, lastSyncedTime: number) {
     try {
-      const snapshot = await firestore()
-        .collection('shops')
-        .doc(shopId)
-        .collection('categories')
-        .get();
+      let queryRef: any = firestore().collection('shops').doc(shopId).collection('categories');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -354,13 +240,13 @@ export class SyncManager {
     }
   }
 
-  private async pullSuppliers(shopId: string) {
+  private async pullSuppliers(shopId: string, lastSyncedTime: number) {
     try {
-      const snapshot = await firestore()
-        .collection('shops')
-        .doc(shopId)
-        .collection('suppliers')
-        .get();
+      let queryRef: any = firestore().collection('shops').doc(shopId).collection('suppliers');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -385,13 +271,13 @@ export class SyncManager {
     }
   }
 
-  private async pullCustomers(shopId: string) {
+  private async pullCustomers(shopId: string, lastSyncedTime: number) {
     try {
-      const snapshot = await firestore()
-        .collection('shops')
-        .doc(shopId)
-        .collection('customers')
-        .get();
+      let queryRef: any = firestore().collection('shops').doc(shopId).collection('customers');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -413,13 +299,32 @@ export class SyncManager {
     }
   }
 
-  private async pullSales(shopId: string) {
+  private async pullEmployees(shopId: string, lastSyncedTime: number) {
     try {
-      const snapshot = await firestore()
-        .collection('shops')
-        .doc(shopId)
-        .collection('sales')
-        .get();
+      // Scoped down to the branch directly. We fetch all employees of the branch to avoid
+      // requiring any Firestore composite index configurations on root-level collections.
+      const queryRef = firestore().collection('employees').where('shopId', '==', shopId);
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.productRepo.db.executeSql(
+          'INSERT OR REPLACE INTO Employee(id, shopId, name, role, email) VALUES (?, ?, ?, ?, ?)',
+          [data.uid || doc.id, data.shopId, data.name || 'Unknown Staff', data.role || 'SALES', data.email || '']
+        );
+      }
+    } catch (e) {
+      console.error('Pull Employees Error:', e);
+    }
+  }
+
+  private async pullSales(shopId: string, lastSyncedTime: number) {
+    try {
+      let queryRef: any = firestore().collection('shops').doc(shopId).collection('sales');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -430,13 +335,13 @@ export class SyncManager {
     }
   }
 
-  private async pullExpenses(shopId: string) {
+  private async pullExpenses(shopId: string, lastSyncedTime: number) {
     try {
-      const snapshot = await firestore()
-        .collection('shops')
-        .doc(shopId)
-        .collection('expenses')
-        .get();
+      let queryRef: any = firestore().collection('shops').doc(shopId).collection('expenses');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
@@ -447,6 +352,63 @@ export class SyncManager {
       }
     } catch (e) {
       console.error('Pull Expenses Error:', e);
+    }
+  }
+
+  private async pullShopDetails(shopId: string) {
+    try {
+      const doc = await firestore().collection('registered_shops').doc(shopId).get();
+      if (doc.exists) {
+        const data = doc.data();
+        if (data) {
+          const plan = (data.plan || 'STARTER').toUpperCase();
+
+          // Self-healing: if ownerId is missing in Firestore, try to repair it if current user is OWNER
+          const auth = require('@react-native-firebase/auth').default();
+          const currentUser = auth.currentUser;
+          if (!data.ownerId && currentUser) {
+             const empResult = await this.productRepo.db.executeSql('SELECT role FROM Employee WHERE id = ?', [currentUser.uid]);
+             if (empResult[0]?.rows?.length > 0 && empResult[0].rows.item(0).role === 'OWNER') {
+                console.log('SyncManager: Repairing missing ownerId in Firestore...');
+                await firestore().collection('registered_shops').doc(shopId).update({ ownerId: currentUser.uid });
+             }
+          }
+
+          const shopResult = await this.productRepo.db.executeSql('SELECT id FROM Shop WHERE id = ?', [shopId]);
+          const exists = shopResult[0]?.rows?.length > 0;
+
+          if (exists) {
+            await this.productRepo.db.executeSql(
+              'UPDATE Shop SET name = ?, currency = ?, [plan] = ?, country = ?, ownerId = ?, parentShopId = ? WHERE id = ?',
+              [
+                data.name || '',
+                data.currency || '$',
+                plan,
+                data.country || '',
+                data.ownerId || '',
+                data.parentShopId || null,
+                shopId
+              ]
+            );
+          } else {
+            await this.productRepo.db.executeSql(
+              'INSERT INTO Shop (id, name, currency, [plan], country, ownerId, parentShopId) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              [
+                shopId,
+                data.name || '',
+                data.currency || '$',
+                plan,
+                data.country || '',
+                data.ownerId || '',
+                data.parentShopId || null
+              ]
+            );
+          }
+          console.log(`SyncManager (Native): Shop metadata updated. Plan: ${plan}`);
+        }
+      }
+    } catch (e) {
+      console.error('Pull Shop Details Error:', e);
     }
   }
 
@@ -475,9 +437,10 @@ export class SyncManager {
       const saleRef = firestore().collection('shops').doc(targetShopId).collection('sales').doc(sale.id);
 
       if (sale.isReverted === 1) {
-        batch.delete(saleRef);
+        // Soft delete on Firestore to ensure other devices see the revert in delta pull
+        batch.set(saleRef, { id: sale.id, shopId: targetShopId, isReverted: true, lastUpdated: Date.now() }, { merge: true });
       } else {
-        const items = await this.saleRepo.getItemsForSale(sale.id);
+        const items = await this.saleRepo.getDetailedItemsForSale(sale.id);
         const saleData = {
           id: sale.id,
           shopId: targetShopId,
@@ -485,6 +448,7 @@ export class SyncManager {
           timestamp: sale.timestamp || Date.now(),
           totalAmount: sale.totalAmount ?? 0,
           isReverted: sale.isReverted === 1,
+          lastUpdated: Date.now(),
           items: items.map(item => ({
             productId: item.productId || "",
             quantity: item.quantity ?? 0,
@@ -541,7 +505,8 @@ export class SyncManager {
       const productRef = firestore().collection('shops').doc(targetShopId).collection('products').doc(product.id);
 
       if (product.status === 'DELETED') {
-          batch.delete(productRef);
+          // Soft delete on Firestore to ensure other devices see the deletion in delta pull
+          batch.set(productRef, { id: product.id, shopId: targetShopId, status: 'DELETED', lastUpdated: Date.now() }, { merge: true });
       } else {
           const productData = {
             id: product.id,
@@ -561,7 +526,8 @@ export class SyncManager {
             minStockLevel: product.minStockLevel ?? 0,
             unit: product.unit || "pcs",
             supplierId: product.supplierId || null,
-            status: product.status || 'ACTIVE'
+            status: product.status || 'ACTIVE',
+            lastUpdated: Date.now()
           };
           batch.set(productRef, productData, { merge: true });
       }
@@ -605,7 +571,8 @@ export class SyncManager {
       const data = {
         id: cat.id,
         shopId: targetShopId,
-        name: cat.name || "Unnamed Category"
+        name: cat.name || "Unnamed Category",
+        lastUpdated: Date.now()
       };
       batch.set(ref, data, { merge: true });
       count++;
@@ -659,7 +626,8 @@ export class SyncManager {
         phone: supplier.phone || null,
         address: supplier.address || null,
         contactInfo: supplier.contactInfo || null,
-        currentBalance: supplier.currentBalance ?? 0
+        currentBalance: supplier.currentBalance ?? 0,
+        lastUpdated: Date.now()
       };
 
       batch.set(supplierRef, supplierData, { merge: true });
@@ -711,7 +679,8 @@ export class SyncManager {
         name: customer.name || "Unknown Customer",
         phone: customer.phone || null,
         email: customer.email || null,
-        currentBalance: customer.currentBalance ?? 0
+        currentBalance: customer.currentBalance ?? 0,
+        lastUpdated: Date.now()
       };
 
       batch.set(customerRef, customerData, { merge: true });
@@ -763,7 +732,8 @@ export class SyncManager {
         amount: payment.amount ?? 0,
         paymentMethod: payment.paymentMethod || "CASH",
         timestamp: payment.timestamp || Date.now(),
-        note: payment.note || null
+        note: payment.note || null,
+        lastUpdated: Date.now()
       };
 
       batch.set(paymentRef, paymentData, { merge: true });
@@ -806,7 +776,8 @@ export class SyncManager {
                 paymentMethod: p.paymentMethod || "CASH",
                 reference: p.reference || null,
                 timestamp: p.timestamp || Date.now(),
-                note: p.note || null
+                note: p.note || null,
+                lastUpdated: Date.now()
             };
             batch.set(ref, data, { merge: true });
         }
@@ -816,6 +787,60 @@ export class SyncManager {
         }
     } catch (e) {
         console.error('Native Supplier Payment Sync Error:', e);
+    }
+  }
+
+  private async syncExpenses(shopId: string) {
+    try {
+      const results = await this.productRepo.db.executeSql(
+        'SELECT * FROM Expense WHERE syncStatus = 0 AND shopId = ?',
+        [shopId]
+      );
+      const expenses: any[] = [];
+      for (let i = 0; i < results[0].rows.length; i++) {
+        expenses.push(results[0].rows.item(i));
+      }
+
+      if (expenses.length === 0) return;
+
+      let batch = firestore().batch();
+      let count = 0;
+      const syncedIds: string[] = [];
+
+      for (const exp of expenses) {
+        const ref = firestore().collection('shops').doc(shopId).collection('expenses').doc(exp.id);
+        batch.set(ref, {
+          id: exp.id,
+          shopId: shopId,
+          category: exp.category,
+          amount: exp.amount,
+          description: exp.description || null,
+          timestamp: exp.timestamp,
+          lastUpdated: Date.now()
+        }, { merge: true });
+
+        count++;
+        syncedIds.push(exp.id);
+
+        if (count === this.BATCH_LIMIT) {
+          await batch.commit();
+          for (const id of syncedIds) {
+            await this.productRepo.db.executeSql('UPDATE Expense SET syncStatus = 1 WHERE id = ?', [id]);
+          }
+          batch = firestore().batch();
+          count = 0;
+          syncedIds.length = 0;
+        }
+      }
+
+      if (count > 0) {
+        await batch.commit();
+        for (const id of syncedIds) {
+          await this.productRepo.db.executeSql('UPDATE Expense SET syncStatus = 1 WHERE id = ?', [id]);
+        }
+      }
+    } catch (e) {
+      console.error('Native Expense Push Sync Error:', e);
     }
   }
 

@@ -56,9 +56,12 @@ export const getDBConnection = async () => {
     'reason', 'invoiceNumber', 'totalCost', 'amountPaid', 'balance', 'purchaseOrderId',
     'productName', 'priceAtSale', 'isBulk', 'action', 'targetId', 'details', 'category',
     'returnValue', 'lastSynced', 'ownerId', 'companyName', 'country', 'currency',
+    'plan', 'parentShopId',
     'type', 'employeeCount', 'region', 'location', 'returnValue', 'value',
     'productCount', 'totalSuppliers', 'owedSuppliers', 'totalPayable', 'paidThisMonth', 'purchasesThisMonth',
-    'totalRevenue', 'totalProfit', 'saleCount', 'totalQuantity', 'availableStock'
+    'totalRevenue', 'totalProfit', 'saleCount', 'totalQuantity', 'availableStock', 'totalQuantitySold', 'currentStock',
+    'staffName', 'staffRole', 'customerName', 'totalExpenses', 'itemCount', 'totalCostValue', 'totalSellingValue',
+    'unitCostValue', 'unitSellingValue', 'bulkCostValue', 'bulkSellingValue', 'employeeName', 'isOnCredit'
   ];
 
   const KEY_MAP = new Map<string, string>();
@@ -70,7 +73,9 @@ export const getDBConnection = async () => {
     const rowKeys = Object.keys(row);
 
     for (const key of rowKeys) {
-      const canonical = KEY_MAP.get(key.toLowerCase());
+      // Strip brackets for canonical mapping to ensure [plan] maps to plan
+      const cleanKey = key.replace(/[\[\]]/g, '').toLowerCase();
+      const canonical = KEY_MAP.get(cleanKey);
       if (canonical) {
         normalized[canonical] = row[key];
       } else {
@@ -86,9 +91,11 @@ export const getDBConnection = async () => {
         // 1. AlaSQL Fixes:
         // - Normalize SQLite upsert syntax for web/AlaSQL compatibility
         // - Replace "COUNT(*)" with "COUNT(1)"
+        // - Map SQLite's TOTAL() (which never returns NULL) to SUM()
         // - Wrap "count" and "total" in brackets ONLY when they are standalone aliases
         let sql = normalizeUpsertQuery(query, params)
             .replace(/COUNT\(\*\)/gi, 'COUNT(1)')
+            .replace(/\bTOTAL\(/gi, 'SUM(')
             .replace(/\bas\s+count\b/gi, 'as [count]')
             .replace(/\bas\s+total\b/gi, 'as [total]');
 
@@ -150,6 +157,8 @@ export const createTables = async (db: any) => {
         ownerId STRING,
         country STRING,
         currency STRING,
+        [plan] STRING,
+        parentShopId STRING,
         lastSynced INT
     );`,
     `CREATE TABLE IF NOT EXISTS Category (
@@ -357,7 +366,8 @@ export const createTables = async (db: any) => {
                         return null;
                     });
                     const placeholders = canonicalColumns.map(() => '?').join(', ');
-                    await db.executeSql(`INSERT INTO ${table} (${canonicalColumns.join(', ')}) VALUES (${placeholders})`, values);
+                    const escapedCols = canonicalColumns.map(col => `[${col}]`).join(', ');
+                    await db.executeSql(`INSERT INTO ${table} (${escapedCols}) VALUES (${placeholders})`, values);
                 }
             }
             console.log(`[SCHEMA] Rebuild of ${table} complete.`);
@@ -389,6 +399,19 @@ export const createTables = async (db: any) => {
     phone STRING, address STRING, contactInfo STRING, currentBalance REAL, syncStatus INT
   )`;
 
+  const EMPLOYEE_COLUMNS = ['id', 'shopId', 'name', 'role', 'email'];
+  const EMPLOYEE_CREATE = `CREATE TABLE IF NOT EXISTS Employee (
+    id STRING PRIMARY KEY, shopId STRING, name STRING, role STRING, email STRING
+  )`;
+
+  const SHOP_COLUMNS = ['id', 'name', 'companyName', 'address', 'ownerId', 'country', 'currency', 'plan', 'parentShopId', 'lastSynced'];
+  const SHOP_CREATE = `CREATE TABLE IF NOT EXISTS Shop (
+    id STRING PRIMARY KEY, name STRING, companyName STRING, address STRING, ownerId STRING,
+    country STRING, currency STRING, [plan] STRING, parentShopId STRING, lastSynced INT
+  )`;
+
+  await rebuildTableIfMisaligned('Shop', SHOP_COLUMNS, SHOP_CREATE);
   await rebuildTableIfMisaligned('Product', PRODUCT_COLUMNS, PRODUCT_CREATE);
   await rebuildTableIfMisaligned('Supplier', SUPPLIER_COLUMNS, SUPPLIER_CREATE);
+  await rebuildTableIfMisaligned('Employee', EMPLOYEE_COLUMNS, EMPLOYEE_CREATE);
 };

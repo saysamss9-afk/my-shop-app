@@ -6,12 +6,13 @@ export class SaleRepository {
 
   async insertSale(sale: Sale, items: SaleItem[]) {
     await this.db.transaction(async (tx: any) => {
+      const safeShopId = sale.shopId?.toString().trim();
       const saleQuery = `
         INSERT INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
       `;
       const saleParams = [
-        sale.id, sale.shopId, sale.employeeId, sale.customerId, sale.timestamp,
+        sale.id, safeShopId, sale.employeeId, sale.customerId, sale.timestamp,
         sale.totalAmount, sale.paymentMethod, sale.paymentStatus, sale.dueDate
       ];
       await tx.executeSql(saleQuery, saleParams);
@@ -45,20 +46,59 @@ export class SaleRepository {
     });
   }
 
-  async getSalesByShop(shopId: string): Promise<Sale[]> {
-    const query = 'SELECT * FROM Sale WHERE shopId = ? AND isReverted = 0 ORDER BY timestamp DESC';
+  async getSalesByShop(shopId: string): Promise<any[]> {
+    const query = `
+      SELECT
+        s.*,
+        COALESCE(e.name, sh.ownerName, 'Staff') as staffName,
+        COALESCE(e.role, 'OWNER') as staffRole,
+        c.name as customerName
+      FROM Sale s
+      LEFT JOIN Employee e ON s.employeeId = e.id
+      LEFT JOIN Shop sh ON s.shopId = sh.id
+      LEFT JOIN Customer c ON s.customerId = c.id
+      WHERE s.shopId = ?
+      ORDER BY s.timestamp DESC
+    `;
     const results = await this.db.executeSql(query, [shopId]);
-    const sales: Sale[] = [];
+    const sales: any[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       sales.push(results[0].rows.item(i));
     }
     return sales;
   }
 
-  async getItemsForSale(saleId: string): Promise<SaleItem[]> {
-    const query = 'SELECT * FROM SaleItem WHERE saleId = ?';
+  async getSalesByShopAndRange(shopId: string, start: number, end: number): Promise<any[]> {
+    const query = `
+      SELECT
+        s.*,
+        COALESCE(e.name, sh.ownerName, 'Staff') as staffName,
+        COALESCE(e.role, 'OWNER') as staffRole,
+        c.name as customerName
+      FROM Sale s
+      LEFT JOIN Employee e ON s.employeeId = e.id
+      LEFT JOIN Shop sh ON s.shopId = sh.id
+      LEFT JOIN Customer c ON s.customerId = c.id
+      WHERE s.shopId = ? AND s.timestamp BETWEEN ? AND ?
+      ORDER BY s.timestamp DESC
+    `;
+    const results = await this.db.executeSql(query, [shopId, start, end]);
+    const sales: any[] = [];
+    for (let i = 0; i < results[0].rows.length; i++) {
+      sales.push(results[0].rows.item(i));
+    }
+    return sales;
+  }
+
+  async getDetailedItemsForSale(saleId: string): Promise<any[]> {
+    const query = `
+      SELECT si.*, p.name as productName, p.unit, p.bulkUnit
+      FROM SaleItem si
+      LEFT JOIN Product p ON si.productId = p.id
+      WHERE si.saleId = ?
+    `;
     const results = await this.db.executeSql(query, [saleId]);
-    const items: SaleItem[] = [];
+    const items: any[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       items.push(results[0].rows.item(i));
     }
@@ -137,6 +177,55 @@ export class SaleRepository {
         const column = item.isBulk === 1 ? 'bulkStockQuantity' : 'stockQuantity';
         const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ?, syncStatus = 0 WHERE id = ?`;
         await tx.executeSql(restoreStockQuery, [item.quantity, item.productId]);
+      }
+    });
+  }
+
+  async refundSingleSaleItem(saleItemId: string, refundQuantity: number) {
+    await this.db.transaction(async (tx: any) => {
+      // 1. Fetch sale item info
+      const itemQuery = 'SELECT saleId, productId, quantity, priceAtSale, isBulk FROM SaleItem WHERE id = ?';
+      const [itemResult] = await tx.executeSql(itemQuery, [saleItemId]);
+      if (itemResult.rows.length === 0) {
+        throw new Error('Sale item not found.');
+      }
+      const item = itemResult.rows.item(0);
+
+      if (refundQuantity <= 0 || refundQuantity > item.quantity) {
+        throw new Error(`Invalid refund quantity. Max available: ${item.quantity}`);
+      }
+
+      // 2. Fetch parent sale info
+      const saleQuery = 'SELECT id, totalAmount, customerId, paymentStatus FROM Sale WHERE id = ?';
+      const [saleResult] = await tx.executeSql(saleQuery, [item.saleId]);
+      const sale = saleResult.rows.item(0);
+
+      const refundValue = item.priceAtSale * refundQuantity;
+
+      // 3. Update or delete the item row
+      if (refundQuantity === item.quantity) {
+        await tx.executeSql('DELETE FROM SaleItem WHERE id = ?', [saleItemId]);
+      } else {
+        await tx.executeSql('UPDATE SaleItem SET quantity = quantity - ?, syncStatus = 0 WHERE id = ?', [refundQuantity, saleItemId]);
+      }
+
+      // 4. Update the parent sale total amount
+      await tx.executeSql('UPDATE Sale SET totalAmount = totalAmount - ?, syncStatus = 0 WHERE id = ?', [refundValue, item.saleId]);
+
+      // 5. Adjust customer debt if applicable
+      if (sale.customerId && sale.paymentStatus === 'DEBT') {
+        await tx.executeSql('UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?', [refundValue, sale.customerId]);
+      }
+
+      // 6. Return stock back to inventory
+      const column = item.isBulk === 1 ? 'bulkStockQuantity' : 'stockQuantity';
+      const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ?, syncStatus = 0 WHERE id = ?`;
+      await tx.executeSql(restoreStockQuery, [refundQuantity, item.productId]);
+
+      // 7. If no more items left in sale, mark parent sale as reverted
+      const [remainingItems] = await tx.executeSql('SELECT COUNT(*) as count FROM SaleItem WHERE saleId = ?', [item.saleId]);
+      if (remainingItems.rows.item(0).count === 0) {
+        await tx.executeSql('UPDATE Sale SET isReverted = 1 WHERE id = ?', [item.saleId]);
       }
     });
   }

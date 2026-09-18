@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "register_business": "Registrar Empresa",
+    "register_business_desc": "Proporcione detalles para obtener su código de tienda.",
+    "business_identity": "Identidad del Negocio",
+    "full_name": "Nombre Completo",
+    "owner_name_placeholder": "Nombre del Propietario",
+    "whatsapp_number": "Número de WhatsApp",
+    "whatsapp_placeholder": "ej. +233...",
+    "shop_name": "Nombre de la Tienda",
+    "shop_name_placeholder": "Nombre Comercial Oficial",
+    "business_category": "Categoría de Negocio",
+    "select_category": "Seleccionar Categoría",
+    "next_location": "Siguiente: Ubicación",
+    "location_currency": "Ubicación y Moneda",
+    "country": "País",
+    "select_country": "Seleccionar País",
+    "currency_auto": "Moneda (Auto-completado)",
+    "business_address": "Dirección del Negocio",
+    "full_address_placeholder": "Dirección Completa",
+    "back": "Atrás",
+    "next_plan": "Siguiente: Elegir Plan",
+    "choose_plan": "Elegir Plan de Registro",
+    "per_annum": "por año",
+    "submit_registration": "Enviar Registro",
+    "admin_verify_note": "El administrador verificará sus datos y generará un código de tienda para usted.",
+    "request_submitted": "¡Solicitud Enviada!",
+    "request_submitted_desc": "Su solicitud ha sido recibida. Nuestro equipo se pondrá en contacto con usted por WhatsApp con su código de tienda único en breve.",
+    "back_to_start": "Volver al Inicio"
+  },
+  "common": {
+    "missing_info": "Información Faltante",
+    "missing_info_desc": "Por favor, complete todos los campos de este paso.",
+    "error": "Error",
+    "session_expired": "Su sesión ha expirado. Por favor, inicie sesión de nuevo.",
+    "select_category_error": "Por favor, seleccione una categoría de tienda.",
+    "search_placeholder": "Buscar..."
+  }
+}

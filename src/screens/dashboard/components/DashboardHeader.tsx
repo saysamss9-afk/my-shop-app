@@ -9,29 +9,68 @@ import {
   Pressable,
   Spinner,
 } from '@gluestack-ui/themed';
-import { RefreshCw, User, AlertTriangle } from 'lucide-react-native';
+import { RefreshCw, User, AlertTriangle, LogOut } from 'lucide-react-native';
 import { SyncStatus } from '../../../sync/SyncManager';
 import { getAppShadow } from '../../../utils/platformStyles';
+import BranchSwitcher from './BranchSwitcher';
+import { handleSwitchAccount } from '../switchAccount';
+
+import firebase from '../../../firebase-config';
 
 interface Props {
   userRole: string;
   shopName: string;
+  shopId: string;
+  shopPlan: string;
   syncStatus: SyncStatus;
+  signOut: () => void;
   onTriggerSync: () => void;
+  onSwitchBranch: (shopId: string, shopName: string) => void;
 }
 
-const DashboardHeader: React.FC<Props> = ({ userRole, shopName, syncStatus, onTriggerSync }) => {
+const DashboardHeader: React.FC<Props> = ({
+  userRole,
+  shopName,
+  shopId,
+  shopPlan,
+  syncStatus,
+  signOut,
+  onTriggerSync,
+  onSwitchBranch
+}) => {
   return (
     <Box px="$2" pt="$2" pb="$6">
       <HStack justifyContent="space-between" alignItems="center">
         <VStack>
-          <Text size="sm" color="$text500" fontWeight="$medium">Welcome,</Text>
+          <HStack space="xs" alignItems="center">
+            <Text size="sm" color="$text500" fontWeight="$medium">Welcome,</Text>
+            {shopPlan === 'PREMIUM' && (
+                <Box bg="$amber100" px="$2" py="$0.5" rounded="$md">
+                    <Text size="2xs" color="$amber700" fontWeight="$bold">PREMIUM</Text>
+                </Box>
+            )}
+            {shopPlan === 'BUSINESS' && (
+                <Box bg="$purple100" px="$2" py="$0.5" rounded="$md">
+                    <Text size="2xs" color="$purple700" fontWeight="$bold">BUSINESS</Text>
+                </Box>
+            )}
+            {shopPlan === 'STARTER' && (
+                <Box bg="$blue100" px="$2" py="$0.5" rounded="$md">
+                    <Text size="2xs" color="$blue700" fontWeight="$bold">STARTER</Text>
+                </Box>
+            )}
+          </HStack>
           <Heading size="xl" color="$text900" fontWeight="$black">
             {shopName}
           </Heading>
-          <Text size="xs" color="$text500" fontWeight="$medium">
-            {userRole === 'OWNER' ? 'Shop Owner' : 'Staff Member'}
-          </Text>
+          <HStack space="md" alignItems="center" mt="$1">
+            <Text size="xs" color="$text500" fontWeight="$medium">
+                {userRole === 'OWNER' ? 'Shop Owner' : 'Staff Member'}
+            </Text>
+            {userRole === 'OWNER' && (
+                <BranchSwitcher currentShopId={shopId} onSwitch={onSwitchBranch} />
+            )}
+          </HStack>
         </VStack>
         <HStack space="sm" alignItems="center">
           {syncStatus === SyncStatus.Syncing ? (
@@ -60,8 +99,8 @@ const DashboardHeader: React.FC<Props> = ({ userRole, shopName, syncStatus, onTr
                 </HStack>
             </Pressable>
           )}
-          <Pressable onPress={() => {}} p="$2" bg="$white" rounded="$full">
-            <Icon as={User} color="$text500" size="md" />
+          <Pressable onPress={() => handleSwitchAccount({ signOut, reset: () => {} })} p="$2" bg="$white" rounded="$full">
+            <Icon as={LogOut} color="$error600" size="md" />
           </Pressable>
         </HStack>
       </HStack>

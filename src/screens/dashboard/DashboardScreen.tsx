@@ -5,6 +5,19 @@ import {
   Text,
   Pressable,
   Center,
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalHeader,
+  Heading,
+  ModalCloseButton,
+  Icon,
+  CloseIcon,
+  ModalBody,
+  VStack,
+  HStack,
+  Button,
+  ButtonText,
 } from '@gluestack-ui/themed';
 import { useDashboard } from '../../hooks/useDashboard';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -25,15 +38,37 @@ import { handleSwitchAccount } from './switchAccount';
 type Props = StackScreenProps<RootStackParamList, 'Dashboard'>;
 
 const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = React.useState(false);
+  const [requestPending, setRequestPending] = React.useState(false);
   const { shopId, employeeId, userRole, shopName: initialShopName } = route.params;
   const { startRealtimeSync, stopRealtimeSync } = useSync();
   const { signOut } = useAuthContext();
-  const { syncStatus, lowStockCount, revenue, currency, shopName: fetchedShopName, lastSynced, triggerSync } = useDashboard(shopId);
+  const {
+    syncStatus,
+    lowStockCount,
+    revenue,
+    currency,
+    shopName: fetchedShopName,
+    shopPlan,
+    lastSynced,
+    triggerSync
+  } = useDashboard(shopId);
 
   React.useEffect(() => {
+    // When switching branches or first loading the dashboard, auto-trigger a background sync
+    // for the incoming branch to ensure local data is fresh.
+    triggerSync();
+
     startRealtimeSync(shopId);
     return () => stopRealtimeSync();
-  }, [shopId, startRealtimeSync, stopRealtimeSync]);
+  }, [shopId, startRealtimeSync, stopRealtimeSync, triggerSync]);
+
+  const handleSwitchBranch = (newShopId: string, newShopName: string) => {
+    navigation.setParams({ shopId: newShopId, shopName: newShopName });
+    // Force immediate local reload hook updates by triggering navigation parameter overrides
+    route.params.shopId = newShopId;
+    route.params.shopName = newShopName;
+  };
 
   const displayShopName = fetchedShopName || initialShopName || 'Your Shop';
 
@@ -79,6 +114,15 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       roleRequired: ['OWNER', 'MANAGER'],
       onPress: () => navigation.navigate('StaffManagement', { shopId }),
     },
+    ...(shopPlan === 'PREMIUM' && userRole === 'OWNER' ? [{
+      id: 'branches',
+      title: 'Branches',
+      description: 'Multi-shop',
+      icon: 'layers' as const,
+      color: '#607D8B',
+      roleRequired: ['OWNER'],
+      onPress: () => navigation.navigate('BranchManagement', { shopId }),
+    }] : []),
     {
       id: 'suppliers',
       title: 'Suppliers',
@@ -87,6 +131,42 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       color: '#1E88E5',
       roleRequired: ['OWNER', 'MANAGER'],
       onPress: () => navigation.navigate('Suppliers', { shopId }),
+    },
+    {
+      id: 'daily_report',
+      title: 'Daily Items',
+      description: 'Report',
+      icon: 'list',
+      color: '#673AB7',
+      roleRequired: ['OWNER', 'MANAGER'],
+      onPress: () => navigation.navigate('DailyReport', { shopId }),
+    },
+    {
+      id: 'expenses',
+      title: 'Expenses',
+      description: 'Spendings',
+      icon: 'cash',
+      color: '#E53935',
+      roleRequired: ['OWNER', 'MANAGER'],
+      onPress: () => navigation.navigate('Expenses', { shopId }),
+    },
+    {
+      id: 'audit',
+      title: 'Audit P&L',
+      description: 'Financials',
+      icon: 'trending-up',
+      color: '#00C853',
+      roleRequired: ['OWNER'],
+      onPress: () => navigation.navigate('ProfitLoss', { shopId, userRole }),
+    },
+    {
+      id: 'fast_moving',
+      title: 'Top Items',
+      description: 'Hot Sellers',
+      icon: 'trending-up',
+      color: '#FFC107',
+      roleRequired: ['OWNER', 'MANAGER'],
+      onPress: () => navigation.navigate('Analytics', { shopId }),
     },
   ];
 
@@ -97,8 +177,12 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       <DashboardHeader
         userRole={userRole}
         shopName={displayShopName}
+        shopId={shopId}
+        shopPlan={shopPlan}
         syncStatus={syncStatus}
+        signOut={signOut}
         onTriggerSync={triggerSync}
+        onSwitchBranch={handleSwitchBranch}
       />
 
       <RevenueHeroCard
@@ -107,6 +191,8 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         revenue={revenue}
         currency={currency}
         lastSynced={lastSynced}
+        userRole={userRole}
+        onUpgradePress={() => setIsUpgradeModalOpen(true)}
       />
 
       <ActionGrid
@@ -128,6 +214,72 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text size="xs" color="$text400" fontWeight="$bold">Switch Account</Text>
         </Pressable>
       </Center>
+
+      {/* Upgrade Subscription Plans Modal */}
+      <Modal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)}>
+        <ModalBackdrop />
+        <ModalContent rounded="$3xl" p="$5">
+          <ModalHeader>
+            <Heading size="lg">Change Subscription Plan</Heading>
+            <ModalCloseButton>
+              <Icon as={CloseIcon} />
+            </ModalCloseButton>
+          </ModalHeader>
+          <ModalBody>
+            <VStack space="md" py="$4">
+              <Text size="sm" color="$text600">
+                Select a target plan below to submit an upgrade request to the app administration panel.
+              </Text>
+
+              {['STARTER', 'BUSINESS', 'PREMIUM'].map((planOption) => {
+                if (planOption === shopPlan) return null;
+                return (
+                  <Pressable
+                    key={planOption}
+                    onPress={async () => {
+                      setRequestPending(true);
+                      try {
+                        const firebaseModule = require('../../firebase-config').default;
+                        await firebaseModule.firestore().collection('plan_upgrade_requests').add({
+                          shopId,
+                          shopName: displayShopName,
+                          currentPlan: shopPlan,
+                          requestedPlan: planOption,
+                          status: 'PENDING',
+                          createdAt: firebaseModule.firestore.FieldValue.serverTimestamp(),
+                        });
+                        setIsUpgradeModalOpen(false);
+                        if (typeof window !== 'undefined') {
+                          window.alert(`Plan Change Request submitted successfully! Please wait for administration panel approval.`);
+                        }
+                      } catch (err: any) {
+                        if (typeof window !== 'undefined') window.alert(`Error: ${err.message}`);
+                      } finally {
+                        setRequestPending(false);
+                      }
+                    }}
+                    p="$4"
+                    rounded="$xl"
+                    borderWidth={1}
+                    borderColor="$borderLight"
+                    bg="$backgroundLight50"
+                  >
+                    <HStack justifyContent="space-between" alignItems="center">
+                      <VStack>
+                        <Text fontWeight="$bold" color="$text900">{planOption}</Text>
+                        <Text size="xs" color="$text500">Submit adjustment notification</Text>
+                      </VStack>
+                      <Button size="xs" variant="outline" action="primary" pointerEvents="none">
+                        <ButtonText>Request</ButtonText>
+                      </Button>
+                    </HStack>
+                  </Pressable>
+                );
+              })}
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </ScreenWrapper>
   );
 };

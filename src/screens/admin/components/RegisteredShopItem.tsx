@@ -9,6 +9,8 @@ import {
   Pressable,
   Button,
   ButtonIcon,
+  Badge,
+  BadgeText,
 } from '@gluestack-ui/themed';
 import { User, PhoneIcon, CopyIcon, TrashIcon } from 'lucide-react-native';
 
@@ -27,10 +29,10 @@ const RegisteredShopItem: React.FC<Props> = ({ item, onCopy, onWhatsApp, onDelet
           <Heading size="md" color="$text900">{item.name}</Heading>
           <Text size="xs" color="$text500" textTransform="uppercase" letterSpacing={1}>{item.type}</Text>
 
-          <Pressable onPress={() => onCopy(item.id)} mt="$2">
+          <Pressable onPress={() => onCopy(item.shopCode || item.id)} mt="$2">
             <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$xl" alignSelf="flex-start">
               <Text size="sm" fontWeight="$bold" color="$primary600" style={{ letterSpacing: 1 }}>
-                {item.id}
+                {item.shopCode || item.id}
               </Text>
               <Icon as={CopyIcon} size="xs" color="$primary600" />
             </HStack>
@@ -57,6 +59,20 @@ const RegisteredShopItem: React.FC<Props> = ({ item, onCopy, onWhatsApp, onDelet
         <HStack space="sm" alignItems="center">
           <Icon as={PhoneIcon} size="xs" color="$text400" />
           <Text size="sm" color="$text700">{item.whatsappNumber}</Text>
+        </HStack>
+        <HStack space="sm" alignItems="center">
+          <Text size="xs" fontWeight="$bold" color="$text500">Address:</Text>
+          <Text size="xs" color="$text600" flexShrink={1}>{item.location} ({item.country || 'Ghana'})</Text>
+        </HStack>
+        <HStack space="md" alignItems="center" pt="$1">
+          <Badge action="info" variant="outline" size="sm">
+            <BadgeText size="xxs">Plan: {item.plan || 'STARTER'}</BadgeText>
+          </Badge>
+          {item.currency && (
+            <Badge action="muted" variant="outline" size="sm">
+              <BadgeText size="xxs">Currency: {item.currency}</BadgeText>
+            </Badge>
+          )}
         </HStack>
       </VStack>
     </Box>

@@ -15,6 +15,8 @@ export const useDashboard = (shopId: string) => {
   const [lastSynced, setLastSynced] = useState<number>(0);
   const [currency, setCurrency] = useState('$');
   const [shopName, setShopName] = useState('');
+  const [shopPlan, setShopPlan] = useState<'STARTER' | 'BUSINESS' | 'PREMIUM'>('STARTER');
+  const [parentShopId, setParentShopId] = useState<string | null>(null);
 
   // Sync status effect
   useEffect(() => {
@@ -30,11 +32,14 @@ export const useDashboard = (shopId: string) => {
       const productRepo = new ProductRepository(db);
       const analyticsRepo = new AnalyticsRepository(db);
 
-      const shopResults = await db.executeSql('SELECT name, currency FROM Shop WHERE id = ?', [shopId]);
+      const shopResults = await db.executeSql('SELECT name, currency, [plan], parentShopId FROM Shop WHERE id = ?', [shopId]);
       const shopRow = shopResults[0]?.rows?.length ? shopResults[0].rows.item(0) : null;
       if (shopRow) {
         setCurrency(shopRow.currency || '$');
         setShopName(shopRow.name || '');
+        const normalizedPlan = (shopRow.plan || 'STARTER').toUpperCase();
+        setShopPlan(normalizedPlan as any);
+        setParentShopId(shopRow.parentShopId || null);
       }
 
       // Get low stock count
@@ -77,6 +82,8 @@ export const useDashboard = (shopId: string) => {
     revenue,
     currency,
     shopName,
+    shopPlan,
+    parentShopId,
     lastSynced,
     triggerSync,
     refreshDashboard: loadStats

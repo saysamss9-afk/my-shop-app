@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { FlatList, StatusBar } from 'react-native';
+import React, { useCallback, useState, useEffect } from 'react';
+import { FlatList, SectionList, StatusBar } from 'react-native';
 import {
   Box,
   VStack,
@@ -12,35 +12,185 @@ import {
   Spinner,
   Divider,
   ArrowLeftIcon,
+  Input,
+  InputField,
+  InputSlot,
 } from '@gluestack-ui/themed';
-import { RefreshCw, AlertTriangle } from 'lucide-react-native';
+import { RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native';
 import { useSales } from '../../hooks/useSales';
 import type { Sale } from '../../db/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getAppShadow } from '../../utils/platformStyles';
+import { getAppShadow, isWeb } from '../../utils/platformStyles';
 import { SyncStatus } from '../../sync/SyncManager';
+import { PrintingService } from '../../services/PrintingService';
 
 // Sub-components
 import SaleHistoryItem from './components/SaleHistoryItem';
+import SaleDetailModal from './components/SaleDetailModal';
 
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const { sales, isLoading, syncStatus, currency, revertSale, triggerManualSync } = useSales(shopId);
+  const { sales, isLoading, syncStatus, currency, revertSale, triggerManualSync, getSaleDetails, getShopInfo, refreshSales, refundSaleItem } = useSales(shopId);
 
-  const renderItem = useCallback(({ item }: { item: Sale }) => (
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    // Group items fresh for each month by calculating range
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0, 0).getTime();
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+    refreshSales(startOfMonth, endOfMonth);
+    triggerManualSync();
+  }, [currentDate, refreshSales]);
+
+  const handlePrevMonth = () => {
+    const d = new Date(currentDate);
+    d.setMonth(d.getMonth() - 1);
+    setCurrentDate(d);
+  };
+
+  const handleNextMonth = () => {
+    const d = new Date(currentDate);
+    d.setMonth(d.getMonth() + 1);
+    setCurrentDate(d);
+  };
+
+  const [selectedSale, setSelectedSale] = useState<any | null>(null);
+  const [saleItems, setSaleItems] = useState<any[]>([]);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedDateFilter, setSelectedDateFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSaleIds, setSelectedSaleIds] = useState<string[]>([]);
+
+  const toggleSelectSale = (id: string) => {
+    setSelectedSaleIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handlePrintSelected = async () => {
+    const selectedSales = filteredSales.filter((s: any) => selectedSaleIds.includes(s.id));
+    if (selectedSales.length === 0) {
+      alert('Please select at least one sale to print.');
+      return;
+    }
+
+    const salesWithItems = await Promise.all(
+      selectedSales.map(async (s: any) => ({
+        ...s,
+        items: await getSaleDetails(s.id)
+      }))
+    );
+
+    const shopInfo = await getShopInfo();
+    await PrintingService.printSalesSummary(shopInfo, salesWithItems, currency);
+  };
+
+  const filteredSales = sales.filter((sale: any) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = !query ? true : (
+      sale.id.toLowerCase().includes(query) ||
+      (sale.customerName && sale.customerName.toLowerCase().includes(query)) ||
+      new Date(sale.timestamp).toLocaleDateString().toLowerCase().includes(query)
+    );
+
+    if (!selectedDateFilter) return matchesSearch;
+    const date = new Date(sale.timestamp);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}` === selectedDateFilter && matchesSearch;
+  });
+
+  const monthLabel = currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+  const groupedSales = React.useMemo(() => {
+    const groups: { [key: string]: any[] } = {};
+
+    filteredSales.forEach(sale => {
+      const d = new Date(sale.timestamp);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(sale);
+    });
+
+    return Object.keys(groups)
+      .sort((a, b) => b.localeCompare(a))
+      .map(dateKey => ({
+        title: new Date(dateKey).toLocaleDateString(undefined, {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        }),
+        data: groups[dateKey]
+      }));
+  }, [filteredSales]);
+
+  const handlePrint = async (sale: any, items: any[]) => {
+    try {
+      const shopInfo = await getShopInfo();
+      await PrintingService.printReceipt({
+        shopName: shopInfo.name,
+        address: shopInfo.address || '',
+        saleId: sale.id.slice(-8).toUpperCase(),
+        timestamp: new Date(sale.timestamp).toLocaleString(),
+        items: items.map(i => ({
+            name: i.productName || 'Item',
+            quantity: i.quantity,
+            price: i.priceAtSale,
+        })),
+        total: sale.totalAmount,
+        employeeName: sale.staffName || 'Staff',
+        customerName: sale.customerName || undefined,
+        paymentMethod: sale.paymentMethod,
+      });
+    } catch (e) {
+      console.error('Print error', e);
+    }
+  };
+
+  const handleSelectSale = async (sale: any) => {
+    setSelectedSale(sale);
+    const items = await getSaleDetails(sale.id);
+    setSaleItems(items);
+    setShowDetailModal(true);
+  };
+
+  const handleRefundItem = async (saleItemId: string, qty: number) => {
+    const success = await refundSaleItem(saleItemId, qty);
+    if (success) {
+      Alert.alert("Success", "Returned item has been successfully reversed back to inventory stock.");
+      if (selectedSale) {
+        const updatedItems = await getSaleDetails(selectedSale.id);
+        setSaleItems(updatedItems);
+        if (updatedItems.length === 0) {
+          setShowDetailModal(false);
+        }
+      }
+    } else {
+      Alert.alert("Error", "Failed to reverse item stock.");
+    }
+  };
+
+  const renderItem = useCallback(({ item }: { item: any }) => (
     <SaleHistoryItem
         item={item}
         currency={currency}
         onRevert={revertSale}
+        onPress={handleSelectSale}
+        isSelected={selectedSaleIds.includes(item.id)}
+        onToggleSelect={() => toggleSelectSale(item.id)}
     />
-  ), [currency, revertSale]);
+  ), [currency, revertSale, getSaleDetails, selectedSaleIds]);
 
   return (
     <Box flex={1} bg="$backgroundLight50">
       <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
 
       {/* Modern Header */}
-      <Box px="$4" pt="$2" pb="$4">
+      <Box px="$4" pt="$2" pb="$2">
         <HStack justifyContent="space-between" alignItems="center">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
@@ -48,56 +198,130 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
             </Pressable>
             <VStack>
               <Heading size="lg" color="$text900" fontWeight="$black">Sales History</Heading>
-              <Text size="xs" color="$text500">Track and manage past sales</Text>
+              <Text size="xs" color="$text500">Monthly Audit Ledger</Text>
             </VStack>
           </HStack>
 
           <HStack space="sm" alignItems="center">
             {syncStatus === SyncStatus.Syncing ? (
-                <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
-                    <Spinner color="$primary600" size="small" />
-                    <Text size="xs" color="$primary600" fontWeight="$bold">Syncing...</Text>
-                </HStack>
+                <Spinner color="$primary600" size="small" />
             ) : (
                 <Pressable
-                    onPress={triggerManualSync}
-                    bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
-                    px="$4"
-                    py="$2"
+                    onPress={() => refreshSales()}
+                    p="$2"
                     rounded="$full"
-                    style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
+                    bg="$white"
+                    style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
                 >
-                    <HStack space="xs" alignItems="center">
-                        <Icon
-                            as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
-                            color="$white"
-                            size="xs"
-                        />
-                        <Text size="xs" color="$white" fontWeight="$bold">
-                            {syncStatus === SyncStatus.Error ? 'Retry' : 'Sync'}
-                        </Text>
-                    </HStack>
+                    <Icon as={RefreshCw} color="$primary600" size="sm" />
                 </Pressable>
             )}
           </HStack>
         </HStack>
       </Box>
 
-      {/* Stats Summary Bar */}
+      {/* Month Selection Carousel - Ensuring items start fresh for each month */}
+      <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2" mb="$2">
+        <HStack justifyContent="space-between" alignItems="center" px="$4">
+          <Pressable p="$2" onPress={handlePrevMonth}>
+            <Icon as={ChevronLeft} color="$primary700" size="sm" />
+          </Pressable>
+          <HStack space="xs" alignItems="center">
+            <Icon as={Calendar} size="xs" color="$primary600" />
+            <Heading size="sm" color="$text900" fontWeight="$bold">{monthLabel}</Heading>
+          </HStack>
+          <Pressable p="$2" onPress={handleNextMonth}>
+            <Icon as={ChevronRight} color="$primary700" size="sm" />
+          </Pressable>
+        </HStack>
+      </Box>
+
+      {/* Date & Keyword Filter Selection Row */}
+      <Box px="$4" pb="$3">
+        <VStack space="sm">
+          <Input variant="outline" size="sm" borderRadius={12} bg="$white">
+            <InputSlot pl="$3">
+              <MaterialCommunityIcons name="magnify" size={16} color="#666" />
+            </InputSlot>
+            <InputField
+              placeholder="Search by sale code, customer name or date..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="$text400"
+            />
+            {searchQuery.length > 0 && (
+              <InputSlot pr="$3" onPress={() => setSearchQuery('')}>
+                <MaterialCommunityIcons name="close-circle" size={16} color="#999" />
+              </InputSlot>
+            )}
+          </Input>
+
+          <HStack space="sm" alignItems="center">
+            <Box flex={1}>
+              <Input variant="outline" size="sm" borderRadius={12} bg="$white">
+                <InputField
+                  placeholder="Day filter (YYYY-MM-DD)"
+                  value={selectedDateFilter}
+                  onChangeText={setSelectedDateFilter}
+                  placeholderTextColor="$text400"
+                />
+                {selectedDateFilter.length > 0 && (
+                  <InputSlot pr="$3" onPress={() => setSelectedDateFilter('')}>
+                    <MaterialCommunityIcons name="close-circle" size={16} color="#999" />
+                  </InputSlot>
+                )}
+              </Input>
+            </Box>
+            <Pressable onPress={() => {
+                const d = new Date();
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                setSelectedDateFilter(key);
+            }} bg="$primary50" px="$3" py="$2" rounded="$lg">
+              <Text size="xs" color="$primary700" fontWeight="$bold">Today</Text>
+            </Pressable>
+          </HStack>
+        </VStack>
+      </Box>
+
+      {/* Stats Summary Bar for the Month */}
       <Box bg="$white" px="$5" py="$4" borderBottomWidth={1} borderColor="$borderLight">
         <HStack space="md" alignItems="center">
             <VStack flex={1} alignItems="center" space="xs">
-                <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Transactions</Text>
-                <Heading size="md" color="$text900">{sales.length}</Heading>
+                <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Month Trans.</Text>
+                <Heading size="md" color="$text900">{filteredSales.length}</Heading>
             </VStack>
             <Divider orientation="vertical" h="$10" />
             <VStack flex={1} alignItems="center" space="xs">
-                <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Total Volume</Text>
+                <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Month Total</Text>
                 <Heading size="md" color="$primary800">
-                    {currency}{sales.reduce((acc, curr) => acc + curr.totalAmount, 0).toFixed(2)}
+                    {currency}{filteredSales.reduce((acc, curr) => acc + (curr.isReverted === 1 ? 0 : curr.totalAmount), 0).toFixed(2)}
                 </Heading>
             </VStack>
         </HStack>
+      </Box>
+
+      {/* Batch Actions Row */}
+      <Box px="$4" py="$3">
+        <Pressable
+          onPress={handlePrintSelected}
+          bg={selectedSaleIds.length > 0 ? "$primary600" : "$white"}
+          borderWidth={1}
+          borderColor="$primary600"
+          p="$3"
+          rounded="$xl"
+          style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(110,59,230,0.1)' }) }}
+        >
+          <HStack space="sm" alignItems="center" justifyContent="center">
+            <MaterialCommunityIcons
+              name="printer-check"
+              size={18}
+              color={selectedSaleIds.length > 0 ? "#fff" : "#6E3BE6"}
+            />
+            <Text color={selectedSaleIds.length > 0 ? "$white" : "$primary600"} fontWeight="$bold" size="sm">
+              {selectedSaleIds.length > 0 ? `Print (${selectedSaleIds.length}) Transactions` : 'Print Month Summary'}
+            </Text>
+          </HStack>
+        </Pressable>
       </Box>
 
       {isLoading ? (
@@ -105,21 +329,42 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
           <Spinner size="large" color="$primary800" />
         </Center>
       ) : (
-        <FlatList
-          data={sales}
+        <SectionList
+          sections={groupedSales}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: 16 }}
+          renderSectionHeader={({ section: { title } }) => (
+            <Box bg="$backgroundLight50" px="$5" py="$3" mb="$2">
+              <HStack alignItems="center" space="sm">
+                <MaterialCommunityIcons name="calendar-range" size={14} color="#666" />
+                <Text size="xs" color="$text600" fontWeight="$bold" textTransform="uppercase">
+                  {title}
+                </Text>
+              </HStack>
+            </Box>
+          )}
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          stickySectionHeadersEnabled={true}
           ListEmptyComponent={
             <Center mt="$20">
               <VStack space="md" alignItems="center">
                 <MaterialCommunityIcons name="history" size={64} color="#ccc" />
-                <Text color="$text400">No sales recorded yet.</Text>
+                <Text color="$text400">No sales for {monthLabel}.</Text>
               </VStack>
             </Center>
           }
         />
       )}
+
+      <SaleDetailModal
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        sale={selectedSale}
+        items={saleItems}
+        currency={currency}
+        onPrint={handlePrint}
+        onRefundItem={handleRefundItem}
+      />
     </Box>
   );
 };

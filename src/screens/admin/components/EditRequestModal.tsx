@@ -32,11 +32,21 @@ import {
 const SHOP_TYPES = [
   'Provision',
   'Supermarket',
+  'Electronics',
+  'Mobile & Accessories',
   'Electrical',
   'Spare Parts',
-  'Clothing',
-  'Pharmacy',
   'Hardware',
+  'Construction Materials',
+  'Clothing',
+  'Boutique',
+  'Pharmacy',
+  'Beauty & Cosmetics',
+  'Restaurant & Food',
+  'Stationery & Bookshop',
+  'Furniture',
+  'Jewelry',
+  'Auto Dealer',
   'Other'
 ];
 

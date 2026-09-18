@@ -129,6 +129,7 @@ module.exports = {
       '@react-native-firebase/app': path.resolve(appDirectory, 'src/firebase-config.ts'),
       '@react-native-firebase/auth': path.resolve(appDirectory, 'src/auth-web-mock.ts'),
       '@react-native-firebase/firestore': path.resolve(appDirectory, 'src/firestore-web-mock.ts'),
+      '@react-native-clipboard/clipboard': path.resolve(appDirectory, 'src/clipboard-web-mock.ts'),
     },
     extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.jsx', '.jsx', '.web.js', '.js', '.mjs', '.json'],
     modules: [path.resolve(appDirectory, 'node_modules'), 'node_modules'],

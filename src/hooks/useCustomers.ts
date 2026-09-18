@@ -68,7 +68,6 @@ export const useCustomers = (shopId: string) => {
       };
       await repo.insertCustomer(newCustomer);
       setCustomers(prev => [newCustomer, ...prev]);
-      triggerSync(safeShopId);
     } catch (e: any) {
       setError(e.message);
     }
@@ -89,7 +88,6 @@ export const useCustomers = (shopId: string) => {
       };
       await repo.recordPayment(payment);
       await loadData();
-      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }
@@ -117,7 +115,6 @@ export const useCustomers = (shopId: string) => {
       };
       await repo.recordReturn(returnOrder);
       await loadData();
-      triggerSync(shopId);
     } catch (e: any) {
       setError(e.message);
     }

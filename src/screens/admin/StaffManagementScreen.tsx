@@ -21,8 +21,8 @@ import { Appbar } from 'react-native-paper';
 import { User, ShieldCheck, CreditCard } from 'lucide-react-native';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 import StaffMemberItem from './components/StaffMemberItem';
 
@@ -31,9 +31,17 @@ type Props = StackScreenProps<RootStackParamList, 'StaffManagement'>;
 const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   const { shopId } = route.params;
   const [employees, setEmployees] = useState<any[]>([]);
+  const [shopInfo, setShopInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch shop info for plan details
+    firebase.firestore().collection('registered_shops').doc(shopId).get()
+      .then(doc => {
+        if (doc.exists) setShopInfo(doc.data());
+      })
+      .catch(err => console.error("StaffManagement: Error fetching shop info", err));
+
     const unsubscribe = firebase.firestore().collection('employees')
       .where('shopId', '==', shopId)
       .onSnapshot(snapshot => {
@@ -64,7 +72,16 @@ const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
             </Pressable>
             <VStack>
               <Heading size="lg" color="$text900" fontWeight="$black">Staff List</Heading>
-              <Text size="xs" color="$text500">Manage your shop team</Text>
+              {shopInfo && (
+                  <HStack space="xs" alignItems="center">
+                    <Badge action="info" variant="outline" size="sm" rounded="$md">
+                        <BadgeText size="2xs">{shopInfo.plan || 'STARTER'}</BadgeText>
+                    </Badge>
+                    <Text size="xs" color="$text500">
+                        {employees.length} / {shopInfo.plan === 'STARTER' ? '3' : '∞'} Staff
+                    </Text>
+                  </HStack>
+              )}
             </VStack>
           </HStack>
         </HStack>

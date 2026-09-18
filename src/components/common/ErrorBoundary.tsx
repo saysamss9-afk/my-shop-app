@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Heading, Button, ButtonText, Center, Icon, VStack } from '@gluestack-ui/themed';
 import { AlertTriangle } from 'lucide-react-native';

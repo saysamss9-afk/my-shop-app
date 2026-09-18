@@ -34,7 +34,7 @@ const SilkyButton: React.FC<SilkyButtonProps> = ({ children, onPress, style, ico
           boxShadow: (disabled || loading) ? 'none' : '0 14px 40px rgba(138,79,255,0.18)',
           elevation: 4,
           flexDirection: 'row',
-        }}
+        } as any}
       >
         {loading ? (
           <Text color="white" fontWeight="$bold">Loading...</Text>

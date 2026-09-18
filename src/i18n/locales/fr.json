@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "register_business": "Enregistrer l'entreprise",
+    "register_business_desc": "Fournissez des détails pour obtenir votre code de boutique.",
+    "business_identity": "Identité de l'entreprise",
+    "full_name": "Nom complet",
+    "owner_name_placeholder": "Nom du propriétaire",
+    "whatsapp_number": "Numéro WhatsApp",
+    "whatsapp_placeholder": "ex. +233...",
+    "shop_name": "Nom de la boutique",
+    "shop_name_placeholder": "Nom commercial officiel",
+    "business_category": "Catégorie d'entreprise",
+    "select_category": "Sélectionner une catégorie",
+    "next_location": "Suivant : Emplacement",
+    "location_currency": "Emplacement et devise",
+    "country": "Pays",
+    "select_country": "Choisir le pays",
+    "currency_auto": "Devise (Remplie automatiquement)",
+    "business_address": "Adresse de l'entreprise",
+    "full_address_placeholder": "Adresse complète",
+    "back": "Retour",
+    "next_plan": "Suivant : Choisir le forfait",
+    "choose_plan": "Choisir le plan d'enregistrement",
+    "per_annum": "par an",
+    "submit_registration": "Soumettre l'inscription",
+    "admin_verify_note": "L'administrateur vérifiera vos coordonnées et générera un code de boutique pour vous.",
+    "request_submitted": "Demande soumise !",
+    "request_submitted_desc": "Votre demande a été reçue. Notre équipe vous contactera sous peu sur WhatsApp avec votre code de boutique unique.",
+    "back_to_start": "Retour au début"
+  },
+  "common": {
+    "missing_info": "Informations manquantes",
+    "missing_info_desc": "Veuillez remplir tous les champs de cette étape.",
+    "error": "Erreur",
+    "session_expired": "Votre session a expiré. Veuillez vous reconnecter.",
+    "select_category_error": "Veuillez sélectionner une catégorie de boutique.",
+    "search_placeholder": "Rechercher..."
+  }
+}

@@ -5,7 +5,7 @@ import { WifiOff } from 'lucide-react-native';
 const OfflineBanner = () => {
   const [isOffline, setIsOffline] = useState(() => {
     if (typeof navigator === 'undefined') return false;
-    return typeof navigator.onLine === 'boolean' ? !navigator.onLine : false;
+    return typeof (navigator as any).onLine === 'boolean' ? !(navigator as any).onLine : false;
   });
 
   useEffect(() => {
@@ -19,7 +19,7 @@ const OfflineBanner = () => {
         return;
       }
 
-      setIsOffline(typeof navigator.onLine === 'boolean' ? !navigator.onLine : false);
+      setIsOffline(typeof (navigator as any).onLine === 'boolean' ? !(navigator as any).onLine : false);
     };
 
     updateConnection();

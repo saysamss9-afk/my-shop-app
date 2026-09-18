@@ -8,14 +8,13 @@ import {
   Icon,
   Pressable,
 } from '@gluestack-ui/themed';
-import { ArrowLeft, Scan } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 
 interface Props {
   onBack: () => void;
-  onOpenScanner: () => void;
 }
 
-const CheckoutHeader: React.FC<Props> = ({ onBack, onOpenScanner }) => {
+const CheckoutHeader: React.FC<Props> = ({ onBack }) => {
   return (
     <Box px="$2" pt="$2" pb="$4">
       <HStack justifyContent="space-between" alignItems="center">
@@ -25,12 +24,9 @@ const CheckoutHeader: React.FC<Props> = ({ onBack, onOpenScanner }) => {
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">Checkout</Heading>
-            <Text size="xs" color="$text500">Scan or search items</Text>
+            <Text size="xs" color="$text500">Quickly add items to cart</Text>
           </VStack>
         </HStack>
-        <Pressable onPress={onOpenScanner} p="$3" bg="$white" rounded="$full">
-          <Icon as={Scan} color="$primary600" size="md" />
-        </Pressable>
       </HStack>
     </Box>
   );

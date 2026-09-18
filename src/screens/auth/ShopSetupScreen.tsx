@@ -52,6 +52,8 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
             checkEmployee();
           }
         }
+      }, error => {
+        console.warn('ShopSetupScreen: Error listening to shop requests', error);
       });
 
     return () => unsubscribe();

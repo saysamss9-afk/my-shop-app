@@ -19,6 +19,7 @@ export class SyncManager {
   private isNetworkListenerActive: boolean = false;
   private onDataChangedCallback: (() => void) | null = null;
   private realtimeUnsubscribers: (() => void)[] = [];
+  private readonly SYNC_BUFFER_MS = 300000; // 5 minute overlap to handle clock skew during delta sync
 
   constructor(
     private productRepo: ProductRepository,
@@ -27,6 +28,10 @@ export class SyncManager {
     private supplierRepo: SupplierRepository,
     private customerRepo: CustomerRepository
   ) {}
+
+  public getStatus(): SyncStatus {
+    return this.status;
+  }
 
   public setOnDataChanged(callback: () => void) {
     this.onDataChangedCallback = callback;
@@ -42,206 +47,16 @@ export class SyncManager {
   }
 
   private handleOnline = () => {
-    console.log('Browser is back online, triggering sync...');
-    this.triggerSync();
+    // Background auto sync disabled
   };
 
   private setupNetworkListener() {
-    if (this.isNetworkListenerActive) return;
-
-    this.isNetworkListenerActive = true;
-    window.addEventListener('online', this.handleOnline);
-
-    if (typeof navigator !== 'undefined' && (navigator as any).onLine) {
-      this.triggerSync();
-    }
+    // Background network listener disabled for pure manual delta synchronization
   }
 
   public startRealtimeSync(shopId: string) {
-    if (!shopId) return;
-    if (this.realtimeUnsubscribers.length > 0) return;
-
-    console.log('Starting web real-time sync for shop:', shopId);
-
-    try {
-        const productUnsub = firebase.firestore()
-          .collection('shops')
-          .doc(shopId)
-          .collection('products')
-          .onSnapshot(async (snapshot) => {
-            if (!snapshot) return;
-            let changed = false;
-            for (const change of snapshot.docChanges()) {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const data = change.doc.data();
-                    const local = await this.productRepo.getProductById(data.id);
-                    if (local && (local.syncStatus === 0 || local.status === 'DELETED')) continue;
-
-                    if (data.status === 'DELETED') {
-                        await this.productRepo.deleteProduct(data.id);
-                        changed = true;
-                        continue;
-                    }
-
-                    const productToInsert = {
-                        id: data.id,
-                        shopId: data.shopId,
-                        categoryId: data.categoryId ?? (local ? local.categoryId : null),
-                        name: data.name ?? (local ? local.name : 'Unknown Product'),
-                        description: data.description ?? (local ? local.description : null),
-                        barcode: data.barcode ?? (local ? local.barcode : null),
-                        bulkBarcode: data.bulkBarcode ?? (local ? local.bulkBarcode : null),
-                        bulkQuantity: data.bulkQuantity ?? (local ? local.bulkQuantity : 1),
-                        bulkPrice: data.bulkPrice ?? (local ? local.bulkPrice : 0),
-                        bulkStockQuantity: data.bulkStockQuantity ?? (local ? local.bulkStockQuantity : 0),
-                        bulkUnit: data.bulkUnit ?? (local ? local.bulkUnit : 'Carton'),
-                        price: data.price ?? (local ? local.price : 0),
-                        costPrice: data.costPrice ?? (local ? local.costPrice : 0),
-                        stockQuantity: data.stockQuantity ?? (local ? local.stockQuantity : 0),
-                        minStockLevel: data.minStockLevel ?? (local ? local.minStockLevel : 0),
-                        unit: data.unit ?? (local ? local.unit : 'pcs'),
-                        supplierId: data.supplierId ?? (local ? local.supplierId : null),
-                        status: data.status ?? (local ? local.status : 'ACTIVE'),
-                        syncStatus: 1
-                    };
-
-                    if (local) {
-                        if (data.stockQuantity === 0 && local.stockQuantity > 0) productToInsert.stockQuantity = local.stockQuantity;
-                        if (data.price === 0 && local.price > 0) productToInsert.price = local.price;
-                        if (data.costPrice === 0 && local.costPrice > 0) productToInsert.costPrice = local.costPrice;
-                        if (data.bulkStockQuantity === 0 && local.bulkStockQuantity > 0) productToInsert.bulkStockQuantity = local.bulkStockQuantity;
-                    }
-
-                    await this.productRepo.insertProduct(productToInsert);
-                    changed = true;
-                }
-            }
-            if (changed) this.onDataChangedCallback?.();
-          }, (err) => console.warn('Product sync error:', err.message));
-
-        const categoryUnsub = firebase.firestore()
-          .collection('shops')
-          .doc(shopId)
-          .collection('categories')
-          .onSnapshot(async (snapshot) => {
-            if (!snapshot) return;
-            let changed = false;
-            for (const change of snapshot.docChanges()) {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const data = change.doc.data();
-                    await this.categoryRepo.db.executeSql(
-                        'INSERT OR REPLACE INTO Category(id, shopId, name, syncStatus) VALUES (?, ?, ?, 1)',
-                        [data.id, data.shopId, data.name]
-                    );
-                    changed = true;
-                }
-            }
-            if (changed) this.onDataChangedCallback?.();
-          }, (err) => console.warn('Category sync error:', err.message));
-
-        const supplierUnsub = firebase.firestore()
-          .collection('shops')
-          .doc(shopId)
-          .collection('suppliers')
-          .onSnapshot(async (snapshot) => {
-            if (!snapshot) return;
-            let changed = false;
-            for (const change of snapshot.docChanges()) {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const data = change.doc.data();
-                    const local = await this.supplierRepo.getSupplierById(data.id);
-                    if (local && local.syncStatus === 0) continue;
-
-                    await this.supplierRepo.insertSupplier({
-                        id: data.id,
-                        shopId: data.shopId,
-                        name: data.name ?? (local ? local.name : 'Unknown Supplier'),
-                        contactPerson: data.contactPerson ?? (local ? local.contactPerson : null),
-                        email: data.email ?? (local ? local.email : null),
-                        phone: data.phone ?? (local ? local.phone : null),
-                        address: data.address ?? (local ? local.address : null),
-                        contactInfo: data.contactInfo ?? (local ? local.contactInfo : (data.phone ?? null)),
-                        currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
-                        syncStatus: 1
-                    });
-                    changed = true;
-                }
-            }
-            if (changed) this.onDataChangedCallback?.();
-          }, (err) => console.warn('Supplier sync error:', err.message));
-
-        const customerUnsub = firebase.firestore()
-          .collection('shops')
-          .doc(shopId)
-          .collection('customers')
-          .onSnapshot(async (snapshot) => {
-            if (!snapshot) return;
-            let changed = false;
-            for (const change of snapshot.docChanges()) {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const data = change.doc.data();
-                    const local = await this.customerRepo.getCustomerById(data.id);
-                    if (local && local.syncStatus === 0) continue;
-
-                    await this.customerRepo.insertCustomer({
-                        id: data.id,
-                        shopId: data.shopId,
-                        name: data.name ?? (local ? local.name : 'Unknown Customer'),
-                        phone: data.phone ?? (local ? local.phone : null),
-                        email: data.email ?? (local ? local.email : null),
-                        currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
-                        syncStatus: 1
-                    });
-                    changed = true;
-                }
-            }
-            if (changed) this.onDataChangedCallback?.();
-          }, (err) => console.warn('Customer sync error:', err.message));
-
-        const saleUnsub = firebase.firestore()
-          .collection('shops')
-          .doc(shopId)
-          .collection('sales')
-          .onSnapshot(async (snapshot) => {
-            if (!snapshot) return;
-            let changed = false;
-            for (const change of snapshot.docChanges()) {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const data = change.doc.data();
-                    await this.saleRepo.upsertRemoteSale(data, data.items || []);
-                    changed = true;
-                }
-            }
-            if (changed) this.onDataChangedCallback?.();
-          }, (err) => console.warn('Sale sync error:', err.message));
-
-        const expenseUnsub = firebase.firestore()
-          .collection('shops')
-          .doc(shopId)
-          .collection('expenses')
-          .onSnapshot(async (snapshot) => {
-            if (!snapshot) return;
-            let changed = false;
-            for (const change of snapshot.docChanges()) {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const data = change.doc.data();
-                    await this.productRepo.db.executeSql(
-                        'INSERT OR REPLACE INTO Expense(id, shopId, category, amount, description, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
-                        [data.id, data.shopId, data.category, data.amount, data.description || null, data.timestamp, 1]
-                    );
-                    changed = true;
-                }
-            }
-            if (changed) this.onDataChangedCallback?.();
-          }, (err) => console.warn('Expense sync error:', err.message));
-
-        this.realtimeUnsubscribers.push(
-            productUnsub, categoryUnsub, supplierUnsub,
-            customerUnsub, saleUnsub, expenseUnsub
-        );
-    } catch (e) {
-        console.error('Failed to start real-time sync listeners:', e);
-    }
+    // Pure offline-first: Real-time listeners disabled. Syncing only triggered manually.
+    console.log('Web real-time sync disabled for offline-first design.');
   }
 
   public stopRealtimeSync() {
@@ -251,7 +66,7 @@ export class SyncManager {
     this.realtimeUnsubscribers = [];
   }
 
-  async triggerSync(shopIdInput?: string | any, deepSync = false) {
+  async triggerSync(shopIdInput?: string | any) {
     if (this.status === SyncStatus.Syncing) return;
 
     const shopId = typeof shopIdInput === 'object' ? shopIdInput.shopId : shopIdInput;
@@ -265,8 +80,11 @@ export class SyncManager {
     this.onDataChangedCallback?.();
 
     try {
+      // 0. Pull Shop Details first to establish metadata and fix permissions (self-healing)
+      // This ensures subsequent pushes/pulls have correct permissions if ownerId was missing.
+      await this.safeSync('PullShopDetails', () => this.pullShopDetails(shopId));
+
       // 1. First PUSH local changes (Sync Up)
-      // This is ALWAYS done to ensure local work is saved to the cloud
       await this.safeSync('Sales', () => this.syncSales(shopId));
       await this.safeSync('Products', () => this.syncProducts(shopId));
       await this.safeSync('Categories', () => this.syncCategories(shopId));
@@ -274,21 +92,59 @@ export class SyncManager {
       await this.safeSync('Customers', () => this.syncCustomers(shopId));
       await this.safeSync('Payments', () => this.syncPayments(shopId));
       await this.safeSync('SupplierPayments', () => this.syncSupplierPayments(shopId));
+      await this.safeSync('ExpensesPush', () => this.syncExpenses(shopId));
 
-      // 2. Then PULL changes from remote (Sync Down)
-      // Only do full collection pulls if deepSync is requested (e.g., initial load or manual deep sync)
-      // Otherwise, real-time listeners handle incremental updates efficiently.
-      if (deepSync) {
-          console.log('[SYNC] Performing deep sync (full collection pull)...');
-          await this.safeSync('PullProducts', () => this.pullProducts(shopId));
-          await this.safeSync('PullCategories', () => this.pullCategories(shopId));
-          await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId));
-          await this.safeSync('PullCustomers', () => this.pullCustomers(shopId));
-          // Note: Add pullSales or pullExpenses if needed for deep reconciliation
+      // Fetch persistent lastSynced timestamp for Delta Pull
+      let lastSyncedTime = 0;
+      try {
+        const shopResult = await this.productRepo.db.executeSql('SELECT lastSynced FROM Shop WHERE id = ?', [shopId]);
+        if (shopResult && shopResult[0] && shopResult[0].rows && shopResult[0].rows.length > 0) {
+          lastSyncedTime = shopResult[0].rows.item(0).lastSynced || 0;
+        }
+      } catch (err) {
+        console.error('Error fetching lastSynced from Shop:', err);
+      }
+
+      // 2. Then PULL changes from remote (Delta Sync Down)
+      // Use a small overlap buffer to ensure no items are missed due to clock skew between devices.
+      const effectiveLastSynced = Math.max(0, lastSyncedTime - this.SYNC_BUFFER_MS);
+
+      // Fetch local user role to determine pull permissions
+      let userRole = 'SALES';
+      try {
+          const auth = firebase.auth();
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+              const empResult = await this.productRepo.db.executeSql('SELECT role FROM Employee WHERE id = ?', [currentUser.uid]);
+              if (empResult[0]?.rows?.length > 0) {
+                  userRole = empResult[0].rows.item(0).role;
+              }
+          }
+      } catch (e) {}
+
+      const isManager = userRole === 'OWNER' || userRole === 'MANAGER';
+
+      if (isManager) {
+        await this.safeSync('PullEmployees', () => this.pullEmployees(shopId, effectiveLastSynced));
+      }
+      await this.safeSync('PullProducts', () => this.pullProducts(shopId, effectiveLastSynced));
+      await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced));
+      await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced));
+      await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced));
+      await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced));
+      if (isManager) {
+        await this.safeSync('PullExpenses', () => this.pullExpenses(shopId, effectiveLastSynced));
+      }
+
+      const syncCompletionTime = Date.now();
+      try {
+        await this.productRepo.db.executeSql('UPDATE Shop SET lastSynced = ? WHERE id = ?', [syncCompletionTime, shopId]);
+      } catch (err) {
+        console.error('Error updating lastSynced in Shop:', err);
       }
 
       this.status = SyncStatus.Success;
-      this.lastSynced = Date.now();
+      this.lastSynced = syncCompletionTime;
     } catch (error) {
       console.error('Overall sync process failed:', error);
       this.status = SyncStatus.Error;
@@ -303,30 +159,24 @@ export class SyncManager {
     }
   }
 
-  private async pullProducts(shopId: string) {
+  private async pullProducts(shopId: string, lastSyncedTime: number) {
       try {
-          const snapshot = await firebase.firestore()
-              .collection('shops')
-              .doc(shopId)
-              .collection('products')
-              .get();
+          let queryRef: any = firebase.firestore().collection('shops').doc(shopId).collection('products');
+          if (lastSyncedTime > 0) {
+            queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+          }
+          const snapshot = await queryRef.get();
 
               for (const doc of snapshot.docs) {
                 const data = doc.data();
-
-                // If we have a local unsynced product, prefer local changes
                 const local = await this.productRepo.getProductById(data.id);
                 if (local && (local.syncStatus === 0 || local.status === 'DELETED')) continue;
 
-                // If the remote product is marked as DELETED, we should actually remove it locally
                 if (data.status === 'DELETED') {
                     await this.productRepo.deleteProduct(data.id);
                     continue;
                 }
 
-                // Merge remote values with local defaults to avoid overwriting
-                // local numeric values with zeros when the remote document
-                // doesn't include those fields or has buggy zero values.
                 const productToInsert = {
                   id: data.id,
                   shopId: data.shopId,
@@ -349,9 +199,6 @@ export class SyncManager {
                   syncStatus: 1
                 };
 
-                // CRITICAL FIX: If local stock/price is > 0 but remote is 0,
-                // and we just created/updated this locally, don't let the remote
-                // wipe it out if the remote might be stale or corrupted.
                 if (local) {
                     if (data.stockQuantity === 0 && local.stockQuantity > 0) productToInsert.stockQuantity = local.stockQuantity;
                     if (data.price === 0 && local.price > 0) productToInsert.price = local.price;
@@ -366,13 +213,32 @@ export class SyncManager {
       }
   }
 
-  private async pullCategories(shopId: string) {
+  private async pullEmployees(shopId: string, lastSyncedTime: number) {
       try {
-          const snapshot = await firebase.firestore()
-              .collection('shops')
-              .doc(shopId)
-              .collection('categories')
-              .get();
+          // Scoped down to the branch directly. We fetch all employees of the branch to avoid
+          // requiring any Firestore composite index configurations on root-level collections.
+          const queryRef = firebase.firestore().collection('employees').where('shopId', '==', shopId);
+          const snapshot = await queryRef.get();
+
+          for (const doc of snapshot.docs) {
+              const data = doc.data();
+              await this.categoryRepo.db.executeSql(
+                  'INSERT OR REPLACE INTO Employee(id, shopId, name, role, email) VALUES (?, ?, ?, ?, ?)',
+                  [data.uid || doc.id, data.shopId, data.name || 'Unknown Staff', data.role || 'SALES', data.email || '']
+              );
+          }
+      } catch (e) {
+          console.error('Web Pull Employees Error:', e);
+      }
+  }
+
+  private async pullCategories(shopId: string, lastSyncedTime: number) {
+      try {
+          let queryRef: any = firebase.firestore().collection('shops').doc(shopId).collection('categories');
+          if (lastSyncedTime > 0) {
+            queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+          }
+          const snapshot = await queryRef.get();
 
           for (const doc of snapshot.docs) {
               const data = doc.data();
@@ -386,13 +252,13 @@ export class SyncManager {
       }
   }
 
-  private async pullSuppliers(shopId: string) {
+  private async pullSuppliers(shopId: string, lastSyncedTime: number) {
       try {
-          const snapshot = await firebase.firestore()
-              .collection('shops')
-              .doc(shopId)
-              .collection('suppliers')
-              .get();
+          let queryRef: any = firebase.firestore().collection('shops').doc(shopId).collection('suppliers');
+          if (lastSyncedTime > 0) {
+            queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+          }
+          const snapshot = await queryRef.get();
 
           for (const doc of snapshot.docs) {
               const data = doc.data();
@@ -417,13 +283,13 @@ export class SyncManager {
       }
   }
 
-  private async pullCustomers(shopId: string) {
+  private async pullCustomers(shopId: string, lastSyncedTime: number) {
       try {
-          const snapshot = await firebase.firestore()
-              .collection('shops')
-              .doc(shopId)
-              .collection('customers')
-              .get();
+          let queryRef: any = firebase.firestore().collection('shops').doc(shopId).collection('customers');
+          if (lastSyncedTime > 0) {
+            queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+          }
+          const snapshot = await queryRef.get();
 
           for (const doc of snapshot.docs) {
               const data = doc.data();
@@ -443,6 +309,99 @@ export class SyncManager {
       } catch (e) {
           console.error('Web Pull Customers Error:', e);
       }
+  }
+
+  private async pullSales(shopId: string, lastSyncedTime: number) {
+    try {
+      let queryRef: any = firebase.firestore().collection('shops').doc(shopId).collection('sales');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.saleRepo.upsertRemoteSale(data, data.items || []);
+      }
+    } catch (e) {
+      console.error('Web Pull Sales Error:', e);
+    }
+  }
+
+  private async pullExpenses(shopId: string, lastSyncedTime: number) {
+    try {
+      let queryRef: any = firebase.firestore().collection('shops').doc(shopId).collection('expenses');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        await this.productRepo.db.executeSql(
+          'INSERT OR REPLACE INTO Expense(id, shopId, category, amount, description, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
+          [data.id, data.shopId, data.category, data.amount, data.description || null, data.timestamp]
+        );
+      }
+    } catch (e) {
+      console.error('Web Pull Expenses Error:', e);
+    }
+  }
+
+  private async pullShopDetails(shopId: string) {
+    try {
+      const doc = await firebase.firestore().collection('registered_shops').doc(shopId).get();
+      if (doc.exists) {
+        const data = doc.data();
+        if (data) {
+          const plan = (data.plan || 'STARTER').toUpperCase();
+
+          // Self-healing: if ownerId is missing in Firestore, try to repair it if current user is OWNER
+          const currentUser = firebase.auth().currentUser;
+          if (!data.ownerId && currentUser) {
+             const empResult = await this.productRepo.db.executeSql('SELECT role FROM Employee WHERE id = ?', [currentUser.uid]);
+             if (empResult[0]?.rows?.length > 0 && empResult[0].rows.item(0).role === 'OWNER') {
+                console.log('SyncManager: Repairing missing ownerId in Firestore...');
+                await firebase.firestore().collection('registered_shops').doc(shopId).update({ ownerId: currentUser.uid });
+             }
+          }
+
+          const shopResult = await this.productRepo.db.executeSql('SELECT id FROM Shop WHERE id = ?', [shopId]);
+          const exists = shopResult[0]?.rows?.length > 0;
+
+          if (exists) {
+            await this.productRepo.db.executeSql(
+              'UPDATE Shop SET name = ?, currency = ?, [plan] = ?, country = ?, ownerId = ?, parentShopId = ? WHERE id = ?',
+              [
+                data.name || '',
+                data.currency || '$',
+                plan,
+                data.country || '',
+                data.ownerId || '',
+                data.parentShopId || null,
+                shopId
+              ]
+            );
+          } else {
+            await this.productRepo.db.executeSql(
+              'INSERT INTO Shop (id, name, currency, [plan], country, ownerId, parentShopId) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              [
+                shopId,
+                data.name || '',
+                data.currency || '$',
+                plan,
+                data.country || '',
+                data.ownerId || '',
+                data.parentShopId || null
+              ]
+            );
+          }
+          console.log(`SyncManager (Web): Shop metadata updated. Plan: ${plan}`);
+        }
+      }
+    } catch (e) {
+      console.error('Web Pull Shop Details Error:', e);
+    }
   }
 
   private async safeSync(name: string, syncFn: () => Promise<void>) {
@@ -479,9 +438,10 @@ export class SyncManager {
       const saleRef = firebase.firestore().collection('shops').doc(targetShopId).collection('sales').doc(sale.id);
 
       if (sale.isReverted === 1) {
-        batch.delete(saleRef);
+        // Soft delete on Firestore to ensure other devices see the revert in delta pull
+        batch.set(saleRef, { id: sale.id, shopId: targetShopId, isReverted: true, lastUpdated: Date.now() }, { merge: true });
       } else {
-        const items = await this.saleRepo.getItemsForSale(sale.id);
+        const items = await this.saleRepo.getDetailedItemsForSale(sale.id);
         const saleData = {
           id: sale.id,
           shopId: targetShopId,
@@ -489,6 +449,7 @@ export class SyncManager {
           timestamp: sale.timestamp || Date.now(),
           totalAmount: sale.totalAmount ?? 0,
           isReverted: sale.isReverted === 1,
+          lastUpdated: Date.now(),
           items: items.map(item => ({
             productId: item.productId || "",
             quantity: item.quantity ?? 0,
@@ -544,7 +505,8 @@ export class SyncManager {
       const productRef = firebase.firestore().collection('shops').doc(targetShopId).collection('products').doc(product.id);
 
       if (product.status === 'DELETED') {
-        batch.delete(productRef);
+        // Soft delete on Firestore to ensure other devices see the deletion in delta pull
+        batch.set(productRef, { id: product.id, shopId: targetShopId, status: 'DELETED', lastUpdated: Date.now() }, { merge: true });
       } else {
         const productData = {
           id: product.id,
@@ -564,7 +526,8 @@ export class SyncManager {
           minStockLevel: product.minStockLevel ?? 0,
           unit: product.unit || "pcs",
           supplierId: product.supplierId || null,
-          status: product.status || 'ACTIVE'
+          status: product.status || 'ACTIVE',
+          lastUpdated: Date.now()
         };
         batch.set(productRef, productData, { merge: true });
       }
@@ -600,7 +563,8 @@ export class SyncManager {
       const data = {
         id: cat.id,
         shopId: cat.shopId,
-        name: cat.name || "Unnamed Category"
+        name: cat.name || "Unnamed Category",
+        lastUpdated: Date.now()
       };
       batch.set(ref, data, { merge: true });
       count++;
@@ -653,7 +617,8 @@ export class SyncManager {
         phone: supplier.phone || null,
         address: supplier.address || null,
         contactInfo: supplier.contactInfo || null,
-        currentBalance: supplier.currentBalance ?? 0
+        currentBalance: supplier.currentBalance ?? 0,
+        lastUpdated: Date.now()
       };
 
       batch.set(supplierRef, supplierData, { merge: true });
@@ -704,7 +669,8 @@ export class SyncManager {
         name: customer.name || "Unknown Customer",
         phone: customer.phone || null,
         email: customer.email || null,
-        currentBalance: customer.currentBalance ?? 0
+        currentBalance: customer.currentBalance ?? 0,
+        lastUpdated: Date.now()
       };
 
       batch.set(customerRef, customerData, { merge: true });
@@ -749,7 +715,8 @@ export class SyncManager {
         amount: payment.amount ?? 0,
         paymentMethod: payment.paymentMethod || "CASH",
         timestamp: payment.timestamp || Date.now(),
-        note: payment.note || null
+        note: payment.note || null,
+        lastUpdated: Date.now()
       };
 
       batch.set(paymentRef, paymentData, { merge: true });
@@ -792,7 +759,8 @@ export class SyncManager {
                 paymentMethod: p.paymentMethod || "CASH",
                 reference: p.reference || null,
                 timestamp: p.timestamp || Date.now(),
-                note: p.note || null
+                note: p.note || null,
+                lastUpdated: Date.now()
             };
             batch.set(ref, data, { merge: true });
         }
@@ -802,6 +770,57 @@ export class SyncManager {
         }
     } catch (e) {
         console.error('Web Supplier Payment Sync Error:', e);
+    }
+  }
+
+  private async syncExpenses(shopId: string) {
+    try {
+      const results = await this.productRepo.db.executeSql(
+        'SELECT * FROM Expense WHERE syncStatus = 0 AND shopId = ?',
+        [shopId]
+      );
+      const expenses = (results[0]?.rows as any)?._array || [];
+
+      if (expenses.length === 0) return;
+
+      let batch = firebase.firestore().batch();
+      let count = 0;
+      const syncedIds: string[] = [];
+
+      for (const exp of expenses) {
+        const ref = firebase.firestore().collection('shops').doc(shopId).collection('expenses').doc(exp.id);
+        batch.set(ref, {
+          id: exp.id,
+          shopId: shopId,
+          category: exp.category,
+          amount: exp.amount,
+          description: exp.description || null,
+          timestamp: exp.timestamp,
+          lastUpdated: Date.now()
+        }, { merge: true });
+
+        count++;
+        syncedIds.push(exp.id);
+
+        if (count === this.BATCH_LIMIT) {
+          await batch.commit();
+          for (const id of syncedIds) {
+            await this.productRepo.db.executeSql('UPDATE Expense SET syncStatus = 1 WHERE id = ?', [id]);
+          }
+          batch = firebase.firestore().batch();
+          count = 0;
+          syncedIds.length = 0;
+        }
+      }
+
+      if (count > 0) {
+        await batch.commit();
+        for (const id of syncedIds) {
+          await this.productRepo.db.executeSql('UPDATE Expense SET syncStatus = 1 WHERE id = ?', [id]);
+        }
+      }
+    } catch (e) {
+      console.error('Web Expense Push Sync Error:', e);
     }
   }
 

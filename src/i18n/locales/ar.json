@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "register_business": "تسجيل النشاط التجاري",
+    "register_business_desc": "قدم التفاصيل للحصول على رمز متجرك.",
+    "business_identity": "هوية العمل",
+    "full_name": "الاسم الكامل",
+    "owner_name_placeholder": "اسم المالك",
+    "whatsapp_number": "رقم الواتساب",
+    "whatsapp_placeholder": "مثلاً +233...",
+    "shop_name": "اسم المتجر",
+    "shop_name_placeholder": "الاسم التجاري الرسمي",
+    "business_category": "فئة العمل",
+    "select_category": "اختر الفئة",
+    "next_location": "التالي: الموقع",
+    "location_currency": "الموقع والعملة",
+    "country": "البلد",
+    "select_country": "اختر البلد",
+    "currency_auto": "العملة (تعبئة تلقائية)",
+    "business_address": "عنوان العمل",
+    "full_address_placeholder": "العنوان الكامل",
+    "back": "رجوع",
+    "next_plan": "التالي: اختر الخطة",
+    "choose_plan": "اختر خطة التسجيل",
+    "per_annum": "سنوياً",
+    "submit_registration": "إرسال التسجيل",
+    "admin_verify_note": "سيقوم المسؤول بالتحقق من تفاصيلك وإنشاء رمز متجر لك.",
+    "request_submitted": "تم إرسال الطلب!",
+    "request_submitted_desc": "لقد تم استلام طلبك. سيتواصل فريقنا معك عبر الواتساب لتزويدك برمز متجرك الفريد قريباً.",
+    "back_to_start": "العودة للبداية"
+  },
+  "common": {
+    "missing_info": "معلومات ناقصة",
+    "missing_info_desc": "يرجى إكمال جميع الحقول في هذه الخطوة.",
+    "error": "خطأ",
+    "session_expired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+    "select_category_error": "يرجى اختيار فئة المتجر.",
+    "search_placeholder": "بحث..."
+  }
+}

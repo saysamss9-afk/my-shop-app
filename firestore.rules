@@ -8,27 +8,43 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Replace "YOUR_SPECIFIC_FIREBASE_UID" with your actual UID from Firebase Console
     function isAppOwner() {
       return isAuthenticated() && request.auth.uid == "l2JP5nnzVSP6gd8aSDEqI60Tbfl2";
     }
 
-    // Check if user is the direct owner of the shop in registered_shops
+    // Get shop metadata from the registered_shops collection
+    function getShopData(shopId) {
+      return get(/databases/$(database)/documents/registered_shops/$(shopId)).data;
+    }
+
+    // Check if user is the owner of a shop or owner of its parent shop
     function isShopOwner(shopId) {
       return isAuthenticated() && (
         isAppOwner() ||
-        (exists(/databases/$(database)/documents/registered_shops/$(shopId)) &&
-         get(/databases/$(database)/documents/registered_shops/$(shopId)).data.ownerId == request.auth.uid)
+        (exists(/databases/$(database)/documents/registered_shops/$(shopId)) && (
+          getShopData(shopId).get('ownerId', null) == request.auth.uid ||
+          ((getShopData(shopId).get('ownerId', null) == null || getShopData(shopId).get('ownerId', '') == '') &&
+           exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('shopId', null) == shopId &&
+           get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('role', 'SALES') == "OWNER") ||
+          (getShopData(shopId).get('parentShopId', null) != null &&
+           exists(/databases/$(database)/documents/registered_shops/$(getShopData(shopId).parentShopId)) &&
+           (getShopData(getShopData(shopId).parentShopId).get('ownerId', null) == request.auth.uid ||
+            ((getShopData(getShopData(shopId).parentShopId).get('ownerId', null) == null || getShopData(getShopData(shopId).parentShopId).get('ownerId', '') == '') &&
+             exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('shopId', null) == getShopData(shopId).parentShopId &&
+             get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('role', 'SALES') == "OWNER")))
+        ))
       );
     }
 
-    // Check if user is staff of a shop
+    // Check if user is a staff member of a shop
     function isStaff(shopId) {
       return isAuthenticated() && (
         isAppOwner() ||
         isShopOwner(shopId) ||
         (exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.shopId == shopId)
+         get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('shopId', null) == shopId)
       );
     }
 
@@ -38,93 +54,95 @@ service cloud.firestore {
         isAppOwner() ||
         isShopOwner(shopId) ||
         (exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.shopId == shopId &&
-         (get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == "OWNER" ||
-          get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == "MANAGER"))
+         get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('shopId', null) == shopId &&
+         (get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('role', 'SALES') in ['OWNER', 'MANAGER']))
       );
+    }
+
+    // Logic to enforce plan-based staff limits
+    function canJoinShop(shopId) {
+      return exists(/databases/$(database)/documents/registered_shops/$(shopId)) &&
+             (getShopData(shopId).get('plan', 'STARTER') != "STARTER" ||
+              getShopData(shopId).get('staffCount', 0) < 3);
     }
 
     // --- Collection Rules ---
 
-    // Registered Shops (Global metadata)
-    match /registered_shops/{shopId} {
-      // Anyone can verify a specific shop code (get)
+    // Public lookup mapping for friendly branch registration codes
+    match /shop_codes/{shopCode} {
       allow get: if true;
-      // Only authenticated users can list shops
-      allow list: if isAuthenticated();
-      // Only the App Owner can create new registered shops
-      allow create: if isAppOwner();
-      // Only the owner of the shop or App Owner can update metadata
-      allow update: if isAppOwner() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
-      allow delete: if isAppOwner();
+      allow create: if isAppOwner() || (
+        isAuthenticated() && (
+          (request.resource.data.get('parentShopId', null) != null && isShopOwner(request.resource.data.parentShopId)) ||
+          isShopOwner(request.resource.data.shopId)
+        )
+      );
+      allow delete: if isAppOwner() || isShopOwner(resource.data.shopId);
     }
 
-    // Shop Requests (Users request a shop to be created)
+    // Registered Shops metadata
+    match /registered_shops/{shopId} {
+      allow get: if true;
+      allow list: if isAppOwner() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+
+      // Create main shop (Admin) or Branch (Premium Owner)
+      allow create: if isAppOwner() || (
+        isAuthenticated() &&
+        request.resource.data.get('parentShopId', null) != null &&
+        isShopOwner(request.resource.data.parentShopId) &&
+        getShopData(request.resource.data.parentShopId).get('plan', 'STARTER') == "PREMIUM" &&
+        getShopData(request.resource.data.parentShopId).get('branchCount', 0) < 4
+      );
+
+      // Owner/Admin updates, Staff increment staffCount, or Owner claims unassigned shop
+      allow update: if isAppOwner() || (
+        isAuthenticated() && (
+          isShopOwner(shopId) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['staffCount']) &&
+           request.resource.data.get('staffCount', 0) == resource.data.get('staffCount', 0) + 1) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['branchCount'])) ||
+          // Special case: Owner claims their shop record if ownerId is missing
+          ((resource.data.get('ownerId', null) == null || resource.data.get('ownerId', '') == '') &&
+           request.resource.data.ownerId == request.auth.uid &&
+           exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('shopId', null) == shopId &&
+           get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.get('role', 'SALES') == "OWNER")
+        )
+      );
+
+      allow delete: if isAppOwner() || isShopOwner(shopId);
+    }
+
+    // Shop Requests
     match /shop_requests/{requestId} {
-      allow read: if isAppOwner();
-      allow create: if true; // Allow anyone to submit a shop request
+      allow read: if isAppOwner() || (isAuthenticated() && (
+        resource.data.get('userId', null) == request.auth.uid ||
+        resource.data.get('userEmail', '') == request.auth.token.email
+      ));
+      allow create: if true;
       allow update, delete: if isAppOwner();
     }
 
-    // Root Employees collection (used for login and staff management)
-    match /employees/{uid} {
-      // Users can read and write their own profile
-      allow read, write: if isAuthenticated() && request.auth.uid == uid;
-      // Managers can read and update staff records for their shop
-      allow read, update, delete: if isAuthenticated() && isManager(resource.data.shopId);
+    // Plan Upgrades
+    match /plan_upgrade_requests/{id} {
+      allow read: if isAppOwner();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAppOwner();
     }
 
-    // Shop-scoped data
+    // Employee Records
+    match /employees/{uid} {
+      allow read: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.get('shopId', '')));
+      allow create: if isAuthenticated() && request.auth.uid == uid && canJoinShop(request.resource.data.get('shopId', ''));
+      allow update, delete: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.get('shopId', '')));
+    }
+
+    // Shop data (Products, Sales, etc.)
     match /shops/{shopId} {
       allow get: if isAuthenticated();
 
-      // Products & Inventory: Staff can manage daily operations, Managers can delete
-      match /products/{productId} {
-        allow read, create, update: if isStaff(shopId);
-        allow delete: if isManager(shopId);
-      }
-
-      match /categories/{categoryId} {
-        allow read, create, update: if isStaff(shopId);
-        allow delete: if isManager(shopId);
-      }
-
-      // Sales: Staff can record sales, Managers can view/edit history
-      match /sales/{saleId} {
-        allow read, create: if isStaff(shopId);
-        allow update, delete: if isManager(shopId);
-      }
-
-      // Suppliers: Staff can manage contacts, Managers can delete
-      match /suppliers/{supplierId} {
-        allow read, create, update: if isStaff(shopId);
-        allow delete: if isManager(shopId);
-      }
-
-      // Payments (Customer Debt Payments)
-      match /payments/{paymentId} {
+      match /{document=**} {
         allow read, write: if isStaff(shopId);
-      }
-
-      // Supplier Payments
-      match /supplier_payments/{paymentId} {
-        allow read, write: if isStaff(shopId);
-      }
-
-      // Customers & Debts
-      match /customers/{customerId} {
-        allow read, write: if isStaff(shopId);
-      }
-
-      // Expenses & Audit Logs: Restricted to Managers
-      match /expenses/{expenseId} {
-        allow read, write: if isManager(shopId);
-      }
-
-      match /audit_logs/{logId} {
-        allow read: if isManager(shopId);
-        allow create: if isStaff(shopId); // Allow staff to trigger logs
-        allow update, delete: if false;   // Logs should be immutable
       }
     }
   }

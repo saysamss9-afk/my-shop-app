@@ -18,26 +18,22 @@ import {
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import RNPrint from 'react-native-print';
+import { Platform } from 'react-native';
 
 // Sub-components
 import AnalyticsHeader from './components/AnalyticsHeader';
-import FinancialSummaryCard from './components/FinancialSummaryCard';
 import TopProductsList from './components/TopProductsList';
 import CashierPerformanceList from './components/CashierPerformanceList';
 
 const AnalyticsScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
   const {
-    summary,
-    expenses,
     topProducts,
     cashierPerformance,
     currency,
     isLoading,
     loadAnalytics
   } = useAnalytics(shopId);
-
-  const netProfit = (summary?.totalProfit || 0) - expenses;
 
   const handleRefresh = () => {
     const now = Date.now();
@@ -46,29 +42,74 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
   };
 
   const handleExport = async () => {
-    try {
-        const html = `
-            <html>
-                <body style="font-family: Arial; padding: 20px;">
-                    <h1 style="color: #1A237E; text-align: center;">Business Intelligence Report</h1>
-                    <hr/>
-                    <div style="margin: 20px 0;">
-                        <h2>Financial Summary</h2>
-                        <p>Total Revenue: <b>${currency}${summary?.totalRevenue.toFixed(2)}</b></p>
-                        <p>Total Expenses: <b>${currency}${expenses.toFixed(2)}</b></p>
-                        <p>Net Profit: <b>${currency}${netProfit.toFixed(2)}</b></p>
-                    </div>
-                    <hr/>
-                    <h2>Top Products</h2>
-                    <ul>
-                        ${topProducts.map(p => `<li>${p.name}: ${p.totalQuantity} units - ${currency}${p.totalRevenue.toFixed(2)}</li>`).join('')}
-                    </ul>
-                </body>
-            </html>
-        `;
-        await RNPrint.print({ html });
-    } catch (e) {
-        Alert.alert("Export Error", "Could not generate report.");
+    const html = `
+        <html>
+            <body style="font-family: Arial, sans-serif; padding: 30px; color: #333;">
+                <h1 style="color: #1A237E; text-align: center; margin-bottom: 10px;">Item Performance Report</h1>
+                <p style="text-align: center; color: #666;">Generated on ${new Date().toLocaleString()}</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;"/>
+
+                <h2 style="color: #1A237E; border-bottom: 2px solid #1A237E; padding-bottom: 5px;">Top Performing Products</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="text-align: left; padding: 12px; border: 1px solid #dee2e6;">Product Name</th>
+                            <th style="text-align: center; padding: 12px; border: 1px solid #dee2e6;">Units Sold</th>
+                            <th style="text-align: right; padding: 12px; border: 1px solid #dee2e6;">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${topProducts.map(p => `
+                            <tr>
+                                <td style="padding: 12px; border: 1px solid #dee2e6;">${p.name}</td>
+                                <td style="text-align: center; padding: 12px; border: 1px solid #dee2e6;">${p.totalQuantity}</td>
+                                <td style="text-align: right; padding: 12px; border: 1px solid #dee2e6;">${currency}${p.totalRevenue.toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <h2 style="color: #1A237E; border-bottom: 2px solid #1A237E; padding-bottom: 5px; margin-top: 40px;">Cashier Performance</h2>
+                 <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa;">
+                            <th style="text-align: left; padding: 12px; border: 1px solid #dee2e6;">Staff Name</th>
+                            <th style="text-align: center; padding: 12px; border: 1px solid #dee2e6;">Sales Count</th>
+                            <th style="text-align: right; padding: 12px; border: 1px solid #dee2e6;">Total Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${cashierPerformance.map(cp => `
+                            <tr>
+                                <td style="padding: 12px; border: 1px solid #dee2e6;">${cp.employeeName}</td>
+                                <td style="text-align: center; padding: 12px; border: 1px solid #dee2e6;">${cp.saleCount}</td>
+                                <td style="text-align: right; padding: 12px; border: 1px solid #dee2e6;">${currency}${cp.totalRevenue.toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <footer style="margin-top: 50px; text-align: center; font-size: 12px; color: #999;">
+                    Powered by My Shop Business Intelligence
+                </footer>
+            </body>
+        </html>
+    `;
+
+    if (Platform.OS === 'web') {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.print();
+        } else {
+            Alert.alert("Print Error", "Pop-up blocked. Please allow pop-ups for this site.");
+        }
+    } else {
+        try {
+            await RNPrint.print({ html });
+        } catch (e) {
+            Alert.alert("Export Error", "Could not generate report.");
+        }
     }
   };
 
@@ -87,38 +128,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
         </Center>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-
-          <FinancialSummaryCard
-            totalRevenue={summary?.totalRevenue || 0}
-            expenses={expenses}
-            netProfit={netProfit}
-            currency={currency}
-          />
-
           <VStack space="xl">
-            <VStack space="md">
-              <Heading size="sm" color="$text900" px="$1">SALES BREAKDOWN</Heading>
-              <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden">
-                <VStack>
-                  <HStack p="$4" justifyContent="space-between" alignItems="center">
-                    <HStack space="sm" alignItems="center">
-                      <Icon as={TrendingUp} color="$success600" />
-                      <Text size="sm" fontWeight="$medium">Gross Profit</Text>
-                    </HStack>
-                    <Text size="md" fontWeight="$bold" color="$text900">{currency}{summary?.totalProfit.toFixed(2)}</Text>
-                  </HStack>
-                  <Divider />
-                  <HStack p="$4" justifyContent="space-between" alignItems="center">
-                    <HStack space="sm" alignItems="center">
-                      <Icon as={TrendingDown} color="$error600" />
-                      <Text size="sm" fontWeight="$medium">Operation Costs</Text>
-                    </HStack>
-                    <Text size="md" fontWeight="$bold" color="$text900">-{currency}{expenses.toFixed(2)}</Text>
-                  </HStack>
-                </VStack>
-              </Box>
-            </VStack>
-
             <TopProductsList
                 products={topProducts}
                 currency={currency}

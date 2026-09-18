@@ -5,7 +5,8 @@ export class SupplierRepository {
   constructor(public db: SQLiteDatabase) {}
 
   async insertSupplier(supplier: Supplier) {
-    if (!supplier.shopId || supplier.shopId === 'undefined') {
+    const safeShopId = supplier.shopId?.toString().trim();
+    if (!safeShopId || safeShopId === 'undefined') {
         throw new Error(`Invalid Shop ID: Supplier ${supplier.id} must be linked to a shop.`);
     }
 
@@ -14,7 +15,7 @@ export class SupplierRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
-      supplier.id, supplier.shopId, supplier.name,
+      supplier.id, safeShopId, supplier.name,
       supplier.contactPerson || null, supplier.email || null,
       supplier.phone || null, supplier.address || null,
       supplier.contactInfo || null, supplier.currentBalance || 0,
