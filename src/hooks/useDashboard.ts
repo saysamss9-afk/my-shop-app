@@ -15,6 +15,7 @@ export const useDashboard = (shopId: string) => {
   const [lastSynced, setLastSynced] = useState<number>(0);
   const [currency, setCurrency] = useState('$');
   const [shopName, setShopName] = useState('');
+  const [shopCode, setShopCode] = useState<string | null>(null);
   const [shopPlan, setShopPlan] = useState<'STARTER' | 'BUSINESS' | 'PREMIUM'>('STARTER');
   const [parentShopId, setParentShopId] = useState<string | null>(null);
 
@@ -32,11 +33,12 @@ export const useDashboard = (shopId: string) => {
       const productRepo = new ProductRepository(db);
       const analyticsRepo = new AnalyticsRepository(db);
 
-      const shopResults = await db.executeSql('SELECT name, currency, [plan], parentShopId FROM Shop WHERE id = ?', [shopId]);
+      const shopResults = await db.executeSql('SELECT name, currency, [plan], parentShopId, shopCode FROM Shop WHERE id = ?', [shopId]);
       const shopRow = shopResults[0]?.rows?.length ? shopResults[0].rows.item(0) : null;
       if (shopRow) {
         setCurrency(shopRow.currency || '$');
         setShopName(shopRow.name || '');
+        setShopCode(shopRow.shopCode || null);
         const normalizedPlan = (shopRow.plan || 'STARTER').toUpperCase();
         setShopPlan(normalizedPlan as any);
         setParentShopId(shopRow.parentShopId || null);
@@ -82,6 +84,7 @@ export const useDashboard = (shopId: string) => {
     revenue,
     currency,
     shopName,
+    shopCode,
     shopPlan,
     parentShopId,
     lastSynced,

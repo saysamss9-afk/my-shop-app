@@ -222,19 +222,23 @@ export const createTables = async (db: SQLiteDatabase) => {
   }
 
   // Schema Migrations (v2 additions)
-  try {
-      await db.executeSql('ALTER TABLE Supplier ADD COLUMN contactPerson TEXT');
-      await db.executeSql('ALTER TABLE Supplier ADD COLUMN email TEXT');
-      await db.executeSql('ALTER TABLE Supplier ADD COLUMN phone TEXT');
-      await db.executeSql('ALTER TABLE Supplier ADD COLUMN address TEXT');
-  } catch (e) {}
+  const migrations = [
+    'ALTER TABLE Supplier ADD COLUMN contactPerson TEXT',
+    'ALTER TABLE Supplier ADD COLUMN email TEXT',
+    'ALTER TABLE Supplier ADD COLUMN phone TEXT',
+    'ALTER TABLE Supplier ADD COLUMN address TEXT',
+    'ALTER TABLE Product ADD COLUMN bulkUnit TEXT DEFAULT \'Carton\'',
+    'ALTER TABLE Shop ADD COLUMN [plan] TEXT DEFAULT \'STARTER\'',
+    'ALTER TABLE Shop ADD COLUMN parentShopId TEXT',
+    'ALTER TABLE Shop ADD COLUMN shopCode TEXT',
+  ];
 
-  try {
-      await db.executeSql('ALTER TABLE Product ADD COLUMN bulkUnit TEXT DEFAULT \'Carton\'');
-  } catch (e) {}
-
-  try {
-      await db.executeSql('ALTER TABLE Shop ADD COLUMN [plan] TEXT DEFAULT \'STARTER\'');
-      await db.executeSql('ALTER TABLE Shop ADD COLUMN parentShopId TEXT');
-  } catch (e) {}
+  for (const migration of migrations) {
+    try {
+      await db.executeSql(migration);
+    } catch (e) {
+      // Gracefully handle "duplicate column name" errors
+      console.log(`Migration skipped or already applied: ${migration}`);
+    }
+  }
 };

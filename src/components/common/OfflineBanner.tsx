@@ -1,34 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Box, HStack, Text, Icon } from '@gluestack-ui/themed';
 import { WifiOff } from 'lucide-react-native';
+import NetInfo from '@react-native-community/netinfo';
 
 const OfflineBanner = () => {
-  const [isOffline, setIsOffline] = useState(() => {
-    if (typeof navigator === 'undefined') return false;
-    return typeof (navigator as any).onLine === 'boolean' ? !(navigator as any).onLine : false;
-  });
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const updateConnection = () => {
-      if (typeof navigator === 'undefined') {
-        setIsOffline(false);
-        return;
-      }
-
-      setIsOffline(typeof (navigator as any).onLine === 'boolean' ? !(navigator as any).onLine : false);
-    };
-
-    updateConnection();
-    window.addEventListener('online', updateConnection);
-    window.addEventListener('offline', updateConnection);
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOffline(state.isConnected === false);
+    });
 
     return () => {
-      window.removeEventListener('online', updateConnection);
-      window.removeEventListener('offline', updateConnection);
+      unsubscribe();
     };
   }, []);
 

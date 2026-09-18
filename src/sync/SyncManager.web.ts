@@ -371,7 +371,7 @@ export class SyncManager {
 
           if (exists) {
             await this.productRepo.db.executeSql(
-              'UPDATE Shop SET name = ?, currency = ?, [plan] = ?, country = ?, ownerId = ?, parentShopId = ? WHERE id = ?',
+              'UPDATE Shop SET name = ?, currency = ?, [plan] = ?, country = ?, ownerId = ?, parentShopId = ?, shopCode = ? WHERE id = ?',
               [
                 data.name || '',
                 data.currency || '$',
@@ -379,12 +379,13 @@ export class SyncManager {
                 data.country || '',
                 data.ownerId || '',
                 data.parentShopId || null,
+                data.shopCode || null,
                 shopId
               ]
             );
           } else {
             await this.productRepo.db.executeSql(
-              'INSERT INTO Shop (id, name, currency, [plan], country, ownerId, parentShopId) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              'INSERT INTO Shop (id, name, currency, [plan], country, ownerId, parentShopId, shopCode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
               [
                 shopId,
                 data.name || '',
@@ -392,7 +393,8 @@ export class SyncManager {
                 plan,
                 data.country || '',
                 data.ownerId || '',
-                data.parentShopId || null
+                data.parentShopId || null,
+                data.shopCode || null
               ]
             );
           }

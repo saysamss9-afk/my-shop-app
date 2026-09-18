@@ -49,6 +49,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
     revenue,
     currency,
     shopName: fetchedShopName,
+    shopCode,
     shopPlan,
     lastSynced,
     triggerSync
@@ -187,6 +188,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
 
       <RevenueHeroCard
         shopId={shopId}
+        shopCode={shopCode}
         shopName={displayShopName}
         revenue={revenue}
         currency={currency}

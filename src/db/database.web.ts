@@ -404,10 +404,10 @@ export const createTables = async (db: any) => {
     id STRING PRIMARY KEY, shopId STRING, name STRING, role STRING, email STRING
   )`;
 
-  const SHOP_COLUMNS = ['id', 'name', 'companyName', 'address', 'ownerId', 'country', 'currency', 'plan', 'parentShopId', 'lastSynced'];
+  const SHOP_COLUMNS = ['id', 'name', 'companyName', 'address', 'ownerId', 'country', 'currency', 'plan', 'parentShopId', 'shopCode', 'lastSynced'];
   const SHOP_CREATE = `CREATE TABLE IF NOT EXISTS Shop (
     id STRING PRIMARY KEY, name STRING, companyName STRING, address STRING, ownerId STRING,
-    country STRING, currency STRING, [plan] STRING, parentShopId STRING, lastSynced INT
+    country STRING, currency STRING, [plan] STRING, parentShopId STRING, shopCode STRING, lastSynced INT
   )`;
 
   await rebuildTableIfMisaligned('Shop', SHOP_COLUMNS, SHOP_CREATE);

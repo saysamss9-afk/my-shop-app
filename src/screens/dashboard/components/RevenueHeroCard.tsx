@@ -15,6 +15,7 @@ import { useResponsive } from '../../../hooks/useResponsive';
 
 interface Props {
   shopId: string;
+  shopCode?: string | null;
   shopName: string;
   revenue: number;
   currency: string;
@@ -23,7 +24,7 @@ interface Props {
   onUpgradePress?: () => void;
 }
 
-const RevenueHeroCard: React.FC<Props> = ({ shopId, shopName, revenue, currency, lastSynced, userRole, onUpgradePress }) => {
+const RevenueHeroCard: React.FC<Props> = ({ shopId, shopCode, shopName, revenue, currency, lastSynced, userRole, onUpgradePress }) => {
   const { isLandscape, isTablet } = useResponsive();
 
   const isWide = isTablet && isLandscape;
@@ -58,7 +59,9 @@ const RevenueHeroCard: React.FC<Props> = ({ shopId, shopName, revenue, currency,
         >
           <VStack>
              <Text color="white" size={isWide ? "sm" : "xs"} opacity={0.7}>Shop: {shopName}</Text>
-             <Text color="white" size={isWide ? "sm" : "xs"} opacity={0.7}>Shop ID: {shopId}</Text>
+             <Text color="white" size={isWide ? "sm" : "xs"} opacity={0.7}>
+               {shopCode ? `Branch Code: ${shopCode}` : `Shop ID: ${shopId}`}
+             </Text>
              {lastSynced > 0 && (
                <Text color="white" size={isWide ? "sm" : "xs"} opacity={0.7}>
                  Synced: {new Date(lastSynced).toLocaleTimeString()}

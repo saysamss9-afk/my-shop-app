@@ -165,6 +165,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
 
       await firebase.firestore().collection('registered_shops').doc(shopId).set({
         id: shopId,
+        shopCode: shopId, // Store shopId as shopCode for HQs to maintain consistency
         ownerId: request.userId, // Link the ownerId from the request
         name: request.shopName,
         type: request.shopType,
