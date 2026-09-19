@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StatusBar } from 'react-native';
+import { ScrollView, StatusBar, Image } from 'react-native';
 import {
   Box,
   VStack,
@@ -49,7 +49,11 @@ const AboutScreen = () => {
         >
           <VStack space="md" alignItems="center">
             <Center w={80} h={80} rounded="$2xl" bg="$primary50">
-              <AppIcon name="store" size={40} color="#E65100" />
+              <Image
+                source={require('../../../myshop-logo.png')}
+                style={{ width: 60, height: 60 }}
+                resizeMode="contain"
+              />
             </Center>
             <VStack alignItems="center">
               <Heading size="xl" color="$text900" fontWeight="$black">My Shop</Heading>

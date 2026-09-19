@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StatusBar } from 'react-native';
+import { ScrollView, StatusBar, Image } from 'react-native';
 import {
   Box,
   VStack,
@@ -78,7 +78,11 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
               bg="$white"
               style={{ ...getAppShadow({ offsetY: 16, radius: 26, color: 'rgba(0, 0, 0, 0.18)', opacity: 0.18 }) }}
             >
-              <AppIcon name="store" size={58} color="#E65100" />
+              <Image
+                source={require('../../../myshop-logo.png')}
+                style={{ width: 80, height: 80 }}
+                resizeMode="contain"
+              />
             </Center>
 
             <VStack alignItems="center" space="xs">

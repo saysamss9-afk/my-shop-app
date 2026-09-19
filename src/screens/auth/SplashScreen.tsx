@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Animated, StatusBar, Dimensions, Easing } from 'react-native';
+import { StyleSheet, Animated, StatusBar, Dimensions, Easing, Image } from 'react-native';
 import { Box, Center, VStack, Text, Heading } from '@gluestack-ui/themed';
 import AppIcon from '../../components/common/AppIcon';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -178,7 +178,11 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
               justifyContent="center"
               style={styles.logoShadow}
             >
-              <AppIcon name="store" size={72} color="#E65100" />
+              <Image
+                source={require('../../../myshop-logo.png')}
+                style={{ width: 100, height: 100 }}
+                resizeMode="contain"
+              />
 
               {/* Internal pulse ring */}
               <Box
