@@ -20,9 +20,11 @@ import {
   Center,
 } from '@gluestack-ui/themed';
 import { ChevronLeft, ChevronRight, Landmark, Zap, Briefcase, Home, Wrench } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { useExpenses } from '../../hooks/useExpenses';
 import { getAppShadow } from '../../utils/platformStyles';
+import { displayAlert } from '../../utils/alert';
 import type { Expense } from '../../db/types';
 
 const CATEGORIES = [
@@ -43,6 +45,7 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handlePrevMonth = () => {
     const d = new Date(currentDate);
@@ -59,7 +62,7 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
   const handleAddExpense = async () => {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount.');
+      displayAlert('Error', 'Please enter a valid amount.');
       return;
     }
 
@@ -69,8 +72,9 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
       setAmount('');
       setDescription('');
       setModalVisible(false);
+      displayAlert("Success", "Expenditure has been recorded successfully.");
     } catch (err) {
-      alert('Failed to save expenditure.');
+      displayAlert("Error", "Failed to save expenditure.");
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +124,7 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <Box bg="$primary800" px="$4" py="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
+      <Box bg="$primary800" px="$4" pt={Math.max(insets.top, 10)} pb="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
         <HStack space="md" alignItems="center">
           <Pressable onPress={() => navigation.goBack()}>
             <Icon as={ChevronLeft} color="$white" size="md" />

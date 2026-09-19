@@ -7,6 +7,7 @@ import {
 import { Appbar } from 'react-native-paper';
 import { ArrowLeftIcon } from '@gluestack-ui/themed';
 import { LogOut } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   viewMode: string;
@@ -15,8 +16,9 @@ interface Props {
 }
 
 const AdminHeader: React.FC<Props> = ({ viewMode, onBack, onSignOut }) => {
+  const insets = useSafeAreaInsets();
   return (
-    <Box bg="$primary800">
+    <Box bg="$primary800" pt={insets.top}>
       <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
         <Pressable onPress={onBack} p="$2">
           <Icon as={ArrowLeftIcon} color="white" />

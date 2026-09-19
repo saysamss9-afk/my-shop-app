@@ -48,10 +48,10 @@ const InventoryHeader: React.FC<Props> = ({
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">
-                {shopName || 'Inventory'}
+                {shopName || 'Products'}
             </Heading>
             <Text size="xs" color="$text500">
-                {shopName ? 'Inventory Management' : 'Manage your shop products'}
+                {shopName ? 'Product Management' : 'Manage your shop products'}
             </Text>
           </VStack>
         </HStack>

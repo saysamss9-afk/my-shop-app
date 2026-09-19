@@ -11,6 +11,7 @@ import {
   Pressable,
   ChevronRightIcon,
   Spinner,
+  Divider,
 } from '@gluestack-ui/themed';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -32,7 +33,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
       color: '#E65100',
     },
     {
-      title: 'Smart Inventory',
+      title: 'Smart Products',
       subtitle: 'Track stock live',
       icon: 'package',
       tint: '#E3F2FD',
@@ -49,7 +50,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <Box flex={1} bg="$surfaceLavender">
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -57,14 +58,16 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         <Box
-          h={320}
+          h={340}
           borderBottomLeftRadius={52}
           borderBottomRightRadius={52}
           justifyContent="center"
           alignItems="center"
+          bg="$secondary600"
           style={{
-            background: 'linear-gradient(135deg, #000000 0%, #222222 100%)',
-            ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(0,0,0,0.20)' }),
+            backgroundColor: '#000000',
+            background: 'linear-gradient(135deg, #000000 0%, #1A1A1A 100%)',
+            ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(0,0,0,0.25)' }),
           } as any}
         >
           <VStack space="md" alignItems="center" px="$8">
@@ -202,8 +205,21 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
 
           <Center mt="$4">
             <VStack space="xs" alignItems="center">
-              <Text size="xs" color="$text400" fontWeight="$bold">V 2.0 • BUILT FOR GROWTH</Text>
-              <Box h={1} w={48} bg="$borderLight" />
+              <HStack space="md" alignItems="center">
+                <Pressable onPress={() => navigation.navigate('About')}>
+                  <Text size="xs" color="$text600" fontWeight="$bold">ABOUT</Text>
+                </Pressable>
+                <Divider orientation="vertical" h={12} />
+                <Pressable onPress={() => navigation.navigate('Terms')}>
+                  <Text size="xs" color="$text600" fontWeight="$bold">TERMS</Text>
+                </Pressable>
+                <Divider orientation="vertical" h={12} />
+                <Pressable onPress={() => navigation.navigate('Privacy')}>
+                  <Text size="xs" color="$text600" fontWeight="$bold">PRIVACY</Text>
+                </Pressable>
+              </HStack>
+              <Box h={1} w={80} bg="$borderLight" mt="$1" />
+              <Text size="2xs" color="$text500" mt="$1">V 2.0 • BUILT FOR GROWTH</Text>
             </VStack>
           </Center>
         </VStack>

@@ -28,6 +28,7 @@ import {
   ButtonText,
 } from '@gluestack-ui/themed';
 import { User, RefreshCw, AlertTriangle, XCircle } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomers } from '../../hooks/useCustomers';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import CustomerListItem from './components/CustomerListItem';
@@ -36,6 +37,7 @@ import PaymentModal from './components/PaymentModal';
 import ReturnModal from './components/ReturnModal';
 import CustomerDetailModal from './components/CustomerDetailModal';
 import { getAppShadow } from '../../utils/platformStyles';
+import { displayAlert } from '../../utils/alert';
 import type { Customer } from '../../db/types';
 import { SyncStatus } from '../../sync/SyncManager';
 
@@ -53,6 +55,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const insets = useSafeAreaInsets();
   const toast = useToast();
 
   const filteredCustomers = useMemo(() => {
@@ -94,7 +97,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
         ),
       });
     } catch (e: any) {
-      Alert.alert("Error", "Failed to add customer: " + e.message);
+      displayAlert("Error", "Failed to add customer: " + e.message);
     }
   };
 
@@ -113,7 +116,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
         ),
       });
     } catch (e: any) {
-      Alert.alert("Error", "Failed to record payment: " + e.message);
+      displayAlert("Error", "Failed to record payment: " + e.message);
     }
   };
 
@@ -132,7 +135,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
         ),
       });
     } catch (e: any) {
-      Alert.alert("Error", "Failed to process return: " + e.message);
+      displayAlert("Error", "Failed to process return: " + e.message);
     }
   };
 
@@ -151,7 +154,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <Box px="$4" pt="$2" pb="$2">
+      <Box px="$4" pt={Math.max(insets.top, 10)} pb="$2">
         <HStack justifyContent="space-between" alignItems="center" mb="$4">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">

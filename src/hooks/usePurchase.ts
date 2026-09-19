@@ -154,14 +154,14 @@ export const usePurchase = (shopId: string) => {
       const db = await getDBConnection();
       const repo = new PurchaseRepository(db);
 
-      const purchaseReturn = {
+      const purchaseReturn: any = {
         id: generateUUID(),
         purchaseOrderId: purchaseId,
         shopId,
         supplierId,
         productId,
         quantity,
-        value,
+        returnValue: value,
         reason,
         timestamp: Date.now(),
         syncStatus: 0

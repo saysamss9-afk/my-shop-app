@@ -17,10 +17,12 @@ import {
   InputSlot,
 } from '@gluestack-ui/themed';
 import { RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSales } from '../../hooks/useSales';
 import type { Sale } from '../../db/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getAppShadow, isWeb } from '../../utils/platformStyles';
+import { displayAlert } from '../../utils/alert';
 import { SyncStatus } from '../../sync/SyncManager';
 import { PrintingService } from '../../services/PrintingService';
 
@@ -32,6 +34,7 @@ import ScreenWrapper from '../../components/common/ScreenWrapper';
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
   const { sales, isLoading, syncStatus, currency, revertSale, triggerManualSync, getSaleDetails, getShopInfo, refreshSales, refundSaleItem } = useSales(shopId);
+  const insets = useSafeAreaInsets();
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -40,8 +43,12 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0, 0).getTime();
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
     refreshSales(startOfMonth, endOfMonth);
-    triggerManualSync();
   }, [currentDate, refreshSales]);
+
+  useEffect(() => {
+    // Trigger sync once when the screen loads to ensure we have the latest items
+    triggerManualSync();
+  }, []);
 
   const handlePrevMonth = () => {
     const d = new Date(currentDate);
@@ -71,7 +78,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   const handlePrintSelected = async () => {
     const selectedSales = filteredSales.filter((s: any) => selectedSaleIds.includes(s.id));
     if (selectedSales.length === 0) {
-      Alert.alert('Error', 'Please select at least one sale to print.');
+      displayAlert('Error', 'Please select at least one sale to print.');
       return;
     }
 
@@ -163,7 +170,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   const handleRefundItem = async (saleItemId: string, qty: number) => {
     const success = await refundSaleItem(saleItemId, qty);
     if (success) {
-      Alert.alert("Success", "Returned item has been successfully reversed back to inventory stock.");
+      displayAlert("Success", "Returned item has been successfully reversed back to product stock.");
       if (selectedSale) {
         const updatedItems = await getSaleDetails(selectedSale.id);
         setSaleItems(updatedItems);
@@ -172,7 +179,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         }
       }
     } else {
-      Alert.alert("Error", "Failed to reverse item stock.");
+      displayAlert("Error", "Failed to reverse item stock.");
     }
   };
 
@@ -192,7 +199,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Modern Header */}
-      <Box pt="$2" pb="$2">
+      <Box pt={Math.max(insets.top, 10)} pb="$2" px="$4">
         <HStack justifyContent="space-between" alignItems="center">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
@@ -209,7 +216,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
                 <Spinner color="$primary600" size="small" />
             ) : (
                 <Pressable
-                    onPress={() => refreshSales()}
+                    onPress={() => triggerManualSync()}
                     p="$2"
                     rounded="$full"
                     bg="$white"

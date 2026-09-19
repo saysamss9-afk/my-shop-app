@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
 import { getDBConnection } from '../db/database';
 import { ProductRepository } from '../repositories/ProductRepository';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import type { Product, Category } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 import { generateUUID } from '../utils/uuid';
+import { displayAlert } from '../utils/alert';
 
 import type { SyncStatus } from '../sync/SyncManager';
 
@@ -57,7 +57,7 @@ export const useInventory = (shopId: string) => {
       const safeShopId = typeof shopId === 'object' ? (shopId as any).shopId : shopId;
 
       if (!safeShopId || safeShopId === 'undefined' || safeShopId === '[object Object]') {
-        Alert.alert("Sync Error", "Inventory cannot be updated because no active shop is selected. Please try logging in again.");
+        displayAlert("Sync Error", "Inventory cannot be updated because no active shop is selected. Please try logging in again.");
         return;
       }
 

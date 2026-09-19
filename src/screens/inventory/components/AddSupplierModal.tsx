@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { displayAlert } from '../../../utils/alert';
 import {
   Heading,
   Icon,
@@ -43,7 +44,7 @@ const AddSupplierModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
 
   const handleSave = () => {
     if (!formData.name) {
-        Alert.alert("Required", "Supplier Name is required.");
+        displayAlert("Required", "Supplier Name is required.");
         return;
     }
     onSave({

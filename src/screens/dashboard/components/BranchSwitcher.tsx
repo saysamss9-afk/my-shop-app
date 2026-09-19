@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import { displayAlert } from '../../../utils/alert';
 import {
   Box,
   HStack,
@@ -102,22 +103,14 @@ const BranchSwitcher: React.FC<Props> = ({ currentShopId, onSwitch }) => {
       }
 
       if (totalUnsynced > 0) {
-        if (Platform.OS === 'web') {
-          const confirmSwitch = window.confirm(
-            `You have ${totalUnsynced} unsynced item(s) on your current branch. Please sync your changes to prevent data loss. Do you want to switch anyway?`
-          );
-          if (!confirmSwitch) return;
-          onSwitch(targetShopId, targetShopName);
-        } else {
-          Alert.alert(
-            'Unsynced Data Warning',
-            `You have ${totalUnsynced} unsynced item(s) on your current branch. We highly recommend syncing before switching branches to avoid any data loss.`,
-            [
-              { text: 'Cancel & Sync First', style: 'cancel' },
-              { text: 'Switch Anyway', style: 'destructive', onPress: () => onSwitch(targetShopId, targetShopName) }
-            ]
-          );
-        }
+        displayAlert(
+          'Unsynced Data Warning',
+          `You have ${totalUnsynced} unsynced item(s) on your current branch. We highly recommend syncing before switching branches to avoid any data loss.`,
+          [
+            { text: 'Cancel & Sync First', style: 'cancel' },
+            { text: 'Switch Anyway', style: 'destructive', onPress: () => onSwitch(targetShopId, targetShopName) }
+          ]
+        );
       } else {
         onSwitch(targetShopId, targetShopName);
       }

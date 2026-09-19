@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform, I18nManager, StatusBar } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform, I18nManager, StatusBar } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import {
   Box,
   VStack,
@@ -39,6 +40,7 @@ import SilkyButton from '../../components/common/SilkyButton';
 import { useAuthContext } from '../../auth/AuthContext';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { User, MapPin, Globe } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { ShopRepository } from '../../repositories/ShopRepository';
 import { getAppShadow } from '../../utils/platformStyles';
@@ -126,6 +128,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
 
   const { user, isLoading: isAuthLoading } = useAuthContext();
   const shopRepo = new ShopRepository();
+  const insets = useSafeAreaInsets();
 
   const handleCountrySelect = (countryName: string) => {
     const selected = getCountryData(countryName);
@@ -147,21 +150,13 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   const nextStep = () => {
     if (currentStep === 1) {
       if (!ownerName || !whatsappNumber || !shopName || !shopType || !email) {
-        if (Platform.OS === 'web') {
-          window.alert("Please fill in all fields including a valid contact email.");
-        } else {
-          Alert.alert(t('common.missing_info'), "Please fill in all fields including a valid contact email.");
-        }
+        displayAlert(t('common.missing_info'), "Please fill in all fields including a valid contact email.");
         return;
       }
     }
     if (currentStep === 2) {
       if (!country || !location) {
-        if (Platform.OS === 'web') {
-          window.alert(t('common.missing_info_desc'));
-        } else {
-          Alert.alert(t('common.missing_info'), t('common.missing_info_desc'));
-        }
+        displayAlert(t('common.missing_info'), t('common.missing_info_desc'));
         return;
       }
     }
@@ -175,11 +170,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
 
     if (!shopCategory) {
       console.warn('ShopRequestScreen: No category selected');
-      if (Platform.OS === 'web') {
-        window.alert(t('common.select_category_error'));
-      } else {
-        Alert.alert(t('common.error'), t('common.select_category_error'));
-      }
+      displayAlert(t('common.error'), t('common.select_category_error'));
       return;
     }
 
@@ -213,7 +204,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
       if (Platform.OS === 'web') {
         setShowSuccess(true);
       } else {
-        Alert.alert(
+        displayAlert(
           t('auth.request_submitted'),
           t('auth.request_submitted_desc'),
           [{ text: "OK", onPress: () => navigation.navigate('Landing') }]
@@ -221,11 +212,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
       }
     } catch (e: any) {
       console.error('ShopRequestScreen: Submission error', e);
-      if (Platform.OS === 'web') {
-        window.alert(`${t('common.error')}: ${e.message || "Failed to submit request."}`);
-      } else {
-        Alert.alert(t('common.error'), e.message || "Failed to submit request.");
-      }
+      displayAlert(t('common.error'), e.message || "Failed to submit request.");
     } finally {
       setLoading(false);
     }
@@ -245,13 +232,13 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <ScreenWrapper scrollable>
+    <ScreenWrapper scrollable withHeader>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'android' ? 'height' : 'padding'}
         style={{ flex: 1 }}
       >
-        <VStack space="md" pb="$10">
+        <VStack space="md" pb="$10" pt={Math.max(insets.top, 10)}>
           <HStack justifyContent="space-between" alignItems="center" mt="$2" mb="$6">
             <Button
               variant="link"

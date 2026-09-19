@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { FlatList, Alert, StatusBar } from 'react-native';
+import { FlatList, StatusBar } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import {
   Box,
   VStack,
@@ -28,6 +29,7 @@ import {
   TrashIcon,
 } from '@gluestack-ui/themed';
 import { ChevronLeft, Plus, Edit2, Layers } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { useCategories } from '../../hooks/useCategories';
 import { getAppShadow, getButtonHeight } from '../../utils/platformStyles';
@@ -45,6 +47,7 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [categoryName, setCategoryName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleOpenAdd = () => {
     setIsEditMode(false);
@@ -62,7 +65,7 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSave = async () => {
     if (!categoryName.trim()) {
-      Alert.alert("Required", "Please enter a category name.");
+      displayAlert("Required", "Please enter a category name.");
       return;
     }
     setSubmitting(true);
@@ -74,14 +77,14 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       }
       setIsModalOpen(false);
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      displayAlert("Error", e.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = (category: any) => {
-    Alert.alert(
+    displayAlert(
       "Delete Category",
       `Are you sure you want to delete "${category.name}"? Products in this category will become uncategorized.`,
       [
@@ -93,7 +96,7 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
             try {
               await deleteCategory(category.id);
             } catch (e: any) {
-              Alert.alert("Error", e.message);
+              displayAlert("Error", e.message);
             }
           }
         }
@@ -116,7 +119,7 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
           </Center>
           <VStack>
             <Text fontWeight="$bold" color="$text900" size="md">{item.name}</Text>
-            <Text size="xs" color="$text500">Inventory Classification</Text>
+            <Text size="xs" color="$text500">Product Classification</Text>
           </VStack>
         </HStack>
 
@@ -137,7 +140,7 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <Box px="$4" pt="$2" pb="$4">
+      <Box px="$4" pt={Math.max(insets.top, 10)} pb="$4">
         <HStack space="md" alignItems="center">
           <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
             <Icon as={ChevronLeft} color="$text900" />

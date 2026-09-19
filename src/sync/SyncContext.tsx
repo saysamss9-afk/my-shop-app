@@ -6,6 +6,8 @@ import { CategoryRepository } from '../repositories/CategoryRepository';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { SupplierRepository } from '../repositories/SupplierRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
+import { PurchaseRepository } from '../repositories/PurchaseRepository';
+import { SystemRepository } from '../repositories/SystemRepository';
 
 interface SyncContextType {
   syncManager: SyncManager | null;
@@ -40,8 +42,18 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saleRepo = new SaleRepository(db);
       const supplierRepo = new SupplierRepository(db);
       const customerRepo = new CustomerRepository(db);
+      const purchaseRepo = new PurchaseRepository(db);
+      const systemRepo = new SystemRepository(db);
 
-      syncManager = new SyncManager(productRepo, categoryRepo, saleRepo, supplierRepo, customerRepo);
+      syncManager = new SyncManager(
+        productRepo,
+        categoryRepo,
+        saleRepo,
+        supplierRepo,
+        customerRepo,
+        purchaseRepo,
+        systemRepo
+      );
       syncManager.setOnDataChanged(() => {
         setDataChangeTick(prev => prev + 1);
         setSyncStatus(syncManager.getStatus());

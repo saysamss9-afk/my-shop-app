@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { displayAlert } from '../../../utils/alert';
 import {
   Heading,
   Icon,
@@ -71,7 +71,7 @@ const ReturnModal: React.FC<Props> = ({ isOpen, onClose, onSave, customer, curre
     if (!customer || !selectedItem || !quantity || parseFloat(quantity) <= 0) return;
 
     if (parseFloat(quantity) > selectedItem.totalTaken) {
-        Alert.alert("Invalid Quantity", `Customer only took ${selectedItem.totalTaken} items.`);
+        displayAlert("Invalid Quantity", `Customer only took ${selectedItem.totalTaken} items.`);
         return;
     }
 

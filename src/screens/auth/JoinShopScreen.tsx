@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import {
   Box,
   VStack,
@@ -29,6 +30,7 @@ import {
 } from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
 import { Scan, User, Phone, AlertTriangle } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import firebase from '../../firebase-config';
@@ -60,6 +62,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   const [role, setRole] = useState('SALES');
 
   const { register, linkUserToShop, isLoading, error, isSuccess, user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleVerifyCode = async () => {
     const cleanedCode = shopCode.trim().replace(/\s/g, '');
@@ -98,15 +101,11 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
           staffCount: staffCount,
         });
       } else {
-        if (Platform.OS === 'web') {
-          window.alert('Invalid Shop Code. Please check with your administrator.');
-        } else {
-          Alert.alert('Not Found', 'Invalid Shop Code. Please check with your administrator.');
-        }
+        displayAlert('Not Found', 'Invalid Shop Code. Please check with your administrator.');
       }
     } catch (e: any) {
       console.error('Verify Code Error:', e);
-      Alert.alert('Error', 'Failed to verify shop code: ' + e.message);
+      displayAlert('Error', 'Failed to verify shop code: ' + e.message);
     } finally {
       setIsVerifying(false);
     }
@@ -119,7 +118,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
 
     // Validate core fields
     if (!name || !phoneNumber || !country) {
-      Alert.alert('Error', 'Please provide your name, phone and country.');
+      displayAlert('Error', 'Please provide your name, phone and country.');
       return;
     }
 
@@ -133,13 +132,13 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
       } else {
         // New user: register + link
         if (!email || !password) {
-            Alert.alert('Error', 'Email and password are required for new accounts.');
+            displayAlert('Error', 'Email and password are required for new accounts.');
             return;
         }
         await register(email, password, cleanedCode, role, name, phoneNumber, country);
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      displayAlert('Error', e.message);
     }
   };
 
@@ -156,10 +155,10 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
   }, [isSuccess, localSuccess, user, shopCode, role, shopDetails?.name]);
 
   return (
-    <ScreenWrapper scrollable>
+    <ScreenWrapper scrollable withHeader>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <VStack space="xl" py="$4">
+      <VStack space="xl" py="$4" pt={Math.max(insets.top, 10)}>
           <HStack alignItems="center">
             <Pressable onPress={() => navigation.replace('Landing')} p="$2" bg="$white" rounded="$full">
               <Icon as={ArrowLeftIcon} size="md" color="$primary600" />

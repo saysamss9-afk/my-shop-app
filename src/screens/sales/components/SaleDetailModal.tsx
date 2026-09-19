@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { displayAlert } from '../../../utils/alert';
 import {
   Box,
   VStack,
@@ -114,21 +115,14 @@ const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, curren
                       {sale.isReverted !== 1 && onRefundItem && (
                         <Pressable
                           onPress={() => {
-                            if (typeof window !== 'undefined' && (window as any).confirm) {
-                              if (window.confirm(`Reverse 1 unit of ${item.productName || 'product'} back to stock?`)) {
-                                onRefundItem(item.id, 1);
-                              }
-                            } else {
-                              const { Alert } = require('react-native');
-                              Alert.alert(
-                                "Return Item",
-                                `Reverse 1 unit of "${item.productName || 'product'}" back to stock?`,
-                                [
-                                  { text: "Cancel", style: "cancel" },
-                                  { text: "Confirm", style: "destructive", onPress: () => onRefundItem(item.id, 1) }
-                                ]
-                              );
-                            }
+                            displayAlert(
+                              "Return Item",
+                              `Reverse 1 unit of "${item.productName || 'product'}" back to stock?`,
+                              [
+                                { text: "Cancel", style: "cancel" },
+                                { text: "Confirm", style: "destructive", onPress: () => onRefundItem(item.id, 1) }
+                              ]
+                            );
                           }}
                           p="$2"
                           bg="$error50"

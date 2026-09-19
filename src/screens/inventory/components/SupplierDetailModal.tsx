@@ -72,7 +72,7 @@ const SupplierDetailModal: React.FC<Props> = ({
         <ModalHeader>
           <VStack>
             <Heading size="lg" fontWeight="$black">{supplier.name}</Heading>
-            <GlueText size="xs" color="$text500">Supplier Profile & Inventory</GlueText>
+            <GlueText size="xs" color="$text500">Supplier Profile & Products</GlueText>
           </VStack>
           <ModalCloseButton>
             <Icon as={CloseIcon} />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, Platform, StatusBar } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
   Box,
@@ -32,6 +33,7 @@ import {
   Center,
 } from '@gluestack-ui/themed';
 import { ChevronLeft, MapPin, Building2, Copy, Check, Store, Edit2, Trash2 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { ShopRepository } from '../../repositories/ShopRepository';
 import { useAuthContext } from '../../auth/AuthContext';
@@ -63,6 +65,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   const [newBranchLocation, setNewBranchLocation] = useState('');
   const [newBranchType, setNewBranchType] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const shopRepo = new ShopRepository();
 
@@ -109,7 +112,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleDeleteBranch = (branch: any) => {
-    Alert.alert(
+    displayAlert(
       'Delete Branch',
       `Are you sure you want to permanently delete "${branch.name}"? This action cannot be undone.`,
       [
@@ -126,10 +129,10 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
 
               await shopRepo.deleteBranch(branch.id, branch.shopCode, rootParentId);
               fetchBranches();
-              Alert.alert('Deleted', 'Branch has been removed successfully.');
+              displayAlert('Deleted', 'Branch has been removed successfully.');
             } catch (e: any) {
               console.error(e);
-              Alert.alert('Error', e.message || 'Failed to delete branch.');
+              displayAlert('Error', e.message || 'Failed to delete branch.');
             } finally {
               setLoading(false);
             }
@@ -141,7 +144,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleAddOrUpdateBranch = async () => {
     if (!newBranchName.trim() || !newBranchLocation.trim()) {
-      Alert.alert('Required Fields', 'Please fill in the Branch Name and Location.');
+      displayAlert('Required Fields', 'Please fill in the Branch Name and Location.');
       return;
     }
     setSubmitting(true);
@@ -152,7 +155,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
           location: newBranchLocation.trim(),
           type: newBranchType.trim(),
         });
-        Alert.alert('Success', 'Branch updated successfully!');
+        displayAlert('Success', 'Branch updated successfully!');
       } else {
         const parentShop = await shopRepo.getShopDetails(shopId);
         await shopRepo.createBranch(shopId, {
@@ -163,7 +166,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
           currency: parentShop?.currency || 'GH₵',
           region: parentShop?.region || '',
         });
-        Alert.alert('Success', 'Branch created successfully!');
+        displayAlert('Success', 'Branch created successfully!');
       }
 
       setNewBranchName('');
@@ -175,7 +178,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       fetchBranches();
     } catch (e: any) {
       console.error(e);
-      Alert.alert('Error', e.message || 'Action failed. Please try again.');
+      displayAlert('Error', e.message || 'Action failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +188,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
     <ScreenWrapper withHeader>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <VStack space="xl" pb="$10" pt="$2">
+        <VStack space="xl" pb="$10" pt={Math.max(insets.top, 10)} px="$4">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$1" rounded="$full" bg="$backgroundLight50">
               <Icon as={ChevronLeft} size="lg" color="$text900" />

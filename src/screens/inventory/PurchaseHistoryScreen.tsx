@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { FlatList, StatusBar, Alert } from 'react-native';
+import { FlatList, StatusBar } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import {
   Box,
   VStack,
@@ -15,6 +16,7 @@ import {
   BadgeText,
 } from '@gluestack-ui/themed';
 import { ShoppingBag, Calendar, Hash, CreditCard } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePurchase } from '../../hooks/usePurchase';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { getAppShadow } from '../../utils/platformStyles';
@@ -25,6 +27,7 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
   const { purchases, isLoading, refresh, getPurchaseItems, returnPurchaseItem } = usePurchase(shopId);
   const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleShowDetails = async (purchase: any) => {
     const items = await getPurchaseItems(purchase.id);
@@ -45,10 +48,10 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
       );
 
       if (success) {
-          Alert.alert("Success", "Purchase return recorded. Stock and debt updated.");
+          displayAlert("Success", "Purchase return recorded. Stock and debt updated.");
           setIsModalOpen(false); // Close details and refresh
       } else {
-          Alert.alert("Error", "Failed to process return.");
+          displayAlert("Error", "Failed to process return.");
       }
   };
 
@@ -111,14 +114,14 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
     <ScreenWrapper withHeader>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <Box px="$4" pt="$2" pb="$4">
+      <Box px="$4" pt={Math.max(insets.top, 10)} pb="$4">
         <HStack space="md" alignItems="center">
           <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
             <Icon as={ArrowLeftIcon} color="$text900" />
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">Purchase History</Heading>
-            <Text size="xs" color="$text500">View past inventory restocks</Text>
+            <Text size="xs" color="$text500">View past product restocks</Text>
           </VStack>
         </HStack>
       </Box>

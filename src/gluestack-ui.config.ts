@@ -23,7 +23,7 @@ export const config = createConfig({
       secondary500: '#000000', // Black Accent
       secondary600: '#222222',
       // Surface & shadow tokens
-      surfaceLavender: '#E5E7EB', // Distinct clearly visible background
+      surfaceLavender: '#F3F4F6', // Dimmer, neutral soft background for better contrast
       surfaceGradientStart: '#F3F4F6',
       surfaceGradientEnd: '#E5E7EB',
       cardBg: '#FFFFFF',

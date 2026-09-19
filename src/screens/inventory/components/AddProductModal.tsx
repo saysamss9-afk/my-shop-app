@@ -37,6 +37,7 @@ import {
 } from '@gluestack-ui/themed';
 import { Camera, Package, Info, Zap } from 'lucide-react-native';
 import { getButtonHeight } from '../../../utils/platformStyles';
+import { displayAlert } from '../../../utils/alert';
 import type { Category } from '../../../db/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -105,11 +106,11 @@ const AddProductModal: React.FC<Props> = ({
 
   const handleLocalSave = () => {
     if (!formData.name) {
-        Alert.alert("Required", "Product Name is required.");
+        displayAlert("Required", "Product Name is required.");
         return;
     }
     if (!formData.price && (!hasBulkOption || !formData.bulkPrice)) {
-        Alert.alert("Required", "Please provide a Selling Price.");
+        displayAlert("Required", "Please provide a Selling Price.");
         return;
     }
 
@@ -135,7 +136,7 @@ const AddProductModal: React.FC<Props> = ({
           <ModalHeader>
             <VStack>
               <Heading size="lg" fontWeight="$black">Add New Product</Heading>
-              <GlueText size="xs" color="$text500">Provide complete inventory and pricing details.</GlueText>
+              <GlueText size="xs" color="$text500">Provide complete product and pricing details.</GlueText>
             </VStack>
             <ModalCloseButton>
               <Icon as={CloseIcon} />
@@ -388,7 +389,7 @@ const AddProductModal: React.FC<Props> = ({
             <ButtonText>Cancel</ButtonText>
           </Button>
           <Button action="primary" onPress={handleLocalSave} borderRadius={16} bg="$primary600" style={{ height: getButtonHeight(50) }}>
-            <ButtonText fontWeight="$bold">Add to Inventory</ButtonText>
+            <ButtonText fontWeight="$bold">Add Product</ButtonText>
           </Button>
         </ModalFooter>
         </KeyboardAvoidingView>

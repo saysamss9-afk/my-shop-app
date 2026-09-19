@@ -1,5 +1,6 @@
 import React from 'react';
-import { ScrollView, Alert, StatusBar } from 'react-native';
+import { ScrollView, StatusBar } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import {
   Box,
   VStack,
@@ -103,13 +104,13 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
             printWindow.document.close();
             printWindow.print();
         } else {
-            Alert.alert("Print Error", "Pop-up blocked. Please allow pop-ups for this site.");
+            displayAlert("Print Error", "Pop-up blocked. Please allow pop-ups for this site.");
         }
     } else {
         try {
             await RNPrint.print({ html });
         } catch (e) {
-            Alert.alert("Export Error", "Could not generate report.");
+            displayAlert("Export Error", "Could not generate report.");
         }
     }
   };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { displayAlert } from '../../../utils/alert';
 import {
   Heading,
   Icon,
@@ -42,7 +42,7 @@ const PurchaseReturnModal: React.FC<Props> = ({ isOpen, onClose, item, onSave })
   const handleSave = () => {
     const qty = parseFloat(quantity);
     if (!qty || qty <= 0 || qty > item.quantity) {
-        Alert.alert("Invalid Quantity", `Please enter a valid quantity (max ${item.quantity})`);
+        displayAlert("Invalid Quantity", `Please enter a valid quantity (max ${item.quantity})`);
         return;
     }
     onSave(qty, reason);

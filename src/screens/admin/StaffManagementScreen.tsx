@@ -19,6 +19,7 @@ import {
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
 import { User, ShieldCheck, CreditCard } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -33,6 +34,7 @@ const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [shopInfo, setShopInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Fetch shop info for plan details
@@ -64,7 +66,7 @@ const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
     <ScreenWrapper withHeader>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <Box px="$2" pt="$2" pb="$4">
+      <Box px="$2" pt={Math.max(insets.top, 10)} pb="$4">
         <HStack justifyContent="space-between" alignItems="center">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">

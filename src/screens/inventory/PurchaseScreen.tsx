@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { ScrollView, StatusBar, Alert } from 'react-native';
+import { ScrollView, StatusBar } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import {
   Box,
   VStack,
@@ -65,17 +66,17 @@ const PurchaseScreen = ({ route, navigation }: any) => {
 
   const handleSave = async () => {
     if (!supplierId) {
-        Alert.alert("Required", "Please select a supplier.");
+        displayAlert("Required", "Please select a supplier.");
         return;
     }
     if (purchaseCart.length === 0) {
-        Alert.alert("Required", "Please add at least one product.");
+        displayAlert("Required", "Please add at least one product.");
         return;
     }
 
     const success = await submitPurchase(supplierId, invoiceNumber, parseFloat(amountPaid || '0'));
     if (success) {
-        Alert.alert(
+        displayAlert(
           "Success",
           "Purchase recorded successfully.",
           [{ text: "OK", onPress: () => navigation.goBack() }]
@@ -95,7 +96,7 @@ const PurchaseScreen = ({ route, navigation }: any) => {
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">New Purchase</Heading>
-            <GlueText size="xs" color="$text500">Record inventory intake</GlueText>
+            <GlueText size="xs" color="$text500">Record product intake</GlueText>
           </VStack>
         </HStack>
       </Box>

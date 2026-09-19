@@ -89,6 +89,36 @@ export class PurchaseRepository {
     });
   }
 
+  async getUnsyncedPurchases(shopId?: string): Promise<PurchaseOrder[]> {
+    const query = shopId ? 'SELECT * FROM PurchaseOrder WHERE shopId = ? AND syncStatus = 0' : 'SELECT * FROM PurchaseOrder WHERE syncStatus = 0';
+    const params = shopId ? [shopId] : [];
+    const results = await this.db.executeSql(query, params);
+    const purchases: PurchaseOrder[] = [];
+    for (let i = 0; i < results[0].rows.length; i++) {
+      purchases.push(results[0].rows.item(i));
+    }
+    return purchases;
+  }
+
+  async getUnsyncedReturns(shopId?: string): Promise<PurchaseReturn[]> {
+    const query = shopId ? 'SELECT * FROM PurchaseReturn WHERE shopId = ? AND syncStatus = 0' : 'SELECT * FROM PurchaseReturn WHERE syncStatus = 0';
+    const params = shopId ? [shopId] : [];
+    const results = await this.db.executeSql(query, params);
+    const returns: PurchaseReturn[] = [];
+    for (let i = 0; i < results[0].rows.length; i++) {
+      returns.push(results[0].rows.item(i));
+    }
+    return returns;
+  }
+
+  async markPurchaseSynced(id: string) {
+    await this.db.executeSql('UPDATE PurchaseOrder SET syncStatus = 1 WHERE id = ?', [id]);
+  }
+
+  async markReturnSynced(id: string) {
+    await this.db.executeSql('UPDATE PurchaseReturn SET syncStatus = 1 WHERE id = ?', [id]);
+  }
+
   async getPurchasesByShop(shopId: string): Promise<PurchaseOrder[]> {
     const query = 'SELECT * FROM PurchaseOrder WHERE shopId = ? ORDER BY timestamp DESC';
     const results = await this.db.executeSql(query, [shopId]);
@@ -118,7 +148,7 @@ export class PurchaseRepository {
       `;
       await tx.executeSql(returnQuery, [
         purchaseReturn.id, purchaseReturn.purchaseOrderId, purchaseReturn.shopId, purchaseReturn.supplierId,
-        purchaseReturn.productId, purchaseReturn.quantity, purchaseReturn.value, purchaseReturn.reason, purchaseReturn.timestamp
+        purchaseReturn.productId, purchaseReturn.quantity, purchaseReturn.returnValue, purchaseReturn.reason, purchaseReturn.timestamp
       ]);
 
       // 2. Reduce Inventory Stock
@@ -132,11 +162,11 @@ export class PurchaseRepository {
         SET totalCost = totalCost - ?, balance = balance - ?, syncStatus = 0
         WHERE id = ?
       `;
-      await tx.executeSql(updateOrderQuery, [purchaseReturn.value, purchaseReturn.value, purchaseReturn.purchaseOrderId]);
+      await tx.executeSql(updateOrderQuery, [purchaseReturn.returnValue, purchaseReturn.returnValue, purchaseReturn.purchaseOrderId]);
 
       // 4. Update Supplier Balance (Reduce payable)
       const updateSupplierQuery = 'UPDATE Supplier SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
-      await tx.executeSql(updateSupplierQuery, [purchaseReturn.value, purchaseReturn.supplierId]);
+      await tx.executeSql(updateSupplierQuery, [purchaseReturn.returnValue, purchaseReturn.supplierId]);
 
       // 5. Audit Log
       const auditQuery = `
@@ -145,7 +175,7 @@ export class PurchaseRepository {
       `;
       await tx.executeSql(auditQuery, [
         generateUUID(), purchaseReturn.shopId, purchaseReturn.id,
-        `Return for PO: ${purchaseReturn.purchaseOrderId}, Qty: ${purchaseReturn.quantity}, Value: ${purchaseReturn.value}`,
+        `Return for PO: ${purchaseReturn.purchaseOrderId}, Qty: ${purchaseReturn.quantity}, Value: ${purchaseReturn.returnValue}`,
         purchaseReturn.timestamp
       ]);
     });

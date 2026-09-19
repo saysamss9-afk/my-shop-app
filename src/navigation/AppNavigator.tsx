@@ -23,6 +23,9 @@ import PurchaseScreen from '../screens/inventory/PurchaseScreen';
 import PurchaseHistoryScreen from '../screens/inventory/PurchaseHistoryScreen';
 import CustomerScreen from '../screens/sales/CustomerScreen';
 import CategoryManagementScreen from '../screens/inventory/CategoryManagementScreen';
+import AboutScreen from '../screens/about/AboutScreen';
+import TermsScreen from '../screens/about/TermsScreen';
+import PrivacyScreen from '../screens/about/PrivacyScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -48,6 +51,9 @@ export type RootStackParamList = {
   PurchaseHistory: { shopId: string };
   Customers: { shopId: string };
   CategoryManagement: { shopId: string };
+  About: undefined;
+  Terms: undefined;
+  Privacy: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -83,6 +89,9 @@ const AppNavigator = () => {
       <Stack.Screen name="PurchaseHistory" component={PurchaseHistoryScreen} />
       <Stack.Screen name="Customers" component={CustomerScreen} />
       <Stack.Screen name="CategoryManagement" component={CategoryManagementScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
     </Stack.Navigator>
   );
 };

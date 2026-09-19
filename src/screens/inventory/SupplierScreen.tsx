@@ -21,6 +21,7 @@ import {
   InputSlot,
 } from '@gluestack-ui/themed';
 import { Store, RefreshCw, AlertTriangle, XCircle, TrendingUp, Wallet, ShoppingCart, History } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import SupplierListItem from './components/SupplierListItem';
@@ -41,6 +42,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const insets = useSafeAreaInsets();
 
   const filteredSuppliers = useMemo(() => {
     if (!searchQuery) return suppliers;
@@ -104,7 +106,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <Box px="$4" pt="$2" pb="$2">
+      <Box px="$4" pt={Math.max(insets.top, 10)} pb="$2">
         <HStack justifyContent="space-between" alignItems="center" mb="$4">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
@@ -112,7 +114,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
             </Pressable>
             <VStack>
               <Heading size="lg" color="$text900" fontWeight="$black">Suppliers</Heading>
-              <GlueText size="xs" color="$text500">Inventory Sourcing</GlueText>
+              <GlueText size="xs" color="$text500">Product Sourcing</GlueText>
             </VStack>
           </HStack>
 
@@ -175,7 +177,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
             <SummaryCard
                 title="PURCHASES"
                 value={`${currency}${stats.purchasesThisMonth.toLocaleString()}`}
-                subValue="New Inventory Value"
+                subValue="New Product Value"
                 icon={ShoppingCart}
                 color="#6366F1"
             />

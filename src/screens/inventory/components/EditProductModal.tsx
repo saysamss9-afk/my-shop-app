@@ -37,6 +37,7 @@ import {
 } from '@gluestack-ui/themed';
 import { Camera, Scan, Package, LockIcon, Zap } from 'lucide-react-native';
 import { getButtonHeight } from '../../../utils/platformStyles';
+import { displayAlert } from '../../../utils/alert';
 import type { Product } from '../../../db/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -96,7 +97,7 @@ const EditProductModal: React.FC<Props> = ({
   const handleLocalSave = () => {
     if (!canEdit) return;
     if (!formData.name || !formData.price || !formData.costPrice) {
-        Alert.alert("Error", "Please fill in all required fields (Name, Selling Price, Cost Price)");
+        displayAlert("Error", "Please fill in all required fields (Name, Selling Price, Cost Price)");
         return;
     }
 

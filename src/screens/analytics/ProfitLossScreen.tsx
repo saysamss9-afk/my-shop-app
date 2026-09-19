@@ -15,6 +15,7 @@ import {
   Center,
 } from '@gluestack-ui/themed';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Landmark, Scale, Package, Users, Wallet, RefreshCw, AlertCircle } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { getAppShadow } from '../../utils/platformStyles';
@@ -39,6 +40,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const { summary, snapshot, currency, isLoading, error, loadAnalytics, refresh } = useAnalytics(shopId);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Calculate the start and end timestamps for the selected calendar month
@@ -72,7 +74,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Top App Bar Header */}
-      <Box bg="$primary800" px="$4" py="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
+      <Box bg="$primary800" px="$4" pt={Math.max(insets.top, 10)} pb="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
         <HStack space="md" alignItems="center" justifyContent="space-between">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()}>
@@ -81,7 +83,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             <VStack>
               <Heading size="md" color="$white" fontWeight="$black">Owner Financial Audit</Heading>
               <Text size="xs" color="$primary200">
-                {snapshot?.itemCount ? `Tracking ${snapshot.itemCount} active inventory items` : 'Comprehensive shop performance audit'}
+                {snapshot?.itemCount ? `Tracking ${snapshot.itemCount} active product items` : 'Comprehensive shop performance audit'}
               </Text>
             </VStack>
           </HStack>
@@ -169,9 +171,9 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             </VStack>
           </Box>
 
-          {/* Section: Inventory Valuation */}
+          {/* Section: Product Valuation */}
           <VStack space="md" mb="$6">
-            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Inventory Valuation (Snapshot)</Heading>
+            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Product Valuation (Snapshot)</Heading>
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
                 <HStack p="$4" justifyContent="space-between" alignItems="center">
@@ -180,7 +182,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                       <Icon as={Package} color="$primary600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Total Stock Cost Value</Text>
                     </HStack>
-                    <Text size="xs" color="$text400">Capital locked in current inventory</Text>
+                    <Text size="xs" color="$text400">Capital locked in current products</Text>
                   </VStack>
                   <Text size="md" fontWeight="$bold" color="$text900">{currency}{(snapshot?.totalStockCostValue || 0).toFixed(2)}</Text>
                 </HStack>

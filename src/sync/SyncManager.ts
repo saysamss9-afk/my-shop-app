@@ -5,6 +5,8 @@ import { CategoryRepository } from '../repositories/CategoryRepository';
 import { SaleRepository } from '../repositories/SaleRepository';
 import { SupplierRepository } from '../repositories/SupplierRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
+import { PurchaseRepository } from '../repositories/PurchaseRepository';
+import { SystemRepository } from '../repositories/SystemRepository';
 
 export enum SyncStatus {
   Idle,
@@ -22,13 +24,16 @@ export class SyncManager {
   private realtimeUnsubscribers: (() => void)[] = [];
   private onDataChangedCallback: (() => void) | null = null;
   private readonly SYNC_BUFFER_MS = 300000; // 5 minute overlap to handle clock skew during delta sync
+  private readonly SYNC_COOLDOWN_MS = 60000; // 1 minute cooldown to prevent redundant firestore hits
 
   constructor(
     private productRepo: ProductRepository,
     private categoryRepo: CategoryRepository,
     private saleRepo: SaleRepository,
     private supplierRepo: SupplierRepository,
-    private customerRepo: CustomerRepository
+    private customerRepo: CustomerRepository,
+    private purchaseRepo: PurchaseRepository,
+    private systemRepo: SystemRepository
   ) {}
 
   public getStatus(): SyncStatus {
@@ -69,6 +74,15 @@ export class SyncManager {
   async triggerSync(shopIdInput?: string) {
     if (this.status === SyncStatus.Syncing) return;
 
+    // Prevent redundant syncs within the cooldown period to save bandwidth/firestore reads
+    const now = Date.now();
+    if (this.lastSynced > 0 && (now - this.lastSynced) < this.SYNC_COOLDOWN_MS) {
+        console.log('SyncManager: Skipping Firestore hit, last sync was less than 60s ago.');
+        // We still trigger a local UI refresh via the callback to ensure data consistency
+        this.onDataChangedCallback?.();
+        return;
+    }
+
     // Support object input if passed by accident
     const shopId = typeof shopIdInput === 'object' ? (shopIdInput as any).shopId : shopIdInput;
 
@@ -92,6 +106,10 @@ export class SyncManager {
       await this.safeSync('Payments', () => this.syncPayments(shopId));
       await this.safeSync('SupplierPayments', () => this.syncSupplierPayments(shopId));
       await this.safeSync('ExpensesPush', () => this.syncExpenses(shopId));
+      await this.safeSync('Purchases', () => this.syncPurchases(shopId));
+      await this.safeSync('PurchaseReturns', () => this.syncPurchaseReturns(shopId));
+      await this.safeSync('AuditLogs', () => this.syncAuditLogs(shopId));
+      await this.safeSync('Adjustments', () => this.syncAdjustments(shopId));
 
       // Fetch persistent lastSynced timestamp for Delta Pull
       let lastSyncedTime = 0;
@@ -843,6 +861,163 @@ export class SyncManager {
       }
     } catch (e) {
       console.error('Native Expense Push Sync Error:', e);
+    }
+  }
+
+  private async syncPurchases(shopId: string) {
+    try {
+      const unsynced = await this.purchaseRepo.getUnsyncedPurchases(shopId);
+      if (unsynced.length === 0) return;
+
+      let batch = firestore().batch();
+      let count = 0;
+      const syncedIds: string[] = [];
+
+      for (const purchase of unsynced) {
+        const items = await this.purchaseRepo.getPurchaseItems(purchase.id);
+        const ref = firestore().collection('shops').doc(shopId).collection('purchases').doc(purchase.id);
+        batch.set(ref, {
+          ...purchase,
+          items: items.map(item => ({
+            id: item.id,
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            costPrice: item.costPrice,
+            isBulk: item.isBulk
+          })),
+          lastUpdated: Date.now()
+        }, { merge: true });
+
+        count++;
+        syncedIds.push(purchase.id);
+
+        if (count === this.BATCH_LIMIT) {
+          await batch.commit();
+          for (const id of syncedIds) await this.purchaseRepo.markPurchaseSynced(id);
+          batch = firestore().batch();
+          count = 0;
+          syncedIds.length = 0;
+        }
+      }
+
+      if (count > 0) {
+        await batch.commit();
+        for (const id of syncedIds) await this.purchaseRepo.markPurchaseSynced(id);
+      }
+    } catch (e) {
+      console.error('Native Purchase Sync Error:', e);
+    }
+  }
+
+  private async syncPurchaseReturns(shopId: string) {
+    try {
+      const unsynced = await this.purchaseRepo.getUnsyncedReturns(shopId);
+      if (unsynced.length === 0) return;
+
+      let batch = firestore().batch();
+      let count = 0;
+      const syncedIds: string[] = [];
+
+      for (const ret of unsynced) {
+        const ref = firestore().collection('shops').doc(shopId).collection('purchase_returns').doc(ret.id);
+        batch.set(ref, {
+          ...ret,
+          lastUpdated: Date.now()
+        }, { merge: true });
+
+        count++;
+        syncedIds.push(ret.id);
+
+        if (count === this.BATCH_LIMIT) {
+          await batch.commit();
+          for (const id of syncedIds) await this.purchaseRepo.markReturnSynced(id);
+          batch = firestore().batch();
+          count = 0;
+          syncedIds.length = 0;
+        }
+      }
+
+      if (count > 0) {
+        await batch.commit();
+        for (const id of syncedIds) await this.purchaseRepo.markReturnSynced(id);
+      }
+    } catch (e) {
+      console.error('Native Purchase Return Sync Error:', e);
+    }
+  }
+
+  private async syncAuditLogs(shopId: string) {
+    try {
+      const unsynced = await this.systemRepo.getUnsyncedAuditLogs(shopId);
+      if (unsynced.length === 0) return;
+
+      let batch = firestore().batch();
+      let count = 0;
+      const syncedIds: string[] = [];
+
+      for (const log of unsynced) {
+        const ref = firestore().collection('shops').doc(shopId).collection('audit_logs').doc(log.id);
+        batch.set(ref, {
+          ...log,
+          lastUpdated: Date.now()
+        }, { merge: true });
+
+        count++;
+        syncedIds.push(log.id);
+
+        if (count === this.BATCH_LIMIT) {
+          await batch.commit();
+          for (const id of syncedIds) await this.systemRepo.markAuditLogSynced(id);
+          batch = firestore().batch();
+          count = 0;
+          syncedIds.length = 0;
+        }
+      }
+
+      if (count > 0) {
+        await batch.commit();
+        for (const id of syncedIds) await this.systemRepo.markAuditLogSynced(id);
+      }
+    } catch (e) {
+      console.error('Native Audit Log Sync Error:', e);
+    }
+  }
+
+  private async syncAdjustments(shopId: string) {
+    try {
+      const unsynced = await this.systemRepo.getUnsyncedAdjustments(shopId);
+      if (unsynced.length === 0) return;
+
+      let batch = firestore().batch();
+      let count = 0;
+      const syncedIds: string[] = [];
+
+      for (const adj of unsynced) {
+        const ref = firestore().collection('shops').doc(shopId).collection('inventory_adjustments').doc(adj.id);
+        batch.set(ref, {
+          ...adj,
+          lastUpdated: Date.now()
+        }, { merge: true });
+
+        count++;
+        syncedIds.push(adj.id);
+
+        if (count === this.BATCH_LIMIT) {
+          await batch.commit();
+          for (const id of syncedIds) await this.systemRepo.markAdjustmentSynced(id);
+          batch = firestore().batch();
+          count = 0;
+          syncedIds.length = 0;
+        }
+      }
+
+      if (count > 0) {
+        await batch.commit();
+        for (const id of syncedIds) await this.systemRepo.markAdjustmentSynced(id);
+      }
+    } catch (e) {
+      console.error('Native Inventory Adjustment Sync Error:', e);
     }
   }
 

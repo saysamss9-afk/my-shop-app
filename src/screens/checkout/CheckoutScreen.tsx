@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { FlatList, StatusBar, Modal as RNModal, Alert } from 'react-native';
+import { FlatList, StatusBar, Modal as RNModal, Alert, Platform, Keyboard } from 'react-native';
 import {
   Box,
   VStack,
@@ -28,6 +28,7 @@ import AppIcon from '../../components/common/AppIcon';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { ScannerView } from '../../components/ScannerView';
 import { getButtonHeight, getAppShadow } from '../../utils/platformStyles';
+import { displayAlert } from '../../utils/alert';
 import SelectCustomerModal from './components/SelectCustomerModal';
 import SelectProductModal from './components/SelectProductModal';
 
@@ -103,13 +104,13 @@ const CheckoutScreen = ({ route, navigation }: any) => {
     try {
       await processSale(method);
       setShowPaymentModal(false);
-      Alert.alert(
+      displayAlert(
         "Success",
         "Sale completed successfully!",
         [{ text: "OK", onPress: () => navigation.goBack() }]
       );
     } catch (e: any) {
-      Alert.alert("Checkout Failed", e.message || "An unexpected error occurred.");
+      displayAlert("Checkout Failed", e.message || "An unexpected error occurred.");
     }
   };
 
@@ -188,7 +189,10 @@ const CheckoutScreen = ({ route, navigation }: any) => {
 
           {/* PRIORITY 2: CUSTOMER */}
           <Pressable
-            onPress={() => setShowCustomerModal(true)}
+            onPress={() => {
+                Keyboard.dismiss();
+                setTimeout(() => setShowCustomerModal(true), 150);
+            }}
             bg="$white"
             p="$3"
             rounded="$xl"
@@ -241,7 +245,10 @@ const CheckoutScreen = ({ route, navigation }: any) => {
                 size="md"
                 variant="solid"
                 action="secondary"
-                onPress={() => setShowProductModal(true)}
+                onPress={() => {
+                    Keyboard.dismiss();
+                    setTimeout(() => setShowProductModal(true), 150);
+                }}
                 borderRadius={20}
                 bg="$white"
                 borderWidth={1}
@@ -298,7 +305,16 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         currency={currency}
         cartLength={cart.length}
         isLoading={isLoading}
-        onCheckout={() => setShowPaymentModal(true)}
+        onCheckout={() => {
+            Keyboard.dismiss();
+            if (Platform.OS === 'android') {
+                setTimeout(() => {
+                    setShowPaymentModal(true);
+                }, 200);
+            } else {
+                setShowPaymentModal(true);
+            }
+        }}
       />
 
       <PaymentModal

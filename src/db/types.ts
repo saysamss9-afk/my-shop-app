@@ -140,7 +140,7 @@ export interface PurchaseReturn {
   supplierId: string;
   productId: string;
   quantity: number;
-  value: number;
+  returnValue: number;
   reason: string;
   timestamp: number;
   syncStatus: number;

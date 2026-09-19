@@ -18,6 +18,7 @@ import {
   HStack,
   Button,
   ButtonText,
+  Divider,
 } from '@gluestack-ui/themed';
 import { useDashboard } from '../../hooks/useDashboard';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -81,7 +82,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
     },
     {
       id: 'inventory',
-      title: 'Inventory',
+      title: 'Products',
       description: 'Stock',
       icon: 'package',
       color: '#FF4081',
@@ -209,8 +210,8 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         lowStockCount={lowStockCount}
       />
 
-      {/* Bottom Switch Account */}
-      <Center mt="$10" mb="$4">
+      {/* Bottom Actions */}
+      <VStack space="sm" mt="$10" mb="$8" alignItems="center">
         <Pressable
           onPress={() => handleSwitchAccount({ signOut, reset: navigation.reset })}
           bg="$white"
@@ -221,7 +222,21 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         >
           <Text size="xs" color="$text400" fontWeight="$bold">Switch Account</Text>
         </Pressable>
-      </Center>
+
+        <HStack space="md" alignItems="center">
+          <Pressable onPress={() => navigation.navigate('About')}>
+            <Text size="xs" color="$primary600" fontWeight="$medium">About</Text>
+          </Pressable>
+          <Divider orientation="vertical" h={12} />
+          <Pressable onPress={() => navigation.navigate('Terms')}>
+            <Text size="xs" color="$primary600" fontWeight="$medium">Terms</Text>
+          </Pressable>
+          <Divider orientation="vertical" h={12} />
+          <Pressable onPress={() => navigation.navigate('Privacy')}>
+            <Text size="xs" color="$primary600" fontWeight="$medium">Privacy</Text>
+          </Pressable>
+        </HStack>
+      </VStack>
 
       {/* Upgrade Subscription Plans Modal */}
       <Modal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)}>

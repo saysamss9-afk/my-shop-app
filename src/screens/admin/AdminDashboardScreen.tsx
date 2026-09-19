@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { FlatList, SectionList, Linking, Alert, Clipboard, StatusBar, Platform } from 'react-native';
+import { FlatList, SectionList, Linking, Clipboard, StatusBar, Platform } from 'react-native';
+import { displayAlert } from '../../utils/alert';
 import {
   Box,
   VStack,
@@ -51,57 +52,41 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   });
 
   const handleDeleteRequest = (id: string) => {
-    const confirmDelete = Platform.OS === 'web'
-      ? window.confirm("Are you sure you want to delete this shop request?")
-      : true;
-
     const deleteFn = async () => {
       setProcessing(id);
       try {
         await firebase.firestore().collection('shop_requests').doc(id).delete();
-        if (Platform.OS === 'web') window.alert("Request deleted successfully");
+        displayAlert("Success", "Request deleted successfully");
       } catch (e: any) {
-        Alert.alert("Error", e.message);
+        displayAlert("Error", e.message);
       } finally {
         setProcessing(null);
       }
     };
 
-    if (Platform.OS === 'web') {
-      if (confirmDelete) deleteFn();
-    } else {
-      Alert.alert("Delete Request", "Are you sure?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: deleteFn }
-      ]);
-    }
+    displayAlert("Delete Request", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: deleteFn }
+    ]);
   };
 
   const handleDeleteShop = (id: string) => {
-    const confirmDelete = Platform.OS === 'web'
-      ? window.confirm("Are you sure you want to permanently delete this shop and all its data?")
-      : true;
-
     const deleteFn = async () => {
       setProcessing(id);
       try {
         await firebase.firestore().collection('registered_shops').doc(id).delete();
-        if (Platform.OS === 'web') window.alert("Shop record deleted");
+        displayAlert("Success", "Shop record deleted");
       } catch (e: any) {
-        Alert.alert("Error", e.message);
+        displayAlert("Error", e.message);
       } finally {
         setProcessing(null);
       }
     };
 
-    if (Platform.OS === 'web') {
-      if (confirmDelete) deleteFn();
-    } else {
-      Alert.alert("Delete Shop", "This cannot be undone. Proceed?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: deleteFn }
-      ]);
-    }
+    displayAlert("Delete Shop", "This cannot be undone. Proceed?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: deleteFn }
+    ]);
   };
 
   useEffect(() => {
@@ -188,23 +173,18 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         approvedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      if (Platform.OS === 'web') {
-        window.alert(`Shop Created Successfully!\n\nShop Code: ${shopId}\n\nCopy this code and share it with the owner.`);
-        (navigator as any).clipboard.writeText(shopId);
-      } else {
-        Alert.alert(
-          'Shop Created Successfully',
-          `Shop Code: ${shopId}\n\nShare this code with the owner.`,
-          [
-            { text: "Copy Code", onPress: () => Clipboard.setString(shopId) },
-            { text: "Share WhatsApp", onPress: () => openWhatsApp(request.whatsappNumber, request.shopName, shopId) },
-            { text: "Done", style: "cancel" }
-          ]
-        );
-      }
+      displayAlert(
+        'Shop Created Successfully',
+        `Shop Code: ${shopId}\n\nShare this code with the owner.`,
+        [
+          { text: "Copy Code", onPress: () => Clipboard.setString(shopId) },
+          { text: "Share WhatsApp", onPress: () => openWhatsApp(request.whatsappNumber, request.shopName, shopId) },
+          { text: "Done", style: "cancel" }
+        ]
+      );
     } catch (e: any) {
       console.error(e);
-      Alert.alert('Approval failed', e.message);
+      displayAlert('Approval failed', e.message);
     } finally {
       setProcessing(null);
     }
@@ -233,8 +213,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       });
       setIsEditDialogOpen(false);
       setEditingRequest(null);
+      displayAlert("Success", "Request updated successfully");
     } catch (e: any) {
-      Alert.alert("Error", "Failed to update request: " + e.message);
+      displayAlert("Error", "Failed to update request: " + e.message);
     } finally {
       setProcessing(null);
     }
@@ -247,21 +228,13 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     }
     const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
     Linking.openURL(url).catch(() => {
-      Alert.alert("Error", "WhatsApp is not installed on this device");
+      displayAlert("Error", "WhatsApp is not installed on this device");
     });
   };
 
   const copyToClipboard = (text: string) => {
-    if (Platform.OS === 'web') {
-      (navigator as any).clipboard.writeText(text).then(() => {
-        window.alert("Copied to clipboard: " + text);
-      }).catch((err: any) => {
-        console.error('Failed to copy: ', err);
-      });
-    } else {
-      Clipboard.setString(text);
-      Alert.alert("Copied", "Shop code copied to clipboard");
-    }
+    Clipboard.setString(text);
+    displayAlert("Copied", "Shop code copied to clipboard");
   };
 
   const filteredRequests = useMemo(() => {
@@ -330,13 +303,16 @@ const AdminDashboardScreen = ({ navigation }: any) => {
              try {
                 await firebase.firestore().collection('registered_shops').doc(item.shopId).update({ plan: item.requestedPlan });
                 await firebase.firestore().collection('plan_upgrade_requests').doc(item.id).update({ status: 'APPROVED' });
-                window.alert("Plan upgraded successfully!");
-             } catch(e: any) { window.alert(e.message); }
+                displayAlert("Success", "Plan upgraded successfully!");
+             } catch(e: any) { displayAlert("Error", e.message); }
           }}>
             <ButtonText>Approve</ButtonText>
           </Button>
           <Button size="xs" flex={1} variant="outline" action="negative" onPress={async () => {
-             await firebase.firestore().collection('plan_upgrade_requests').doc(item.id).update({ status: 'REJECTED' });
+             try {
+                await firebase.firestore().collection('plan_upgrade_requests').doc(item.id).update({ status: 'REJECTED' });
+                displayAlert("Success", "Plan upgrade request rejected.");
+             } catch(e: any) { displayAlert("Error", e.message); }
           }}>
             <ButtonText>Reject</ButtonText>
           </Button>

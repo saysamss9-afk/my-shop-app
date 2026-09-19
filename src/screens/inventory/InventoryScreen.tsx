@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FlatList, StatusBar, Alert } from 'react-native';
+import { FlatList, StatusBar, Alert, Platform, Keyboard } from 'react-native';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
@@ -29,6 +29,7 @@ import { useInventory } from '../../hooks/useInventory';
 import type { Product } from '../../db/types';
 import { ScannerView } from '../../components/ScannerView';
 import { getAppShadow } from '../../utils/platformStyles';
+import { displayAlert } from '../../utils/alert';
 import { useResponsive } from '../../hooks/useResponsive';
 
 // Sub-components
@@ -80,7 +81,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
   const handlePrintSelectedBarcodes = () => {
     const itemsToPrint = products.filter(p => selectedProductIds.includes(p.id));
     if (itemsToPrint.length === 0) {
-      Alert.alert('Selection Empty', 'Please select at least one item below by checking it first to print barcodes.');
+      displayAlert('Selection Empty', 'Please select at least one item below by checking it first to print barcodes.');
       return;
     }
     PrintingService.printBarcodes(itemsToPrint);
@@ -104,21 +105,21 @@ const InventoryScreen = ({ route, navigation }: any) => {
       status: 'ACTIVE',
     });
     setIsModalOpen(false);
-    Alert.alert("Success", `${productData.name} has been added to your inventory.`);
+    displayAlert("Success", `${productData.name} has been added to your products.`);
   };
 
   const handleUpdate = async (updatedProduct: Product) => {
       await updateProduct(updatedProduct);
       setIsEditModalOpen(false);
-      Alert.alert("Updated", `${updatedProduct.name} details have been saved.`);
+      displayAlert("Updated", `${updatedProduct.name} details have been saved.`);
   };
 
   const handleBarCodeScanned = (code: string) => {
     console.log("Scanned barcode:", code);
     if (scanTarget === 'unit') {
-      Alert.alert("Barcode Scanned", `Unit Barcode matched: ${code}`);
+      displayAlert("Barcode Scanned", `Unit Barcode matched: ${code}`);
     } else if (scanTarget === 'bulk') {
-      Alert.alert("Barcode Scanned", `Bulk Barcode matched: ${code}`);
+      displayAlert("Barcode Scanned", `Bulk Barcode matched: ${code}`);
     }
     setScanTarget(null);
   };
@@ -140,14 +141,14 @@ const InventoryScreen = ({ route, navigation }: any) => {
   };
 
   const handleDelete = (product: Product) => {
-    const message = `Remove "${product.name}" from inventory? This cannot be undone.`;
+    const message = `Remove "${product.name}" from products? This cannot be undone.`;
 
     if (typeof window !== 'undefined' && (window as any).confirm) {
       if (window.confirm(message)) {
         deleteProduct(product.id);
       }
     } else {
-      Alert.alert(
+      displayAlert(
         'Delete item',
         message,
         [
@@ -171,10 +172,8 @@ const InventoryScreen = ({ route, navigation }: any) => {
     </Box>
   ), [currency, selectedProductIds, numColumns]);
 
-  return (
-    <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
+  const renderHeader = () => (
+    <VStack bg="$surfaceLavender">
       <InventoryHeader
         onBack={() => navigation.goBack()}
         onToggleFilter={toggleLowStockFilter}
@@ -182,7 +181,10 @@ const InventoryScreen = ({ route, navigation }: any) => {
         shopName={shopName}
         syncStatus={syncStatus}
         onTriggerSync={triggerManualSync}
-        onAdd={() => setIsSelectionModalOpen(true)}
+        onAdd={() => {
+            Keyboard.dismiss();
+            setIsSelectionModalOpen(true);
+        }}
         userRole={userRole}
       />
 
@@ -195,7 +197,10 @@ const InventoryScreen = ({ route, navigation }: any) => {
       {(userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'SALES') && (
         <HStack px="$5" mb="$4" space="sm">
             <Pressable
-                onPress={() => setIsSelectionModalOpen(true)}
+                onPress={() => {
+                    Keyboard.dismiss();
+                    setIsSelectionModalOpen(true);
+                }}
                 bg="$primary600"
                 p="$3.5"
                 rounded="$2xl"
@@ -233,7 +238,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
           <Pressable onPress={() => setActiveTab('ALL')} flex={1}>
               <Box pb="$2" borderBottomWidth={2} borderBottomColor={activeTab === 'ALL' ? '$primary600' : 'transparent'}>
                   <GlueText textAlign="center" fontWeight={activeTab === 'ALL' ? '$bold' : '$medium'} color={activeTab === 'ALL' ? '$primary600' : '$text400'}>
-                      Inventory
+                      Products
                   </GlueText>
               </Box>
           </Pressable>
@@ -250,6 +255,12 @@ const InventoryScreen = ({ route, navigation }: any) => {
               </HStack>
           </Pressable>
       </HStack>
+    </VStack>
+  );
+
+  return (
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {isLoading ? (
         <Center flex={1}>
@@ -262,11 +273,12 @@ const InventoryScreen = ({ route, navigation }: any) => {
           numColumns={numColumns}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          ListHeaderComponent={renderHeader}
           initialNumToRender={8}
           maxToRenderPerBatch={10}
           windowSize={5}
           removeClippedSubviews={true}
-          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
           ListEmptyComponent={
             <Center mt="$20">
               <VStack space="md" alignItems="center">
@@ -274,7 +286,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
                     <Icon as={SearchIcon} size="xl" color="$text300" />
                 </Center>
                 <GlueText color="$text400">
-                    {activeTab === 'PENDING' ? 'No pending items to review.' : 'No items found in inventory.'}
+                    {activeTab === 'PENDING' ? 'No pending items to review.' : 'No items found.'}
                 </GlueText>
               </VStack>
             </Center>
@@ -286,7 +298,10 @@ const InventoryScreen = ({ route, navigation }: any) => {
         <Fab
           size="lg"
           placement="bottom right"
-          onPress={() => setIsSelectionModalOpen(true)}
+          onPress={() => {
+              Keyboard.dismiss();
+              setIsSelectionModalOpen(true);
+          }}
           bg="$primary600"
           m="$6"
           style={{ ...getAppShadow({ offsetY: 10, radius: 26, color: 'rgba(110,59,230,0.28)' }) }}
@@ -302,7 +317,11 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onSelect={(mode) => {
             setEntryMode(mode);
             setIsSelectionModalOpen(false);
-            setIsModalOpen(true);
+            // On Android, closing one modal and immediately opening another can cause the second to stay hidden.
+            // A small delay ensures the first modal has finished its transition.
+            setTimeout(() => {
+                setIsModalOpen(true);
+            }, Platform.OS === 'android' ? 300 : 0);
         }}
       />
 
