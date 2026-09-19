@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, StatusBar } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {
   Box,
@@ -183,6 +183,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <VStack space="xl" pb="$10" pt="$2">
           <HStack space="md" alignItems="center">
@@ -318,7 +319,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
         <ModalContent borderRadius={24}>
           <ModalHeader pt="$5" px="$5">
             <Heading size="lg" fontWeight="$black" color="$text900">{isEditMode ? 'Edit Branch' : 'Add New Branch'}</Heading>
-            <ModalCloseButton isDisabled={submitting}>
+            <ModalCloseButton disabled={submitting}>
               <Icon as={CloseIcon} />
             </ModalCloseButton>
           </ModalHeader>

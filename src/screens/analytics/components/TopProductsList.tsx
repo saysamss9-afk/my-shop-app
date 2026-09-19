@@ -8,7 +8,7 @@ import {
   Center,
   Divider,
 } from '@gluestack-ui/themed';
-import { TopProduct } from '../../../repositories/AnalyticsRepository';
+import type { TopProduct } from '../../../repositories/AnalyticsRepository';
 
 interface Props {
   products: TopProduct[];

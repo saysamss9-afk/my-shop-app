@@ -1,4 +1,4 @@
-import { SQLiteDatabase } from 'react-native-sqlite-storage';
+import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Customer, DebtPayment } from '../db/types';
 import { generateUUID } from '../utils/uuid';
 

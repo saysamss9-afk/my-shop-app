@@ -21,7 +21,7 @@ import { getAppShadow } from '../../utils/platformStyles';
 import PurchaseDetailModal from './components/PurchaseDetailModal';
 
 const PurchaseHistoryScreen = ({ route, navigation }: any) => {
-  const { shopId } = route.params;
+  const { shopId, currency } = route.params;
   const { purchases, isLoading, refresh, getPurchaseItems, returnPurchaseItem } = usePurchase(shopId);
   const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -109,7 +109,7 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
 
   return (
     <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <Box px="$4" pt="$2" pb="$4">
         <HStack space="md" alignItems="center">

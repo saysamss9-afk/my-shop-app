@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, Alert, KeyboardAvoidingView, Platform, I18nManager } from 'react-native';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform, I18nManager, StatusBar } from 'react-native';
 import {
   Box,
   VStack,
@@ -34,6 +34,7 @@ import {
   GlobeIcon,
   MailIcon,
 } from '@gluestack-ui/themed';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
 import SilkyButton from '../../components/common/SilkyButton';
 import { useAuthContext } from '../../auth/AuthContext';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -244,13 +245,14 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <Box flex={1} bg="$backgroundLight50">
+    <ScreenWrapper scrollable>
+      <StatusBar barStyle="dark-content" backgroundColor="white" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'android' ? 'height' : 'padding'}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 20 }}>
-          <HStack justifyContent="space-between" alignItems="center" mt="$5" mb="$6">
+        <VStack space="md" pb="$10">
+          <HStack justifyContent="space-between" alignItems="center" mt="$2" mb="$6">
             <Button
               variant="link"
               onPress={() => navigation.goBack()}
@@ -455,7 +457,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
               {t('auth.admin_verify_note')}
             </Text>
           </HStack>
-        </ScrollView>
+        </VStack>
       </KeyboardAvoidingView>
 
       {/* Robust Success Modal for Web */}
@@ -479,7 +481,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
           </ModalBody>
         </ModalContent>
       </Modal>
-    </Box>
+    </ScreenWrapper>
   );
 };
 

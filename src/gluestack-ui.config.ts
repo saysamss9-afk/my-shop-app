@@ -7,27 +7,27 @@ export const config = createConfig({
     ...defaultExternalConfig.tokens,
     colors: {
       ...defaultExternalConfig.tokens.colors,
-      // Palette derived from reference image
-      primary0: '#FBF7FF',
-      primary50: '#F3ECFF',
-      primary100: '#E7DBFF',
-      primary200: '#D2BFFF',
-      primary300: '#B99CFF',
-      primary400: '#A079FF',
-      primary500: '#8956FF',
-      primary600: '#6E3BE6', // Main Purple
-      primary700: '#5A2ECC',
-      primary800: '#4A23B3',
-      primary900: '#2D1B66',
-      // Pink Accent
-      secondary500: '#FF4081',
-      secondary600: '#F50057',
+      // Palette derived from high-contrast Orange, Black, and White theme
+      primary0: '#FFFFFF',
+      primary50: '#FFF3E0',
+      primary100: '#FFE0B2',
+      primary200: '#FFCC80',
+      primary300: '#FFB74D',
+      primary400: '#FFA726',
+      primary500: '#FF9800', // Main Vibrant Orange
+      primary600: '#E65100', // High-contrast Deep Orange
+      primary700: '#D84315',
+      primary800: '#BF360C',
+      primary900: '#1A1A1A', // Rich Near-Black
+      // Dark Accents
+      secondary500: '#000000', // Black Accent
+      secondary600: '#222222',
       // Surface & shadow tokens
-      surfaceLavender: '#F3ECFF',
-      surfaceGradientStart: '#F3ECFF',
-      surfaceGradientEnd: '#E7DBFF',
+      surfaceLavender: '#E5E7EB', // Distinct clearly visible background
+      surfaceGradientStart: '#F3F4F6',
+      surfaceGradientEnd: '#E5E7EB',
       cardBg: '#FFFFFF',
-      shadowSoft: 'rgba(72, 52, 129, 0.08)',
+      shadowSoft: 'rgba(0, 0, 0, 0.15)',
     },
   },
 });

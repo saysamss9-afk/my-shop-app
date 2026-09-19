@@ -47,7 +47,7 @@ const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, i
     >
       <HStack space="md" alignItems="center">
         {onToggleSelect && (
-          <Pressable onPress={(e: any) => { e.stopPropagation(); onToggleSelect(); }}>
+          <Pressable onPress={(e: import('react-native').GestureResponderEvent) => { e.stopPropagation(); onToggleSelect(); }}>
             <Center w={24} h={24} rounded="$full" borderWidth={2} borderColor={isSelected ? "$primary600" : "$text300"} bg={isSelected ? "$primary600" : "transparent"}>
               {isSelected && <MaterialCommunityIcons name="check" size={14} color="white" />}
             </Center>
@@ -56,7 +56,7 @@ const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, i
         <Center w={48} h={48} rounded="$full" bg="$primary50">
           <MaterialCommunityIcons name="receipt-text-outline" size={24} color="#1A237E" />
         </Center>
-        <VStack flex={1} space="0">
+        <VStack flex={1} space="xs">
           <Heading size="xs" color="$text900">
             #{item.id.slice(-6).toUpperCase()}
           </Heading>
@@ -76,11 +76,11 @@ const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, i
           </Text>
           {item.isReverted === 1 ? (
             <Box bg="$error50" px="$2" py="$0.5" rounded="$md">
-              <Text size="10px" color="$error700" fontWeight="$bold">REVERTED</Text>
+              <Text size="xs" color="$error700" fontWeight="$bold">REVERTED</Text>
             </Box>
           ) : (
             <Pressable
-              onPress={(e: any) => {
+              onPress={(e: import('react-native').GestureResponderEvent) => {
                   e.stopPropagation();
                   onRevert(item.id);
               }}

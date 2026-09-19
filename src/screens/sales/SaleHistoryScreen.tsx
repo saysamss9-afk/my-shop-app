@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { FlatList, SectionList, StatusBar } from 'react-native';
+import { FlatList, SectionList, StatusBar, Alert } from 'react-native';
 import {
   Box,
   VStack,
@@ -27,6 +27,7 @@ import { PrintingService } from '../../services/PrintingService';
 // Sub-components
 import SaleHistoryItem from './components/SaleHistoryItem';
 import SaleDetailModal from './components/SaleDetailModal';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
 
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
@@ -70,7 +71,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   const handlePrintSelected = async () => {
     const selectedSales = filteredSales.filter((s: any) => selectedSaleIds.includes(s.id));
     if (selectedSales.length === 0) {
-      alert('Please select at least one sale to print.');
+      Alert.alert('Error', 'Please select at least one sale to print.');
       return;
     }
 
@@ -187,11 +188,11 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   ), [currency, revertSale, getSaleDetails, selectedSaleIds]);
 
   return (
-    <Box flex={1} bg="$backgroundLight50">
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Modern Header */}
-      <Box px="$4" pt="$2" pb="$2">
+      <Box pt="$2" pb="$2">
         <HStack justifyContent="space-between" alignItems="center">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
@@ -316,7 +317,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
             <MaterialCommunityIcons
               name="printer-check"
               size={18}
-              color={selectedSaleIds.length > 0 ? "#fff" : "#6E3BE6"}
+              color={selectedSaleIds.length > 0 ? "#fff" : "#E65100"}
             />
             <Text color={selectedSaleIds.length > 0 ? "$white" : "$primary600"} fontWeight="$bold" size="sm">
               {selectedSaleIds.length > 0 ? `Print (${selectedSaleIds.length}) Transactions` : 'Print Month Summary'}
@@ -334,6 +335,10 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
           sections={groupedSales}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           renderSectionHeader={({ section: { title } }) => (
             <Box bg="$backgroundLight50" px="$5" py="$3" mb="$2">
               <HStack alignItems="center" space="sm">
@@ -366,7 +371,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         onPrint={handlePrint}
         onRefundItem={handleRefundItem}
       />
-    </Box>
+    </ScreenWrapper>
   );
 };
 

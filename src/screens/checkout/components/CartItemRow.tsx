@@ -10,7 +10,7 @@ import {
   AddIcon,
   TrashIcon,
 } from '@gluestack-ui/themed';
-import { CartItem } from '../../../hooks/useCheckout';
+import type { CartItem } from '../../../hooks/useCheckout';
 
 interface Props {
   item: CartItem;
@@ -31,7 +31,7 @@ const CartItemRow: React.FC<Props> = ({ item, currency, onUpdateQuantity, onRemo
                     <Text fontWeight="$bold" color="$text900">{item.product.name}</Text>
                     {item.isBulk && (
                         <Box bg="$warning50" px="$2" py="$0.5" rounded="$md">
-                            <Text size="xxs" color="$warning700" fontWeight="$bold">{item.product.bulkUnit?.toUpperCase() || 'BULK'}</Text>
+                            <Text size="2xs" color="$warning700" fontWeight="$bold">{item.product.bulkUnit?.toUpperCase() || 'BULK'}</Text>
                         </Box>
                     )}
                 </HStack>

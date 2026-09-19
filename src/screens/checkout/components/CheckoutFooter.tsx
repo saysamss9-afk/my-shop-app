@@ -11,6 +11,7 @@ import {
   Icon,
 } from '@gluestack-ui/themed';
 import { Wallet } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
@@ -22,8 +23,9 @@ interface Props {
 }
 
 const CheckoutFooter: React.FC<Props> = ({ total, currency, cartLength, isLoading, onCheckout }) => {
+  const insets = useSafeAreaInsets();
   return (
-    <Box position="absolute" bottom={0} left={0} right={0} p="$5" bg="$white" borderTopLeftRadius="$3xl" borderTopRightRadius="$3xl" style={{ ...getAppShadow({ offsetY: -8, radius: 24, color: 'rgba(0,0,0,0.08)' }) }}>
+    <Box position="absolute" bottom={0} left={0} right={0} p="$5" pb={Math.max(insets.bottom, 20)} bg="$white" borderTopLeftRadius="$3xl" borderTopRightRadius="$3xl" style={{ ...getAppShadow({ offsetY: -8, radius: 24, color: 'rgba(0,0,0,0.08)' }) }}>
       <VStack space="lg">
           <VStack space="xs">
               <HStack justifyContent="space-between" alignItems="center">

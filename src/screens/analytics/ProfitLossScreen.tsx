@@ -9,6 +9,8 @@ import {
   Icon,
   Spinner,
   Divider,
+  Button,
+  ButtonText,
   Pressable,
   Center,
 } from '@gluestack-ui/themed';
@@ -66,11 +68,11 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
   const monthLabel = currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
   return (
-    <ScreenWrapper>
-      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Top App Bar Header */}
-      <Box bg="$primary800" px="$4" py="$4" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
+      <Box bg="$primary800" px="$4" py="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
         <HStack space="md" alignItems="center" justifyContent="space-between">
           <HStack space="md" alignItems="center">
             <Pressable onPress={() => navigation.goBack()}>
@@ -78,7 +80,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             </Pressable>
             <VStack>
               <Heading size="md" color="$white" fontWeight="$black">Owner Financial Audit</Heading>
-              <Text size="2xs" color="$primary200">
+              <Text size="xs" color="$primary200">
                 {snapshot?.itemCount ? `Tracking ${snapshot.itemCount} active inventory items` : 'Comprehensive shop performance audit'}
               </Text>
             </VStack>
@@ -161,7 +163,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
               <Heading color="$white" size="2xl" fontWeight="$black">
                 {isPositive ? '' : '-'}{currency}{Math.abs(netPerformance).toFixed(2)}
               </Heading>
-              <Text color="$white" size="2xs" opacity={0.9}>
+              <Text color="$white" size="xs" opacity={0.9}>
                 Based on Sales vs Expenditures for {monthLabel}
               </Text>
             </VStack>
@@ -173,7 +175,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
                 <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="2xs">
+                  <VStack space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={Package} color="$primary600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Total Stock Cost Value</Text>
@@ -184,7 +186,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                 </HStack>
                 <Divider />
                 <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="2xs">
+                  <VStack space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={TrendingUp} color="$success600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Total Expected Sales Value</Text>
@@ -198,7 +200,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                 {/* Sub-breakdown for Units and Bulk */}
                 <HStack p="$4" bg="$backgroundLight50" space="md">
                   <VStack flex={1} space="xs">
-                    <Text size="2xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Unit Items Only</Text>
+                    <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Unit Items Only</Text>
                     <HStack justifyContent="space-between">
                       <Text size="xs" color="$text600">Cost:</Text>
                       <Text size="xs" fontWeight="$bold">{currency}{(snapshot?.unitStockCostValue || 0).toFixed(2)}</Text>
@@ -210,7 +212,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                   </VStack>
                   <Box w={1} bg="$borderLight" />
                   <VStack flex={1} space="xs">
-                    <Text size="2xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Bulk Items Only</Text>
+                    <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Bulk Items Only</Text>
                     <HStack justifyContent="space-between">
                       <Text size="xs" color="$text600">Cost:</Text>
                       <Text size="xs" fontWeight="$bold">{currency}{(snapshot?.bulkStockCostValue || 0).toFixed(2)}</Text>
@@ -231,7 +233,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
                 <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="2xs">
+                  <VStack space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={Wallet} color="$error600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Owed to Suppliers</Text>
@@ -242,7 +244,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                 </HStack>
                 <Divider />
                 <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="2xs">
+                  <VStack space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={Users} color="$info600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Owed by Customers</Text>
@@ -261,7 +263,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
                 <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="2xs">
+                  <VStack space="xs">
                     <Text size="sm" fontWeight="$bold" color="$text900">Accumulated Sales</Text>
                     <Text size="xs" color="$text400">Total cash/credit turnover this month</Text>
                   </VStack>
@@ -269,7 +271,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                 </HStack>
                 <Divider />
                 <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="2xs">
+                  <VStack space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={TrendingDown} color="$error600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Total Expenditure</Text>

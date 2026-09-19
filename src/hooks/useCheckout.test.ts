@@ -17,14 +17,16 @@ describe('checkout pricing and stock validation', () => {
     stockQuantity: 30,
     minStockLevel: 5,
     unit: 'kg',
+    bulkUnit: 'Carton',
+    status: 'ACTIVE',
     supplierId: null,
     syncStatus: 0,
   };
 
   it('calculates the correct total for mixed unit and carton sales', () => {
     const total = calculateCartTotal([
-      { product, quantity: 2, isBulk: false },
-      { product, quantity: 1, isBulk: true },
+      { product: product as any, quantity: 2, isBulk: false },
+      { product: product as any, quantity: 1, isBulk: true },
     ]);
 
     expect(total).toBe(124);
@@ -32,7 +34,7 @@ describe('checkout pricing and stock validation', () => {
 
   it('rejects quantities above available stock', () => {
     const result = validateCartStock([
-      { product, quantity: 31, isBulk: false },
+      { product: product as any, quantity: 31, isBulk: false },
     ]);
 
     expect(result.isValid).toBe(false);

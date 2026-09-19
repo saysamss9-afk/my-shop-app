@@ -102,7 +102,7 @@ const SupplierPaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, suppli
               <Select onValueChange={setPaymentMethod} defaultValue="CASH">
                 <SelectTrigger borderRadius={16} bg="$backgroundLight50">
                   <SelectInput placeholder="Select method" />
-                  <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
+                  <SelectIcon as={ChevronDownIcon} mr="$3" />
                 </SelectTrigger>
                 <SelectPortal>
                   <SelectBackdrop />

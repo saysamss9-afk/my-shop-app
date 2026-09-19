@@ -116,7 +116,7 @@ const ReturnModal: React.FC<Props> = ({ isOpen, onClose, onSave, customer, curre
                 >
                   <SelectTrigger borderRadius={16} bg="$backgroundLight50">
                     <SelectInput placeholder="Choose item to return" />
-                    <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
+                    <SelectIcon as={ChevronDownIcon} mr="$3" />
                   </SelectTrigger>
                   <SelectPortal>
                     <SelectBackdrop />

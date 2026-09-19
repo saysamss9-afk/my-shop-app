@@ -10,7 +10,7 @@ import {
   Icon,
 } from '@gluestack-ui/themed';
 import { User } from 'lucide-react-native';
-import { CashierPerformance } from '../../../repositories/AnalyticsRepository';
+import type { CashierPerformance } from '../../../repositories/AnalyticsRepository';
 
 interface Props {
   performance: CashierPerformance[];

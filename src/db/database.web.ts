@@ -12,7 +12,7 @@ const initDB = async () => {
         // DO NOT set autocommit true here, it can cause race conditions during migrations
         alasql.options.autocommit = false;
         alasql.options.casesensitive = false;
-        alasql.options.performance = false; // Disable performance tracing to prevent 'startTime' errors
+        (alasql as any).options.performance = false; // Disable performance tracing to prevent 'startTime' errors
 
         console.log('AlaSQL initialized with localStorage persistence');
     } catch (e) {
@@ -303,7 +303,7 @@ export const createTables = async (db: any) => {
   const rebuildTableIfMisaligned = async (table: string, canonicalColumns: string[], createQuery: string) => {
     try {
         const dbName = alasql.useid || 'AppDB';
-        const database = alasql.databases[dbName];
+        const database = (alasql as any).databases[dbName];
         if (!database) {
             console.warn(`[SCHEMA] Database ${dbName} not found.`);
             return;
@@ -320,7 +320,7 @@ export const createTables = async (db: any) => {
         const canonicalLower = canonicalColumns.map(c => c.toLowerCase());
 
         const isMisaligned = currentColumns.length !== canonicalLower.length ||
-                           currentColumns.some((col, idx) => col !== canonicalLower[idx]);
+                           currentColumns.some((col: any, idx: any) => col !== canonicalLower[idx]);
 
         if (isMisaligned) {
             console.log(`[SCHEMA] Table ${table} is misaligned. Rebuilding...`);
@@ -333,8 +333,8 @@ export const createTables = async (db: any) => {
 
                 // Extra cleanup of AlaSQL's internal state
                 const dbName = alasql.useid || 'AppDB';
-                if (alasql.databases[dbName]?.tables?.[table]) {
-                    delete alasql.databases[dbName].tables[table];
+                if ((alasql as any).databases[dbName]?.tables?.[table]) {
+                    delete (alasql as any).databases[dbName].tables[table];
                 }
             } catch (err) {
                 console.warn(`[SCHEMA] Drop failed for ${table}, attempting rename purge:`, err);
@@ -346,9 +346,9 @@ export const createTables = async (db: any) => {
 
             await db.executeSql(createQuery);
 
-            if (data && data.length > 0) {
-                console.log(`[SCHEMA] Migrating ${data.length} rows for ${table}`);
-                for (const row of data) {
+            if (data && (data as any).length > 0) {
+                console.log(`[SCHEMA] Migrating ${(data as any).length} rows for ${table}`);
+                for (const row of (data as any)) {
                     const values = canonicalColumns.map(col => {
                         const actualKey = Object.keys(row).find(k => k.toLowerCase() === col.toLowerCase());
                         let val = actualKey ? row[actualKey] : null;

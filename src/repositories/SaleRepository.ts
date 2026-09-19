@@ -1,4 +1,4 @@
-import { SQLiteDatabase } from 'react-native-sqlite-storage';
+import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Sale, SaleItem } from '../db/types';
 
 export class SaleRepository {

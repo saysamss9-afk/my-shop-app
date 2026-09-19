@@ -12,6 +12,7 @@ import {
 } from '@gluestack-ui/themed';
 import { Filter, RefreshCw, AlertTriangle, Plus } from 'lucide-react-native';
 import { Spinner } from '@gluestack-ui/themed';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SyncStatus } from '../../../sync/SyncManager';
 import { getAppShadow } from '../../../utils/platformStyles';
 
@@ -36,12 +37,13 @@ const InventoryHeader: React.FC<Props> = ({
     onAdd,
     userRole
 }) => {
+  const insets = useSafeAreaInsets();
   const canAdd = userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'SALES';
   return (
-    <Box px="$2" pt="$2" pb="$4">
+    <Box px="$2" pt={Math.max(insets.top, 10)} pb="$4">
       <HStack justifyContent="space-between" alignItems="center">
         <HStack space="md" alignItems="center">
-          <Pressable onPress={onBack} p="$2" bg="$white" rounded="$full">
+          <Pressable onPress={onBack} p="$2" bg="$backgroundLight50" rounded="$full">
             <Icon as={ArrowLeftIcon} color="$text900" />
           </Pressable>
           <VStack>
@@ -68,7 +70,7 @@ const InventoryHeader: React.FC<Props> = ({
                         px="$4"
                         py="$2"
                         rounded="$full"
-                        style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
+                        style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(0,0,0,0.1)' }) }}
                     >
                         <HStack space="xs" alignItems="center">
                             <Icon
@@ -87,7 +89,7 @@ const InventoryHeader: React.FC<Props> = ({
             <Pressable
                 onPress={onToggleFilter}
                 p="$3"
-                bg={showLowStockOnly ? '$error50' : '$white'}
+                bg={showLowStockOnly ? '$error50' : '$backgroundLight50'}
                 rounded="$full"
                 style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
             >
@@ -104,7 +106,7 @@ const InventoryHeader: React.FC<Props> = ({
                     p="$3"
                     bg="$primary600"
                     rounded="$full"
-                    style={{ ...getAppShadow({ offsetY: 4, radius: 10, color: 'rgba(110,59,230,0.3)' }) }}
+                    style={{ ...getAppShadow({ offsetY: 4, radius: 10, color: 'rgba(0,0,0,0.15)' }) }}
                 >
                     <Icon as={Plus} color="white" size="sm" />
                 </Pressable>

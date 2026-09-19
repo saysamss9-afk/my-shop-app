@@ -1,4 +1,4 @@
-import { SQLiteDatabase } from 'react-native-sqlite-storage';
+import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Supplier, SupplierPayment, Product } from '../db/types';
 
 export class SupplierRepository {
@@ -32,8 +32,7 @@ export class SupplierRepository {
         FROM Product p
         LEFT JOIN PurchaseOrderItem poi ON p.id = poi.productId
         LEFT JOIN PurchaseOrder po ON poi.purchaseOrderId = po.id
-        WHERE (p.supplierId = s.id OR po.supplierId = s.id)
-        AND p.status != 'DELETED'
+        WHERE p.supplierId = s.id OR po.supplierId = s.id
       ) as productCount
       FROM Supplier s
       WHERE s.shopId = ?
@@ -154,7 +153,6 @@ export class SupplierRepository {
       LEFT JOIN PurchaseOrderItem poi ON p.id = poi.productId
       LEFT JOIN PurchaseOrder po ON poi.purchaseOrderId = po.id
       WHERE p.supplierId = ? OR po.supplierId = ?
-      AND p.status != 'DELETED'
     `;
     const results = await this.db.executeSql(query, [supplierId, supplierId]);
     const products: Product[] = [];

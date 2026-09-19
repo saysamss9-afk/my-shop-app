@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   Heading,
   Icon,
@@ -24,6 +24,7 @@ import {
 } from '@gluestack-ui/themed';
 import { getButtonHeight } from '../../../utils/platformStyles';
 import type { Supplier } from '../../../db/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   isOpen: boolean;
@@ -53,20 +54,23 @@ const AddSupplierModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
     onClose();
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl">
-        <ModalHeader>
-          <VStack>
-            <Heading size="lg" fontWeight="$black">Add New Supplier</Heading>
-            <GlueText size="xs" color="$text500">Provide official contact and business details.</GlueText>
-          </VStack>
-          <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
-        </ModalHeader>
-        <ModalBody>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <VStack space="xl" py="$4">
+      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '85%' }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ModalHeader>
+            <VStack>
+              <Heading size="lg" fontWeight="$black">Add New Supplier</Heading>
+              <GlueText size="xs" color="$text500">Provide official contact and business details.</GlueText>
+            </VStack>
+            <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
+          </ModalHeader>
+          <ModalBody>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <VStack space="xl" py="$4">
               <FormControl isRequired>
                 <FormControlLabel mb="$1"><FormControlLabelText>Supplier / Business Name</FormControlLabelText></FormControlLabel>
                 <Input borderRadius={16} bg="$backgroundLight50">
@@ -140,6 +144,7 @@ const AddSupplierModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
             <ButtonText fontWeight="$bold">Save Supplier</ButtonText>
           </Button>
         </ModalFooter>
+        </KeyboardAvoidingView>
       </ModalContent>
     </Modal>
   );

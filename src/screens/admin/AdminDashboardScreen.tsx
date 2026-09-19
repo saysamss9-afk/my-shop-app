@@ -16,8 +16,11 @@ import {
   Pressable,
   Badge,
   BadgeText,
+  Button,
+  ButtonText,
 } from '@gluestack-ui/themed';
 import firebase from '../../firebase-config';
+import type { User } from 'firebase/auth';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { getAppShadow } from '../../utils/platformStyles';
 
@@ -106,7 +109,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     let unsubShops: any;
     let unsubUpgrades: any;
 
-    const unsubscribeAuth = firebase.auth().onAuthStateChanged(user => {
+    const unsubscribeAuth = firebase.auth().onAuthStateChanged((user: User | null) => {
       // Clean up previous listeners if auth changes
       if (unsubReq) unsubReq();
       if (unsubShops) unsubShops();
@@ -120,30 +123,30 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       // Admin authenticated. Start listeners.
       unsubReq = firebase.firestore().collection('shop_requests')
         .where('status', 'in', ['PENDING', 'REVIEWING'])
-        .onSnapshot(snapshot => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        .onSnapshot((snapshot: any) => {
+          const data = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as any));
           data.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
           setRequests(data);
           setLoading(false);
-        }, error => {
+        }, (error: any) => {
           console.error("AdminDashboard: Error fetching shop_requests:", error);
           setLoading(false);
         });
 
       unsubShops = firebase.firestore().collection('registered_shops')
-        .onSnapshot(snapshot => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        .onSnapshot((snapshot: any) => {
+          const data = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
           setShops(data);
-        }, error => {
+        }, (error: any) => {
           console.error("AdminDashboard: Error fetching registered_shops:", error);
         });
 
       unsubUpgrades = firebase.firestore().collection('plan_upgrade_requests')
         .where('status', '==', 'PENDING')
-        .onSnapshot(snapshot => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        .onSnapshot((snapshot: any) => {
+          const data = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
           setUpgrades(data);
-        }, error => {
+        }, (error: any) => {
           console.error("AdminDashboard: Error fetching upgrade requests:", error);
         });
     });
@@ -344,7 +347,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
 
   return (
     <ScreenWrapper withHeader>
-      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <AdminHeader
         viewMode={viewMode}

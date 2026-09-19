@@ -79,7 +79,7 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
                     {currency}{currentBalance.toFixed(2)}
                 </Text>
                 <Badge size="sm" variant="solid" action={isOwing ? "error" : "success"} borderRadius="$full">
-                    <BadgeText size="xxs">{isOwing ? 'Owing' : 'Paid'}</BadgeText>
+                    <BadgeText size="2xs">{isOwing ? 'Owing' : 'Paid'}</BadgeText>
                 </Badge>
             </VStack>
         </HStack>

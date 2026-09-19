@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   Heading,
   Icon,
@@ -24,6 +24,7 @@ import {
 import { Wallet, CreditCard, User, Smartphone, ShoppingBag } from 'lucide-react-native';
 import type { Customer } from '../../../db/types';
 import type { CartItem } from '../../../hooks/useCheckout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   isOpen: boolean;
@@ -61,17 +62,20 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
     { id: 'CARD', label: 'POS / Card', icon: CreditCard, color: '$info600', bgColor: '$info50' },
   ];
 
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" h="90%">
-        <ModalHeader borderBottomWidth={1} borderBottomColor="$borderLight">
-          <Heading size="lg" fontWeight="$black">Finalize Sale</Heading>
-          <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
-        </ModalHeader>
-        <ModalBody>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <VStack space="xl" py="$6">
+      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ModalHeader borderBottomWidth={1} borderBottomColor="$borderLight">
+            <Heading size="lg" fontWeight="$black">Finalize Sale</Heading>
+            <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
+          </ModalHeader>
+          <ModalBody>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  <VStack space="xl" py="$6">
                   {/* Amount Summary */}
                   <VStack space="xs" alignItems="center">
                       <Text size="sm" color="$text500" fontWeight="$bold">Total Amount Due</Text>
@@ -194,6 +198,7 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
             <ButtonText fontWeight="$bold">{isSubmitting ? 'Saving...' : 'Finish & Save'}</ButtonText>
           </Button>
         </ModalFooter>
+        </KeyboardAvoidingView>
       </ModalContent>
     </Modal>
   );

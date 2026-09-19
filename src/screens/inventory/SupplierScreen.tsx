@@ -101,7 +101,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
 
   return (
     <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
       <Box px="$4" pt="$2" pb="$2">

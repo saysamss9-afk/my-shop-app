@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
-import { AnalyticsRepository, DailyItemSale } from '../repositories/AnalyticsRepository';
+import { AnalyticsRepository } from '../repositories/AnalyticsRepository';
+import type { DailyItemSale } from '../repositories/AnalyticsRepository';
 
 export const useDailyReport = (shopId: string) => {
   const [reportData, setReportData] = useState<DailyItemSale[]>([]);

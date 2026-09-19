@@ -1,4 +1,4 @@
-import { SQLiteDatabase } from 'react-native-sqlite-storage';
+import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { PurchaseOrder, PurchaseOrderItem, Product, SupplierPayment, PurchaseReturn } from '../db/types';
 import { generateUUID } from '../utils/uuid';
 
@@ -61,11 +61,9 @@ export class PurchaseRepository {
         );
       }
 
-      // 3. Update Supplier Balance (Increase by the unpaid balance)
-      if (order.balance > 0) {
-        const updateSupplierQuery = 'UPDATE Supplier SET currentBalance = currentBalance + ?, syncStatus = 0 WHERE id = ?';
-        await tx.executeSql(updateSupplierQuery, [order.balance, order.supplierId]);
-      }
+      // 3. Update Supplier Balance (Increase by the unpaid balance or upfront change defaults)
+      const updateSupplierQuery = 'UPDATE Supplier SET currentBalance = currentBalance + ?, syncStatus = 0 WHERE id = ?';
+      await tx.executeSql(updateSupplierQuery, [order.balance, order.supplierId]);
 
       // 4. Record Supplier Payment if any amount was paid upfront
       if (order.amountPaid > 0) {

@@ -1,6 +1,6 @@
-import React from 'react';
 import { Pressable } from 'react-native';
 import { Box, Text, Icon } from '@gluestack-ui/themed';
+import { getAppShadow } from '../../utils/platformStyles';
 
 interface SilkyButtonProps {
   children: React.ReactNode;
@@ -31,8 +31,12 @@ const SilkyButton: React.FC<SilkyButtonProps> = ({ children, onPress, style, ico
           background: (disabled || loading)
             ? '#CBD5E1'
             : 'linear-gradient(90deg, #8956FF 0%, #FF9BDB 100%)',
-          boxShadow: (disabled || loading) ? 'none' : '0 14px 40px rgba(138,79,255,0.18)',
-          elevation: 4,
+          ...getAppShadow({
+            offsetY: 14,
+            radius: 40,
+            color: 'rgba(138,79,255,0.18)',
+            opacity: 0.18
+          }),
           flexDirection: 'row',
         } as any}
       >

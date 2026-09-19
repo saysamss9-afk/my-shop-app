@@ -13,6 +13,7 @@ import {
   BadgeText,
 } from '@gluestack-ui/themed';
 import { User, MailIcon, PhoneIcon, CreditCard } from 'lucide-react-native';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
   item: any;
@@ -20,7 +21,7 @@ interface Props {
 
 const StaffMemberItem: React.FC<Props> = ({ item }) => {
   return (
-    <Box bg="$white" p="$5" rounded="$3xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+    <Box bg="$white" p="$5" rounded="$3xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)', opacity: 0.03 }) }}>
       <HStack justifyContent="space-between" alignItems="flex-start">
         <HStack space="md" flex={1}>
           <Center w={48} h={48} rounded="$full" bg="$primary50">

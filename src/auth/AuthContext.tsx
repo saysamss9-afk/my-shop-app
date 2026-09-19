@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import firebase from '../firebase-config';
+import type { User } from 'firebase/auth';
 
 interface AuthContextType {
   user: any | null;
@@ -24,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isRestoringSession, setIsRestoringSession] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = firebase.auth().onAuthStateChanged(async (currentUser) => {
+    const unsubscribe = firebase.auth().onAuthStateChanged(async (currentUser: User | null) => {
       setUser(currentUser);
 
       if (currentUser) {

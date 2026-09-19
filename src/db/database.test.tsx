@@ -17,7 +17,7 @@ describe('database bootstrap', () => {
     const db = await getDBConnection();
 
     expect(sqlite.openDatabase).toHaveBeenCalledTimes(1);
-    expect(db.executeSql.mock.calls.some(([sql]) => sql.includes('CREATE TABLE IF NOT EXISTS Product'))).toBe(true);
+    expect(db.executeSql.mock.calls.some(([sql]: [string]) => sql.includes('CREATE TABLE IF NOT EXISTS Product'))).toBe(true);
   });
 
   it('uses a non-reserved name for the purchase return amount column', async () => {
@@ -27,7 +27,7 @@ describe('database bootstrap', () => {
     await getDBConnection();
 
     const createTableCall = sqlite.openDatabase.mock.results[0].value.executeSql.mock.calls
-      .find(([sql]) => sql.includes('CREATE TABLE IF NOT EXISTS PurchaseReturn'));
+      .find(([sql]: [string]) => sql.includes('CREATE TABLE IF NOT EXISTS PurchaseReturn'));
 
     expect(createTableCall).toBeDefined();
     expect(createTableCall[0]).toContain('returnValue REAL');

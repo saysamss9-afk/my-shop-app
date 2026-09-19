@@ -1,4 +1,4 @@
-import { SQLiteDatabase } from 'react-native-sqlite-storage';
+import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Category } from '../db/types';
 
 export class CategoryRepository {
@@ -39,5 +39,17 @@ export class CategoryRepository {
       categories.push(results[0].rows.item(i));
     }
     return categories;
+  }
+
+  async updateCategory(id: string, name: string) {
+    const query = 'UPDATE Category SET name = ?, syncStatus = 0 WHERE id = ?';
+    await this.db.executeSql(query, [name, id]);
+  }
+
+  async deleteCategory(id: string) {
+    // Set categoryId to NULL for products in this category before deleting
+    await this.db.executeSql('UPDATE Product SET categoryId = NULL, syncStatus = 0 WHERE categoryId = ?', [id]);
+    const query = 'DELETE FROM Category WHERE id = ?';
+    await this.db.executeSql(query, [id]);
   }
 }

@@ -55,7 +55,7 @@ const EntryTypeModal: React.FC<Props> = ({ isOpen, onClose, onSelect }) => {
                 >
                   <HStack space="md" alignItems="center">
                     <Center w={48} h={48} bg="$primary50" rounded="$xl">
-                      <AppIcon name="package" size={24} color="#6E3BE6" />
+                      <AppIcon name="package" size={24} color="#E65100" />
                     </Center>
                     <VStack flex={1}>
                       <Text fontWeight="$bold" color="$text900">Single Unit Item</Text>

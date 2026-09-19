@@ -21,7 +21,16 @@ import {
   Center,
   Spinner,
 } from '@gluestack-ui/themed';
-import { Phone, Mail, MapPin, Package, User, Wallet } from 'lucide-react-native';
+import {
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Wallet,
+  Package,
+} from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getButtonHeight } from '../../../utils/platformStyles';
 import type { Supplier, Product } from '../../../db/types';
 
 interface Props {
@@ -52,12 +61,14 @@ const SupplierDetailModal: React.FC<Props> = ({
     }
   }, [isOpen, supplier, fetchProducts]);
 
+  const insets = useSafeAreaInsets();
+
   if (!supplier) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" h="80%">
+      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, height: '80%' }}>
         <ModalHeader>
           <VStack>
             <Heading size="lg" fontWeight="$black">{supplier.name}</Heading>

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { FlatList, StatusBar, Modal as RNModal } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { FlatList, StatusBar, Modal as RNModal, Alert } from 'react-native';
 import {
   Box,
   VStack,
@@ -25,6 +25,7 @@ import { useCheckout } from '../../hooks/useCheckout';
 import { useInventory } from '../../hooks/useInventory';
 import { useCustomers } from '../../hooks/useCustomers';
 import AppIcon from '../../components/common/AppIcon';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { ScannerView } from '../../components/ScannerView';
 import { getButtonHeight, getAppShadow } from '../../utils/platformStyles';
 import SelectCustomerModal from './components/SelectCustomerModal';
@@ -53,8 +54,8 @@ const CheckoutScreen = ({ route, navigation }: any) => {
     setSelectedCustomerId,
   } = useCheckout(shopId, employeeId);
 
-  const { products, categories } = useInventory(shopId);
-  const { customers } = useCustomers(shopId);
+  const { customers, addCustomer } = useCustomers(shopId);
+  const { products: inventoryProducts, categories } = useInventory(shopId);
   const [searchQuery, setSearchQuery] = useState('');
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -63,39 +64,53 @@ const CheckoutScreen = ({ route, navigation }: any) => {
   const [isScannerVisible, setIsScannerVisible] = useState(false);
 
   // Debounce checkout search
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = setTimeout(() => {
         setSearchQuery(localSearchQuery);
     }, 300);
     return () => clearTimeout(handler);
   }, [localSearchQuery]);
 
-  const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
+  const selectedCustomer = useMemo(() => customers.find(c => c.id === selectedCustomerId) || null, [customers, selectedCustomerId]);
 
-  const filteredProducts = searchQuery.length > 0 ? products.filter(p => {
-    const category = categories.find(c => c.id === p.categoryId);
-    const categoryName = category ? category.name.toLowerCase() : '';
-    const lowerQuery = searchQuery.toLowerCase();
+  const filteredProducts = useMemo(() => {
+    if (searchQuery.length === 0) return [];
 
-    return p.status === 'ACTIVE' && (
-      p.name.toLowerCase().includes(lowerQuery) ||
-      categoryName.includes(lowerQuery) ||
-      (p.barcode && p.barcode.includes(searchQuery)) ||
-      (p.bulkBarcode && p.bulkBarcode.includes(searchQuery))
-    );
-  }) : [];
+    return inventoryProducts.filter(p => {
+      const category = categories.find(c => c.id === p.categoryId);
+      const categoryName = category ? category.name.toLowerCase() : '';
+      const lowerQuery = searchQuery.toLowerCase();
+
+      return p.status === 'ACTIVE' && (
+        p.name.toLowerCase().includes(lowerQuery) ||
+        categoryName.includes(lowerQuery) ||
+        (p.barcode && p.barcode.includes(searchQuery)) ||
+        (p.bulkBarcode && p.bulkBarcode.includes(searchQuery))
+      );
+    });
+  }, [searchQuery, inventoryProducts, categories]);
 
   const handleCameraScan = async (barcode: string) => {
     const found = await searchProductByBarcode(barcode);
     if (!found) {
         console.log("Product not found for barcode:", barcode);
     }
+    // Auto turn off camera state safely to avoid loop scans or native controller crashes
+    setIsScannerVisible(false);
   };
 
   const handleCompleteSale = async (method: string) => {
-    await processSale(method);
-    setShowPaymentModal(false);
-    navigation.goBack();
+    try {
+      await processSale(method);
+      setShowPaymentModal(false);
+      Alert.alert(
+        "Success",
+        "Sale completed successfully!",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
+    } catch (e: any) {
+      Alert.alert("Checkout Failed", e.message || "An unexpected error occurred.");
+    }
   };
 
   const renderItem = useCallback(({ item }: any) => (
@@ -108,8 +123,8 @@ const CheckoutScreen = ({ route, navigation }: any) => {
   ), [currency, updateQuantity, removeFromCart]);
 
   return (
-    <Box flex={1} bg="$surfaceLavender">
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <CheckoutHeader
         onBack={() => navigation.goBack()}
@@ -152,7 +167,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
       </RNModal>
 
       {/* Action Section: Scan -> Customer -> Search */}
-      <Box px="$5" pb="$4" zIndex={10}>
+      <Box pb="$4" zIndex={10}>
         <VStack space="md">
           {/* PRIORITY 1: SCAN */}
           <Button
@@ -163,7 +178,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
             borderRadius="$xl"
             bg="$primary600"
             h={getButtonHeight(56)}
-            style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(110,59,230,0.3)' }) }}
+            style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' }) }}
           >
             <ButtonText fontWeight="$bold" fontSize="$md">Scan Barcode</ButtonText>
             <Box ml="$2">
@@ -253,7 +268,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
 
       {/* Cart Items List */}
       <VStack flex={1}>
-          <HStack px="$5" py="$4" alignItems="center" space="sm">
+          <HStack py="$4" alignItems="center" space="sm">
               <Heading size="md" color="$text900">Order Summary</Heading>
               <Badge action="info" variant="solid" rounded="$full">
                 <BadgeText>{cart.length}</BadgeText>
@@ -263,8 +278,10 @@ const CheckoutScreen = ({ route, navigation }: any) => {
           <FlatList
             data={cart}
             keyExtractor={(item) => item.product.id + (item.isBulk ? '_bulk' : '_unit')}
-            contentContainerStyle={{ padding: 20, paddingBottom: 160 }}
+            contentContainerStyle={{ paddingBottom: 160 }}
             renderItem={renderItem}
+            initialNumToRender={10}
+            removeClippedSubviews={true}
             ListEmptyComponent={
               <Center mt="$20">
                   <VStack space="md" alignItems="center">
@@ -303,12 +320,13 @@ const CheckoutScreen = ({ route, navigation }: any) => {
             setShowCustomerModal(false);
         }}
         selectedCustomerId={selectedCustomerId}
+        onAdd={addCustomer}
       />
 
       <SelectProductModal
         isOpen={showProductModal}
         onClose={() => setShowProductModal(false)}
-        products={products}
+        products={inventoryProducts}
         categories={categories}
         currency={currency}
         onSelect={(product, isBulk) => {
@@ -316,7 +334,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
             setShowProductModal(false);
         }}
       />
-    </Box>
+    </ScreenWrapper>
   );
 };
 

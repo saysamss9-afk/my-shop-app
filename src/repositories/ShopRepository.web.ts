@@ -30,7 +30,7 @@ export class ShopRepository {
       .collection('shop_requests')
       .where('userId', '==', userId)
       .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
   }
 
   async getShopDetails(shopId: string) {
@@ -43,7 +43,7 @@ export class ShopRepository {
       .collection('registered_shops')
       .where('ownerId', '==', ownerId)
       .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
   }
 
   async createBranch(shopId: string, branchData: any) {

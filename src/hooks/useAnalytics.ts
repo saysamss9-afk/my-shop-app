@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getDBConnection } from '../db/database';
-import { AnalyticsRepository, FinancialSummary, TopProduct, CashierPerformance, OwnerFinancialSnapshot } from '../repositories/AnalyticsRepository';
+import { AnalyticsRepository } from '../repositories/AnalyticsRepository';
+import type { FinancialSummary, TopProduct, CashierPerformance, OwnerFinancialSnapshot } from '../repositories/AnalyticsRepository';
 import { useSync } from '../sync/SyncContext';
 
 export const useAnalytics = (shopId: string) => {

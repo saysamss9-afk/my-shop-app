@@ -24,6 +24,8 @@ import {
   Toast,
   ToastTitle,
   ToastDescription,
+  Button,
+  ButtonText,
 } from '@gluestack-ui/themed';
 import { User, RefreshCw, AlertTriangle, XCircle } from 'lucide-react-native';
 import { useCustomers } from '../../hooks/useCustomers';
@@ -83,7 +85,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
       toast.show({
         placement: "top",
         render: ({ id }) => (
-          <Toast nativeId={id} action="success" variant="solid">
+          <Toast nativeID={id} action="success" variant="solid">
             <VStack space="xs">
               <ToastTitle>Customer Added</ToastTitle>
               <ToastDescription>{name} has been added successfully.</ToastDescription>
@@ -102,7 +104,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
       toast.show({
         placement: "top",
         render: ({ id }) => (
-          <Toast nativeId={id} action="success" variant="solid">
+          <Toast nativeID={id} action="success" variant="solid">
             <VStack space="xs">
               <ToastTitle>Payment Recorded</ToastTitle>
               <ToastDescription>Payment of {currency}{amount.toFixed(2)} received.</ToastDescription>
@@ -121,7 +123,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
       toast.show({
         placement: "top",
         render: ({ id }) => (
-          <Toast nativeId={id} action="success" variant="solid">
+          <Toast nativeID={id} action="success" variant="solid">
             <VStack space="xs">
               <ToastTitle>Item Returned</ToastTitle>
               <ToastDescription>Stock restored and debt reduced by {currency}{(price * qty).toFixed(2)}.</ToastDescription>
@@ -146,7 +148,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
 
   return (
     <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
       <Box px="$4" pt="$2" pb="$2">

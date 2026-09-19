@@ -62,7 +62,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const triggerSync = useCallback(async (shopId?: string, deepSync = false) => {
     if (manager) {
       setSyncStatus(SyncStatus.Syncing);
-      await manager.triggerSync(shopId, deepSync);
+      await manager.triggerSync(shopId);
       setSyncStatus(manager.getStatus());
       setDataChangeTick(prev => prev + 1);
     }

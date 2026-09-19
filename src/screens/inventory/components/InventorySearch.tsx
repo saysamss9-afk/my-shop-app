@@ -7,6 +7,7 @@ import {
   InputIcon,
   SearchIcon,
   CloseIcon,
+  Icon,
 } from '@gluestack-ui/themed';
 import { getAppShadow } from '../../../utils/platformStyles';
 

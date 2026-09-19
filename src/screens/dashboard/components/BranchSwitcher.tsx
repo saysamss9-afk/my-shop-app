@@ -43,7 +43,7 @@ const BranchSwitcher: React.FC<Props> = ({ currentShopId, onSwitch }) => {
             if (!hasParentInList) {
               const parentDetails = await shopRepo.getShopDetails(currentViewShop.parentShopId);
               if (parentDetails) {
-                finalShops.unshift({ id: currentViewShop.parentShopId, ...parentDetails });
+                finalShops.unshift({ ...parentDetails, id: currentViewShop.parentShopId });
               }
             }
           } else {
@@ -60,7 +60,7 @@ const BranchSwitcher: React.FC<Props> = ({ currentShopId, onSwitch }) => {
                 if (!hasParentInList) {
                   const parentDetails = await shopRepo.getShopDetails(parentIdFromLocal);
                   if (parentDetails) {
-                    finalShops.unshift({ id: parentIdFromLocal, ...parentDetails });
+                    finalShops.unshift({ ...parentDetails, id: parentIdFromLocal });
                   }
                 }
               }
@@ -92,7 +92,7 @@ const BranchSwitcher: React.FC<Props> = ({ currentShopId, onSwitch }) => {
           const res = await db.executeSql(`SELECT COUNT(*) as cnt FROM ${table} WHERE shopId = ? AND syncStatus = 0`, [currentShopId]);
           if (res && res[0]?.rows?.length > 0) {
             // Support both direct item extraction and standard key names across React Native SQLite and Web AlaSQL
-            const item = typeof res[0].rows.item === 'function' ? res[0].rows.item(0) : (res[0].rows[0] || res[0].rows.item(0));
+            const item = typeof res[0].rows.item === 'function' ? res[0].rows.item(0) : ((res[0].rows as any)[0] || res[0].rows.item(0));
             const count = item?.cnt || item?.CNT || 0;
             totalUnsynced += count;
           }

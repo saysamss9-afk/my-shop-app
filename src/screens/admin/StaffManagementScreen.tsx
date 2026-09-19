@@ -37,18 +37,18 @@ const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     // Fetch shop info for plan details
     firebase.firestore().collection('registered_shops').doc(shopId).get()
-      .then(doc => {
+      .then((doc: any) => {
         if (doc.exists) setShopInfo(doc.data());
       })
-      .catch(err => console.error("StaffManagement: Error fetching shop info", err));
+      .catch((err: any) => console.error("StaffManagement: Error fetching shop info", err));
 
     const unsubscribe = firebase.firestore().collection('employees')
       .where('shopId', '==', shopId)
-      .onSnapshot(snapshot => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      .onSnapshot((snapshot: any) => {
+        const data = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         setEmployees(data);
         setLoading(false);
-      }, error => {
+      }, (error: any) => {
         console.error("StaffManagement: Error fetching employees:", error);
         setLoading(false);
       });
@@ -62,7 +62,7 @@ const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <Box px="$2" pt="$2" pb="$4">
         <HStack justifyContent="space-between" alignItems="center">

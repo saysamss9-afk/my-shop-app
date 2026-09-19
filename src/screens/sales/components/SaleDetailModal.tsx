@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Box,
   VStack,
@@ -27,6 +28,8 @@ interface Props {
 }
 
 const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, currency, onPrint, onRefundItem }) => {
+  const insets = useSafeAreaInsets();
+
   if (!sale) return null;
 
   const formatDate = (timestamp: number) => {
@@ -41,8 +44,8 @@ const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, curren
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Box flex={1} bg="rgba(0,0,0,0.5)" justifyContent="center" p="$4">
-        <Box bg="$white" rounded="$3xl" overflow="hidden">
+      <Box flex={1} bg="rgba(0,0,0,0.5)" justifyContent="center" p="$4" pt={insets.top + 20} pb={insets.bottom + 20}>
+        <Box bg="$white" rounded="$3xl" overflow="hidden" maxHeight="90%">
           {/* Header */}
           <Box p="$6" bg="$primary800">
             <HStack justifyContent="space-between" alignItems="flex-start">
@@ -98,7 +101,7 @@ const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, curren
                 <Text size="xs" color="$text500" fontWeight="$bold">ITEMS INVOLVED</Text>
                 {items.map((item, index) => (
                   <HStack key={index} justifyContent="space-between" alignItems="center">
-                    <VStack flex={1} space="0">
+                    <VStack flex={1} space="xs">
                       <Text fontWeight="$bold" color="$text900" size="sm">{item.productName || 'Removed Product'}</Text>
                       <Text size="xs" color="$text500">
                         {item.quantity} x {currency}{item.priceAtSale.toFixed(2)} {item.isBulk ? (item.bulkUnit || 'Bulk') : (item.unit || 'Unit')}
@@ -116,16 +119,15 @@ const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, curren
                                 onRefundItem(item.id, 1);
                               }
                             } else {
-                              import('react-native').then(({ Alert }) => {
-                                Alert.alert(
-                                  "Return Item",
-                                  `Reverse 1 unit of "${item.productName || 'product'}" back to stock?`,
-                                  [
-                                    { text: "Cancel", style: "cancel" },
-                                    { text: "Confirm", style: "destructive", onPress: () => onRefundItem(item.id, 1) }
-                                  ]
-                                );
-                              });
+                              const { Alert } = require('react-native');
+                              Alert.alert(
+                                "Return Item",
+                                `Reverse 1 unit of "${item.productName || 'product'}" back to stock?`,
+                                [
+                                  { text: "Cancel", style: "cancel" },
+                                  { text: "Confirm", style: "destructive", onPress: () => onRefundItem(item.id, 1) }
+                                ]
+                              );
                             }
                           }}
                           p="$2"
@@ -160,7 +162,7 @@ const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, curren
                     borderRadius="$xl"
                 >
                     <HStack space="xs" alignItems="center">
-                        <Icon as={MaterialCommunityIcons} name="printer" color="$primary800" />
+                        <Icon as={MaterialCommunityIcons as any} {...({ name: 'printer' } as any)} color="$primary800" />
                         <ButtonText color="$primary800" fontWeight="$bold">Print Receipt</ButtonText>
                     </HStack>
                 </Button>

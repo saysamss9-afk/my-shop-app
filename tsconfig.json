@@ -5,6 +5,9 @@
     "rootDir": ".",
     "ignoreDeprecations": "5.0",
     "verbatimModuleSyntax": true,
+    "module": "esnext",
+    "lib": ["esnext", "dom"],
+    "types": ["jest", "node"],
     "paths": {
       "*": ["src/*"]
     }

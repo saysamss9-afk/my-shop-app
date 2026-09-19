@@ -32,8 +32,8 @@ import {
 } from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
 import { ShieldCheck } from 'lucide-react-native';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { getButtonHeight, getAppShadow } from '../../utils/platformStyles';
 
@@ -85,7 +85,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScreenWrapper scrollable>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

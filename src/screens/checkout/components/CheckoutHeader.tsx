@@ -10,13 +10,16 @@ import {
 } from '@gluestack-ui/themed';
 import { ArrowLeft } from 'lucide-react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 interface Props {
   onBack: () => void;
 }
 
 const CheckoutHeader: React.FC<Props> = ({ onBack }) => {
+  const insets = useSafeAreaInsets();
   return (
-    <Box px="$2" pt="$2" pb="$4">
+    <Box px="$2" pt={Math.max(insets.top, 10)} pb="$4">
       <HStack justifyContent="space-between" alignItems="center">
         <HStack space="md" alignItems="center">
           <Pressable onPress={onBack} p="$2" bg="$white" rounded="$full">

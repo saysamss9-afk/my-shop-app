@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import {
   Heading,
   Icon,
@@ -20,6 +21,7 @@ import {
   CloseIcon,
 } from '@gluestack-ui/themed';
 import { getButtonHeight } from '../../../utils/platformStyles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   isOpen: boolean;
@@ -39,16 +41,20 @@ const AddCustomerModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
     onClose();
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl">
-        <ModalHeader>
-          <Heading size="lg" fontWeight="$black">Add New Customer</Heading>
-          <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
-        </ModalHeader>
-        <ModalBody>
-          <VStack space="xl" py="$4">
+      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '85%' }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ModalHeader>
+            <Heading size="lg" fontWeight="$black">Add New Customer</Heading>
+            <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
+          </ModalHeader>
+          <ModalBody>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <VStack space="xl" py="$4">
             <FormControl isRequired>
               <FormControlLabel mb="$1"><FormControlLabelText>Full Name</FormControlLabelText></FormControlLabel>
               <Input borderRadius={16} bg="$backgroundLight50">
@@ -74,8 +80,9 @@ const AddCustomerModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
               </Input>
             </FormControl>
           </VStack>
-        </ModalBody>
-        <ModalFooter>
+            </ScrollView>
+          </ModalBody>
+          <ModalFooter>
           <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
             <ButtonText>Cancel</ButtonText>
           </Button>
@@ -83,6 +90,7 @@ const AddCustomerModal: React.FC<Props> = ({ isOpen, onClose, onSave }) => {
             <ButtonText fontWeight="$bold">Save Customer</ButtonText>
           </Button>
         </ModalFooter>
+        </KeyboardAvoidingView>
       </ModalContent>
     </Modal>
   );

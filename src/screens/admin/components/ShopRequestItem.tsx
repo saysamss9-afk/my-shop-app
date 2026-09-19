@@ -61,10 +61,10 @@ const ShopRequestItem: React.FC<Props> = ({ item, processing, onEdit, onWhatsApp
         {item.currency && (
           <HStack space="md" alignItems="center">
              <Badge action="info" variant="outline" size="sm">
-                <BadgeText size="xxs">Plan: {item.shopCategory || 'STARTER'}</BadgeText>
+                <BadgeText size="2xs">Plan: {item.shopCategory || 'STARTER'}</BadgeText>
              </Badge>
              <Badge action="muted" variant="outline" size="sm">
-                <BadgeText size="xxs">Currency: {item.currency}</BadgeText>
+                <BadgeText size="2xs">Currency: {item.currency}</BadgeText>
              </Badge>
           </HStack>
         )}

@@ -28,7 +28,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       pb={insets.bottom}
       bg="$surfaceLavender"
       style={{
-        background: 'linear-gradient(180deg, #F3ECFF 0%, #E7DBFF 100%)',
+        backgroundColor: '#E5E7EB',
       } as any}
     >
       <StatusBar

@@ -10,6 +10,7 @@ import {
   Spinner,
 } from '@gluestack-ui/themed';
 import { RefreshCw, User, AlertTriangle, LogOut } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SyncStatus } from '../../../sync/SyncManager';
 import { getAppShadow } from '../../../utils/platformStyles';
 import BranchSwitcher from './BranchSwitcher';
@@ -23,7 +24,7 @@ interface Props {
   shopId: string;
   shopPlan: string;
   syncStatus: SyncStatus;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   onTriggerSync: () => void;
   onSwitchBranch: (shopId: string, shopName: string) => void;
 }
@@ -38,8 +39,9 @@ const DashboardHeader: React.FC<Props> = ({
   onTriggerSync,
   onSwitchBranch
 }) => {
+  const insets = useSafeAreaInsets();
   return (
-    <Box px="$2" pt="$2" pb="$6">
+    <Box px="$2" pt={Math.max(insets.top, 10)} pb="$6">
       <HStack justifyContent="space-between" alignItems="center">
         <VStack>
           <HStack space="xs" alignItems="center">
@@ -81,26 +83,31 @@ const DashboardHeader: React.FC<Props> = ({
           ) : (
             <Pressable
                 onPress={onTriggerSync}
-                bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
-                px="$4"
-                py="$2"
-                rounded="$full"
-                style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
             >
-                <HStack space="xs" alignItems="center">
-                    <Icon
-                        as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
-                        color="$white"
-                        size="xs"
-                    />
-                    <Text size="xs" color="$white" fontWeight="$bold">
-                        {syncStatus === SyncStatus.Error ? 'Retry Sync' : 'Sync Now'}
-                    </Text>
-                </HStack>
+                <Box
+                    bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
+                    px="$4"
+                    py="$2"
+                    rounded="$full"
+                    style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
+                >
+                    <HStack space="xs" alignItems="center">
+                        <Icon
+                            as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
+                            color="$white"
+                            size="xs"
+                        />
+                        <Text size="xs" color="$white" fontWeight="$bold">
+                            {syncStatus === SyncStatus.Error ? 'Retry Sync' : 'Sync Now'}
+                        </Text>
+                    </HStack>
+                </Box>
             </Pressable>
           )}
-          <Pressable onPress={() => handleSwitchAccount({ signOut, reset: () => {} })} p="$2" bg="$white" rounded="$full">
-            <Icon as={LogOut} color="$error600" size="md" />
+          <Pressable onPress={() => handleSwitchAccount({ signOut, reset: () => {} })}>
+            <Box p="$2" bg="$white" rounded="$full">
+              <Icon as={LogOut} color="$error600" size="md" />
+            </Box>
           </Pressable>
         </HStack>
       </HStack>

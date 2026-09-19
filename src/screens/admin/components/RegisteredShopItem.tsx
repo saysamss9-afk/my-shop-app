@@ -13,6 +13,7 @@ import {
   BadgeText,
 } from '@gluestack-ui/themed';
 import { User, PhoneIcon, CopyIcon, TrashIcon } from 'lucide-react-native';
+import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
   item: any;
@@ -23,7 +24,7 @@ interface Props {
 
 const RegisteredShopItem: React.FC<Props> = ({ item, onCopy, onWhatsApp, onDelete }) => {
   return (
-    <Box bg="$white" p="$5" rounded="$3xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+    <Box bg="$white" p="$5" rounded="$3xl" mb="$4" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)', opacity: 0.03 }) }}>
       <HStack justifyContent="space-between" alignItems="flex-start">
         <VStack flex={1} space="xs">
           <Heading size="md" color="$text900">{item.name}</Heading>
@@ -66,11 +67,11 @@ const RegisteredShopItem: React.FC<Props> = ({ item, onCopy, onWhatsApp, onDelet
         </HStack>
         <HStack space="md" alignItems="center" pt="$1">
           <Badge action="info" variant="outline" size="sm">
-            <BadgeText size="xxs">Plan: {item.plan || 'STARTER'}</BadgeText>
+            <BadgeText size="2xs">Plan: {item.plan || 'STARTER'}</BadgeText>
           </Badge>
           {item.currency && (
             <Badge action="muted" variant="outline" size="sm">
-              <BadgeText size="xxs">Currency: {item.currency}</BadgeText>
+              <BadgeText size="2xs">Currency: {item.currency}</BadgeText>
             </Badge>
           )}
         </HStack>

@@ -94,7 +94,7 @@ const SelectProductModal: React.FC<Props> = ({
           <Pressable
             flex={1}
             onPress={() => onSelect(item, false)}
-            isDisabled={item.stockQuantity <= 0}
+            disabled={item.stockQuantity <= 0}
             opacity={item.stockQuantity <= 0 ? 0.5 : 1}
           >
             <VStack
@@ -117,7 +117,7 @@ const SelectProductModal: React.FC<Props> = ({
             <Pressable
               flex={1}
               onPress={() => onSelect(item, true)}
-              isDisabled={item.bulkStockQuantity <= 0}
+              disabled={item.bulkStockQuantity <= 0}
               opacity={item.bulkStockQuantity <= 0 ? 0.5 : 1}
             >
               <VStack

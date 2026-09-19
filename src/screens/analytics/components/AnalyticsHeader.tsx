@@ -8,6 +8,7 @@ import {
   ArrowLeftIcon,
 } from '@gluestack-ui/themed';
 import { RefreshCw } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAppShadow } from '../../../utils/platformStyles';
 
 interface Props {
@@ -16,8 +17,9 @@ interface Props {
 }
 
 const AnalyticsHeader: React.FC<Props> = ({ onBack, onRefresh }) => {
+  const insets = useSafeAreaInsets();
   return (
-    <Box bg="$primary800" pt="$8" pb="$4" px="$4" style={{ ...getAppShadow({ offsetY: 4, radius: 10, color: 'rgba(0,0,0,0.2)' }) }}>
+    <Box bg="$primary800" pt={Math.max(insets.top, 10)} pb="$4" px="$4" style={{ ...getAppShadow({ offsetY: 4, radius: 10, color: 'rgba(0,0,0,0.2)' }) }}>
       <HStack justifyContent="space-between" alignItems="center">
         <HStack space="md" alignItems="center">
           <Pressable

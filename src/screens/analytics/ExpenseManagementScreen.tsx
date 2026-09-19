@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, FlatList, StatusBar, Modal } from 'react-native';
+import { ScrollView, FlatList, StatusBar, Modal, Alert } from 'react-native';
 import {
   Box,
   VStack,
@@ -59,7 +59,7 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
   const handleAddExpense = async () => {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      alert('Please enter a valid amount.');
+      Alert.alert('Error', 'Please enter a valid amount.');
       return;
     }
 
@@ -94,7 +94,7 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
             <Box bg={cat.bgColor} p="$2.5" rounded="$xl">
               <Icon as={cat.icon} color={cat.color} size="md" />
             </Box>
-            <VStack space="2xs">
+            <VStack space="xs">
               <Text size="sm" fontWeight="$bold" color="$text900">{item.category}</Text>
               {item.description ? (
                 <Text size="xs" color="$text500">{item.description}</Text>
@@ -116,11 +116,11 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
   };
 
   return (
-    <ScreenWrapper>
-      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <Box bg="$primary800" px="$4" py="$4" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
+      <Box bg="$primary800" px="$4" py="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
         <HStack space="md" alignItems="center">
           <Pressable onPress={() => navigation.goBack()}>
             <Icon as={ChevronLeft} color="$white" size="md" />

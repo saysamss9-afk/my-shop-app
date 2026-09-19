@@ -1,5 +1,6 @@
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
+import type { Shop } from '../db/types';
 
 export interface ShopRequest {
   userId?: string;
@@ -34,12 +35,12 @@ export class ShopRepository {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
-  async getShopDetails(shopId: string) {
+  async getShopDetails(shopId: string): Promise<Shop | null> {
     const doc = await firestore().collection('registered_shops').doc(shopId).get();
-    return doc.exists ? doc.data() : null;
+    return doc.exists ? { id: doc.id, ...doc.data() } as Shop : null;
   }
 
-  async getOwnerShops(ownerId: string) {
+  async getOwnerShops(ownerId: string): Promise<Shop[]> {
     // Standard query for shops where the user is direct owner
     const directShopsSnapshot = await firestore()
       .collection('registered_shops')
@@ -51,7 +52,7 @@ export class ShopRepository {
     // The current query covers most cases, but we ensure branches are also caught.
     // Since branches inherit the ownerId, the current where query is actually sufficient.
 
-    return directShopsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return directShopsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Shop));
   }
 
   async createBranch(shopId: string, branchData: any) {

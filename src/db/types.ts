@@ -8,6 +8,9 @@ export interface Shop {
   ownerId: string;
   plan: 'STARTER' | 'BUSINESS' | 'PREMIUM';
   parentShopId: string | null;
+  parentshopid?: string | null; // Inconsistent naming support
+  country?: string;
+  currency?: string;
   shopCode?: string;
   branchCount?: number;
 }

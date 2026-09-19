@@ -134,5 +134,3 @@ const PurchaseDetailModal: React.FC<Props> = ({ isOpen, onClose, purchase, onRet
 };
 
 export default PurchaseDetailModal;
-
-export default PurchaseDetailModal;

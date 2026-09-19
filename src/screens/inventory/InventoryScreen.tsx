@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { FlatList, StatusBar, Alert } from 'react-native';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   Box,
@@ -103,15 +104,23 @@ const InventoryScreen = ({ route, navigation }: any) => {
       status: 'ACTIVE',
     });
     setIsModalOpen(false);
+    Alert.alert("Success", `${productData.name} has been added to your inventory.`);
   };
 
   const handleUpdate = async (updatedProduct: Product) => {
       await updateProduct(updatedProduct);
       setIsEditModalOpen(false);
+      Alert.alert("Updated", `${updatedProduct.name} details have been saved.`);
   };
 
   const handleBarCodeScanned = (code: string) => {
     console.log("Scanned barcode:", code);
+    if (scanTarget === 'unit') {
+      Alert.alert("Barcode Scanned", `Unit Barcode matched: ${code}`);
+    } else if (scanTarget === 'bulk') {
+      Alert.alert("Barcode Scanned", `Bulk Barcode matched: ${code}`);
+    }
+    setScanTarget(null);
   };
 
   const pendingCount = useMemo(() => products.filter(p => p.status === 'DRAFT').length, [products]);
@@ -163,8 +172,8 @@ const InventoryScreen = ({ route, navigation }: any) => {
   ), [currency, selectedProductIds, numColumns]);
 
   return (
-    <Box flex={1} bg="$surfaceLavender">
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <InventoryHeader
         onBack={() => navigation.goBack()}
@@ -210,7 +219,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
                 style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
             >
                 <HStack space="sm" alignItems="center" justifyContent="center">
-                    <MaterialCommunityIcons name="printer-matrix" size={16} color={selectedProductIds.length > 0 ? "#fff" : "#6E3BE6"} />
+                    <MaterialCommunityIcons name="printer-matrix" size={16} color={selectedProductIds.length > 0 ? "#fff" : "#E65100"} />
                     <GlueText color={selectedProductIds.length > 0 ? "$white" : "$primary600"} fontWeight="$bold" size="sm">
                         {selectedProductIds.length > 0 ? `Print (${selectedProductIds.length}) Selected` : 'Print Barcodes'}
                     </GlueText>
@@ -253,6 +262,10 @@ const InventoryScreen = ({ route, navigation }: any) => {
           numColumns={numColumns}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
           ListEmptyComponent={
             <Center mt="$20">
@@ -341,7 +354,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
           </ModalBody>
         </ModalContent>
       </Modal>
-    </Box>
+    </ScreenWrapper>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Alert } from 'react-native';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import {
   Heading,
   Icon,
@@ -38,6 +38,7 @@ import {
 import { Camera, Package, Info, Zap } from 'lucide-react-native';
 import { getButtonHeight } from '../../../utils/platformStyles';
 import type { Category } from '../../../db/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BULK_UNITS = ['Carton', 'Pack', 'Bag', 'Crate', 'Box', 'Bundle', 'Set'];
 
@@ -100,6 +101,8 @@ const AddProductModal: React.FC<Props> = ({
     }
   }, [isOpen, entryMode]);
 
+  const insets = useSafeAreaInsets();
+
   const handleLocalSave = () => {
     if (!formData.name) {
         Alert.alert("Required", "Product Name is required.");
@@ -127,19 +130,20 @@ const AddProductModal: React.FC<Props> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl">
-        <ModalHeader>
-          <VStack>
-            <Heading size="lg" fontWeight="$black">Add New Product</Heading>
-            <GlueText size="xs" color="$text500">Provide complete inventory and pricing details.</GlueText>
-          </VStack>
-          <ModalCloseButton>
-            <Icon as={CloseIcon} />
-          </ModalCloseButton>
-        </ModalHeader>
-        <ModalBody>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <VStack space="xl" py="$4">
+      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '85%' }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ModalHeader>
+            <VStack>
+              <Heading size="lg" fontWeight="$black">Add New Product</Heading>
+              <GlueText size="xs" color="$text500">Provide complete inventory and pricing details.</GlueText>
+            </VStack>
+            <ModalCloseButton>
+              <Icon as={CloseIcon} />
+            </ModalCloseButton>
+          </ModalHeader>
+          <ModalBody>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <VStack space="xl" py="$4">
               <FormControl isRequired>
                 <FormControlLabel mb="$1">
                   <FormControlLabelText size="sm">Product Name</FormControlLabelText>
@@ -161,7 +165,7 @@ const AddProductModal: React.FC<Props> = ({
                 <Select onValueChange={(v) => setFormData({...formData, categoryId: v})} selectedValue={formData.categoryId}>
                     <SelectTrigger borderRadius={16} bg="$backgroundLight50">
                         <SelectInput placeholder="Select Category" />
-                        <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
+                        <SelectIcon as={ChevronDownIcon} mr="$3" />
                     </SelectTrigger>
                     <SelectPortal>
                         <SelectBackdrop />
@@ -175,47 +179,98 @@ const AddProductModal: React.FC<Props> = ({
                 </Select>
               </FormControl>
 
-              {/* Barcodes */}
-              <HStack space="md">
-                <VStack flex={1} space="xs">
-                    <FormControlLabel><FormControlLabelText size="xs">Unit Barcode</FormControlLabelText></FormControlLabel>
-                    <HStack space="xs">
-                        <Input flex={1} borderRadius={12} bg="$backgroundLight50">
-                            <InputField
-                                size="sm"
-                                placeholder="Scan/Type"
-                                value={formData.barcode}
-                                onChangeText={t => setFormData({...formData, barcode: t})}
-                            />
-                        </Input>
-                        <Button size="xs" variant="outline" onPress={() => onScanPress('unit')} borderRadius={10} px="$2" borderColor="$primary300">
-                            <Icon as={Camera} size="xs" color="$primary600" />
-                        </Button>
-                        <Button size="xs" variant="outline" onPress={() => setFormData({...formData, barcode: generateBarcode()})} borderRadius={10} px="$2" borderColor="$warning300">
-                            <Icon as={Zap} size="xs" color="$warning600" />
-                        </Button>
-                    </HStack>
-                </VStack>
-                <VStack flex={1} space="xs">
-                    <FormControlLabel><FormControlLabelText size="xs">{hasBulkOption ? formData.bulkUnit : 'Bulk'} Barcode</FormControlLabelText></FormControlLabel>
-                    <HStack space="xs">
-                        <Input flex={1} borderRadius={12} bg="$backgroundLight50" isDisabled={!hasBulkOption}>
-                            <InputField
-                                size="sm"
-                                placeholder={hasBulkOption ? "Scan/Type" : "Enable bulk below"}
-                                value={formData.bulkBarcode}
-                                onChangeText={t => setFormData({...formData, bulkBarcode: t})}
-                            />
-                        </Input>
-                        <Button size="xs" variant="outline" onPress={() => onScanPress('bulk')} borderRadius={10} px="$2" borderColor="$primary300" isDisabled={!hasBulkOption}>
-                            <Icon as={Camera} size="xs" color={hasBulkOption ? "$primary600" : "$text300"} />
-                        </Button>
-                        <Button size="xs" variant="outline" onPress={() => setFormData({...formData, bulkBarcode: generateBarcode()})} borderRadius={10} px="$2" borderColor="$warning300" isDisabled={!hasBulkOption}>
-                            <Icon as={Zap} size="xs" color={hasBulkOption ? "$warning600" : "$text300"} />
-                        </Button>
-                    </HStack>
-                </VStack>
-              </HStack>
+              {/* Barcodes - Dynamically reordered based on selection */}
+              <VStack space="md">
+                {entryMode === 'UNIT' ? (
+                  <>
+                    {/* Unit Barcode on Top */}
+                    <VStack space="xs">
+                        <FormControlLabel><FormControlLabelText size="sm" fontWeight="$bold">Unit Barcode</FormControlLabelText></FormControlLabel>
+                        <HStack space="xs">
+                            <Input flex={1} borderRadius={12} bg="$backgroundLight50">
+                                <InputField
+                                    size="md"
+                                    placeholder="Scan or type barcode"
+                                    value={formData.barcode}
+                                    onChangeText={t => setFormData({...formData, barcode: t})}
+                                />
+                            </Input>
+                            <Button size="md" variant="outline" onPress={() => onScanPress('unit')} borderRadius={10} px="$3" borderColor="$primary300">
+                                <Icon as={Camera} size="sm" color="$primary600" />
+                            </Button>
+                            <Button size="md" variant="outline" onPress={() => setFormData({...formData, barcode: generateBarcode()})} borderRadius={10} px="$3" borderColor="$warning300">
+                                <Icon as={Zap} size="sm" color="$warning600" />
+                            </Button>
+                        </HStack>
+                    </VStack>
+
+                    {/* Bulk Barcode below */}
+                    <VStack space="xs" opacity={hasBulkOption ? 1 : 0.6}>
+                        <FormControlLabel><FormControlLabelText size="sm" fontWeight="$bold">{hasBulkOption ? formData.bulkUnit : 'Bulk'} Barcode</FormControlLabelText></FormControlLabel>
+                        <HStack space="xs">
+                            <Input flex={1} borderRadius={12} bg="$backgroundLight50" isDisabled={!hasBulkOption}>
+                                <InputField
+                                    size="md"
+                                    placeholder={hasBulkOption ? "Scan or type barcode" : "Enable bulk below to enter"}
+                                    value={formData.bulkBarcode}
+                                    onChangeText={t => setFormData({...formData, bulkBarcode: t})}
+                                />
+                            </Input>
+                            <Button size="md" variant="outline" onPress={() => onScanPress('bulk')} borderRadius={10} px="$3" borderColor="$primary300" isDisabled={!hasBulkOption}>
+                                <Icon as={Camera} size="sm" color={hasBulkOption ? "$primary600" : "$text300"} />
+                            </Button>
+                            <Button size="md" variant="outline" onPress={() => setFormData({...formData, bulkBarcode: generateBarcode()})} borderRadius={10} px="$3" borderColor="$warning300" isDisabled={!hasBulkOption}>
+                                <Icon as={Zap} size="sm" color={hasBulkOption ? "$warning600" : "$text300"} />
+                            </Button>
+                        </HStack>
+                    </VStack>
+                  </>
+                ) : (
+                  <>
+                    {/* Bulk Barcode on Top */}
+                    <VStack space="xs">
+                        <FormControlLabel><FormControlLabelText size="sm" fontWeight="$bold">{formData.bulkUnit} Barcode</FormControlLabelText></FormControlLabel>
+                        <HStack space="xs">
+                            <Input flex={1} borderRadius={12} bg="$backgroundLight50">
+                                <InputField
+                                    size="md"
+                                    placeholder="Scan or type barcode"
+                                    value={formData.bulkBarcode}
+                                    onChangeText={t => setFormData({...formData, bulkBarcode: t})}
+                                />
+                            </Input>
+                            <Button size="md" variant="outline" onPress={() => onScanPress('bulk')} borderRadius={10} px="$3" borderColor="$primary300">
+                                <Icon as={Camera} size="sm" color="$primary600" />
+                            </Button>
+                            <Button size="md" variant="outline" onPress={() => setFormData({...formData, bulkBarcode: generateBarcode()})} borderRadius={10} px="$3" borderColor="$warning300">
+                                <Icon as={Zap} size="sm" color="$warning600" />
+                            </Button>
+                        </HStack>
+                    </VStack>
+
+                    {/* Unit Barcode below */}
+                    <VStack space="xs">
+                        <FormControlLabel><FormControlLabelText size="sm" fontWeight="$bold">Unit Barcode</FormControlLabelText></FormControlLabel>
+                        <HStack space="xs">
+                            <Input flex={1} borderRadius={12} bg="$backgroundLight50">
+                                <InputField
+                                    size="md"
+                                    placeholder="Scan or type barcode"
+                                    value={formData.barcode}
+                                    onChangeText={t => setFormData({...formData, barcode: t})}
+                                />
+                            </Input>
+                            <Button size="md" variant="outline" onPress={() => onScanPress('unit')} borderRadius={10} px="$3" borderColor="$primary300">
+                                <Icon as={Camera} size="sm" color="$primary600" />
+                            </Button>
+                            <Button size="md" variant="outline" onPress={() => setFormData({...formData, barcode: generateBarcode()})} borderRadius={10} px="$3" borderColor="$warning300">
+                                <Icon as={Zap} size="sm" color="$warning600" />
+                            </Button>
+                        </HStack>
+                    </VStack>
+                  </>
+                )}
+              </VStack>
 
               {/* Bulk Toggle Option */}
               <Pressable onPress={() => setHasBulkOption(!hasBulkOption)}>
@@ -278,9 +333,9 @@ const AddProductModal: React.FC<Props> = ({
                             <FormControl isRequired>
                                 <FormControlLabel><FormControlLabelText size="xs">Bulk Unit Type</FormControlLabelText></FormControlLabel>
                                 <Select onValueChange={(v) => setFormData({...formData, bulkUnit: v})} selectedValue={formData.bulkUnit}>
-                                    <SelectTrigger borderRadius={12} bg="$backgroundLight50">
+                                        <SelectTrigger borderRadius={12} bg="$backgroundLight50">
                                         <SelectInput placeholder="Select Unit" />
-                                        <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
+                                        <SelectIcon as={ChevronDownIcon} mr="$3" />
                                     </SelectTrigger>
                                     <SelectPortal>
                                         <SelectBackdrop />
@@ -328,7 +383,7 @@ const AddProductModal: React.FC<Props> = ({
             </VStack>
           </ScrollView>
         </ModalBody>
-        <ModalFooter>
+        <ModalFooter style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
           <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
             <ButtonText>Cancel</ButtonText>
           </Button>
@@ -336,6 +391,7 @@ const AddProductModal: React.FC<Props> = ({
             <ButtonText fontWeight="$bold">Add to Inventory</ButtonText>
           </Button>
         </ModalFooter>
+        </KeyboardAvoidingView>
       </ModalContent>
     </Modal>
   );

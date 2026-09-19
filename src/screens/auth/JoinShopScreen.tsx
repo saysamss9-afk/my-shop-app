@@ -33,6 +33,7 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import { getAppShadow } from '../../utils/platformStyles';
 
 type Props = StackScreenProps<RootStackParamList, 'JoinShop'>;
 
@@ -156,7 +157,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScreenWrapper scrollable>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <VStack space="xl" py="$4">
           <HStack alignItems="center">
@@ -175,7 +176,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
           </VStack>
 
           {!shopDetails ? (
-              <Box bg="$white" p="$6" rounded="$3xl" style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' } as any}>
+              <Box bg="$white" p="$6" rounded="$3xl" style={{ ...getAppShadow({ offsetY: 8, radius: 30, color: 'rgba(0,0,0,0.04)', opacity: 0.04 }) }}>
                   <VStack space="lg">
                       <FormControl isRequired>
                         <FormControlLabel mb="$1">
@@ -242,7 +243,7 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
                     bg="$white"
                     p="$6"
                     rounded="$3xl"
-                    style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.04)' } as any}
+                    style={{ ...getAppShadow({ offsetY: 8, radius: 30, color: 'rgba(0,0,0,0.04)', opacity: 0.04 }) }}
                     opacity={limitReached ? 0.5 : 1}
                     pointerEvents={limitReached ? 'none' : 'auto'}
                   >

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import { Button, Text, useTheme, ActivityIndicator, Surface, Avatar } from 'react-native-paper';
 import { useAuth } from '../../hooks/useAuth';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../navigation/AppNavigator';
-import firebase from '../../firebase-config';
+import type { StackScreenProps } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import firebase from '../../firebase-config';
 
 const PaperText = Text as any;
 type Props = StackScreenProps<RootStackParamList, 'ShopSetup'>;
@@ -43,7 +45,7 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
 
     const unsubscribe = firebase.firestore().collection('shop_requests')
       .where('userEmail', '==', user.email)
-      .onSnapshot(snapshot => {
+      .onSnapshot((snapshot: any) => {
         if (!snapshot.empty) {
           const request = snapshot.docs[0].data();
           setRequestStatus(request.status);
@@ -52,7 +54,7 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
             checkEmployee();
           }
         }
-      }, error => {
+      }, (error: any) => {
         console.warn('ShopSetupScreen: Error listening to shop requests', error);
       });
 
@@ -64,9 +66,12 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
     navigation.replace('Landing');
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
-      <Surface style={styles.content} elevation={0}>
+    <ScreenWrapper>
+      <StatusBar barStyle="dark-content" backgroundColor="white" />
+      <Surface style={[styles.content, { marginTop: insets.top + 40 }]} elevation={0}>
         <View style={styles.iconContainer}>
             <MaterialCommunityIcons
                 name={requestStatus === 'PENDING' ? "clock-outline" : "store-search-outline"}
@@ -112,18 +117,18 @@ const ShopSetupScreen: React.FC<Props> = ({ navigation }) => {
             Logout & Exit
         </Button>
       </Surface>
-    </View>
+    </ScreenWrapper>
   );
 };
 
-const ListInfo = ({ icon, text, color }: any) => (
+const ListInfo = ({ icon, text, color }: { icon: string; text: string; color: string }) => (
     <View style={styles.infoRow}>
         <MaterialCommunityIcons name={icon} size={24} color={color} />
         <PaperText variant="bodyMedium" style={styles.infoText}>{text}</PaperText>
     </View>
 );
 
-const Divider = ({ style }: any) => <View style={[{ height: 1, backgroundColor: '#eee', marginVertical: 12 }, style]} />;
+const Divider = ({ style }: { style?: any }) => <View style={[{ height: 1, backgroundColor: '#eee', marginVertical: 12 }, style]} />;
 
 const styles = StyleSheet.create({
   container: {

@@ -84,10 +84,10 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       flex={1}
       style={[
         styles.container,
-        { background: 'linear-gradient(135deg, #6E3BE6 0%, #8956FF 100%)' } as any
+        { background: 'linear-gradient(135deg, #000000 0%, #222222 100%)' } as any
       ]}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#6E3BE6" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       <Center flex={1}>
         <VStack space="xl" alignItems="center">
@@ -112,7 +112,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
               justifyContent="center"
               style={styles.logoShadow}
             >
-              <AppIcon name="store" size={64} color="#6E3BE6" />
+              <AppIcon name="store" size={64} color="#E65100" />
             </Box>
           </Animated.View>
 
@@ -158,7 +158,7 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#6E3BE6',
+    backgroundColor: '#000000',
     // Fallback for non-web or simple background
   },
   logoShadow: {

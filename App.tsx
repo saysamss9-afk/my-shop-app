@@ -21,13 +21,13 @@ const theme = {
   colors: {
     ...MD3LightTheme.colors,
     ...LightTheme.colors,
-    primary: '#6E3BE6', // Vibrant Purple
-    primaryContainer: '#F3ECFF',
-    secondary: '#FF4081', // Pink Accent
-    secondaryContainer: '#FFEAF6',
-    tertiary: '#00E5FF', // Cyan
-    tertiaryContainer: '#E0F7FA',
-    background: '#F3ECFF', // Lavender Background
+    primary: '#E65100', // Vibrant High-Contrast Orange
+    primaryContainer: '#FFE0B2',
+    secondary: '#000000', // Solid Black Accent
+    secondaryContainer: '#F5F5F5',
+    tertiary: '#FFA726', // Orange highlight
+    tertiaryContainer: '#FFF3E0',
+    background: '#E5E7EB', // High-visibility background
     surface: '#FFFFFF',
     error: '#D32F2F',
     success: '#388E3C',

@@ -846,10 +846,6 @@ export class SyncManager {
     }
   }
 
-  getStatus() {
-    return this.status;
-  }
-
   getLastSynced() {
     return this.lastSynced;
   }

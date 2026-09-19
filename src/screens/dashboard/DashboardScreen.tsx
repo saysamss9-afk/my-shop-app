@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StatusBar } from 'react-native';
 import {
   Box,
@@ -38,8 +38,8 @@ import { handleSwitchAccount } from './switchAccount';
 type Props = StackScreenProps<RootStackParamList, 'Dashboard'>;
 
 const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = React.useState(false);
-  const [requestPending, setRequestPending] = React.useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [requestPending, setRequestPending] = useState(false);
   const { shopId, employeeId, userRole, shopName: initialShopName } = route.params;
   const { startRealtimeSync, stopRealtimeSync } = useSync();
   const { signOut } = useAuthContext();
@@ -55,7 +55,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
     triggerSync
   } = useDashboard(shopId);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // When switching branches or first loading the dashboard, auto-trigger a background sync
     // for the incoming branch to ensure local data is fresh.
     triggerSync();
@@ -66,20 +66,17 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSwitchBranch = (newShopId: string, newShopName: string) => {
     navigation.setParams({ shopId: newShopId, shopName: newShopName });
-    // Force immediate local reload hook updates by triggering navigation parameter overrides
-    route.params.shopId = newShopId;
-    route.params.shopName = newShopName;
   };
 
   const displayShopName = fetchedShopName || initialShopName || 'Your Shop';
 
-  const primaryActions: DashboardItem[] = [
+  const primaryActions: DashboardItem[] = useMemo(() => [
     {
       id: 'checkout',
       title: 'Checkout',
       description: 'Sales',
       icon: 'cart',
-      color: '#6E3BE6',
+      color: '#E65100',
       onPress: () => navigation.navigate('Checkout', { shopId, employeeId }),
     },
     {
@@ -97,6 +94,15 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       icon: 'receipt',
       color: '#00E5FF',
       onPress: () => navigation.navigate('SaleHistory', { shopId }),
+    },
+    {
+      id: 'categories',
+      title: 'Categories',
+      description: 'Grouping',
+      icon: 'layers',
+      color: '#9C27B0',
+      roleRequired: ['OWNER', 'MANAGER', 'SALES'],
+      onPress: () => navigation.navigate('CategoryManagement', { shopId }),
     },
     {
       id: 'debt',
@@ -169,11 +175,11 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       roleRequired: ['OWNER', 'MANAGER'],
       onPress: () => navigation.navigate('Analytics', { shopId }),
     },
-  ];
+  ], [shopId, employeeId, userRole, shopPlan, navigation]);
 
   return (
-    <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+    <ScreenWrapper withHeader scrollable>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <DashboardHeader
         userRole={userRole}

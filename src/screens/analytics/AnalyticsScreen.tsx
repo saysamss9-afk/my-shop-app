@@ -17,6 +17,7 @@ import {
 } from '@gluestack-ui/themed';
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useAnalytics } from '../../hooks/useAnalytics';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
 import RNPrint from 'react-native-print';
 import { Platform } from 'react-native';
 
@@ -114,8 +115,8 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
   };
 
   return (
-    <Box flex={1} bg="$backgroundLight50">
-      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <AnalyticsHeader
         onBack={() => navigation.goBack()}
@@ -127,8 +128,8 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
           <Spinner size="large" color="$primary800" />
         </Center>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          <VStack space="xl">
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          <VStack space="xl" pt="$4">
             <TopProductsList
                 products={topProducts}
                 currency={currency}
@@ -154,7 +155,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
           </VStack>
         </ScrollView>
       )}
-    </Box>
+    </ScreenWrapper>
   );
 };
 

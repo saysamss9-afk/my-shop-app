@@ -20,6 +20,7 @@ import {
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDailyReport } from '../../hooks/useDailyReport';
 import { getAppShadow, isWeb } from '../../utils/platformStyles';
+import ScreenWrapper from '../../components/common/ScreenWrapper';
 
 const DailyReportScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
@@ -47,13 +48,13 @@ const DailyReportScreen = ({ route, navigation }: any) => {
       borderBottomWidth={1}
       borderColor="$borderLight"
     >
-      <HStack space="none" alignItems="center" py="$3" px="$4">
+      <HStack space="xs" alignItems="center" py="$3" px="$4">
         {/* Item Name */}
-        <VStack flex={3} space="0">
+        <VStack flex={3} space="xs">
           <Text size="sm" color={item.productId === 'DEBT_PAYMENT' ? "$success700" : "$text900"} fontWeight="$bold" numberOfLines={1}>
             {item.productName}
           </Text>
-          <Text size="xxs" color="$text400">
+          <Text size="2xs" color="$text400">
             ID: {item.productId.slice(-6).toUpperCase()}
           </Text>
         </VStack>
@@ -61,7 +62,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         {/* Type Badge */}
         <Box flex={1} alignItems="center">
           <Badge action={item.productId === 'DEBT_PAYMENT' ? 'success' : ((item.isBulk === 1 || item.isBulk === true || item.isBulk === 'true') ? "warning" : "info")} variant="outline" size="sm" rounded="$md">
-            <BadgeText size="xxs">{item.productId === 'DEBT_PAYMENT' ? 'PMT' : ((item.isBulk === 1 || item.isBulk === true || item.isBulk === 'true') ? "BLK" : "UNIT")}</BadgeText>
+            <BadgeText size="2xs">{item.productId === 'DEBT_PAYMENT' ? 'PMT' : ((item.isBulk === 1 || item.isBulk === true || item.isBulk === 'true') ? "BLK" : "UNIT")}</BadgeText>
           </Badge>
         </Box>
 
@@ -76,7 +77,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         <Box flex={2} alignItems="flex-end" pr="$2">
           {item.isOnCredit === 1 ? (
             <Badge action="error" variant="solid" size="sm" rounded="$lg">
-              <BadgeText size="xxs" fontWeight="$bold">ON CREDIT</BadgeText>
+              <BadgeText size="2xs" fontWeight="$bold">ON CREDIT</BadgeText>
             </Badge>
           ) : (
             <Text size="sm" fontWeight="$black" color="$primary700">
@@ -100,14 +101,16 @@ const DailyReportScreen = ({ route, navigation }: any) => {
   );
 
   return (
-    <Box flex={1} bg="$backgroundLight50">
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <Box px="$4" pt="$2" pb="$4">
+      <Box pt="$2" pb="$4">
         <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
-            <Icon as={ArrowLeftIcon} color="$text900" />
+          <Pressable onPress={() => navigation.goBack()}>
+            <Box p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <Icon as={ArrowLeftIcon} color="$text900" />
+            </Box>
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">Daily Item Sales</Heading>
@@ -148,8 +151,10 @@ const DailyReportScreen = ({ route, navigation }: any) => {
               )}
             </Input>
           </Box>
-          <Pressable onPress={setToday} bg="$primary600" px="$4" py="$2.5" rounded="$xl">
-            <Text size="sm" color="white" fontWeight="$bold">Today</Text>
+          <Pressable onPress={setToday}>
+            <Box bg="$primary600" px="$4" py="$2.5" rounded="$xl">
+              <Text size="sm" color="white" fontWeight="$bold">Today</Text>
+            </Box>
           </Pressable>
         </HStack>
       </Box>
@@ -178,7 +183,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         <Box flex={1} bg="$white" mx="$4" rounded="$xl" overflow="hidden" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.05)' }) }}>
           {/* Excel Header */}
           <Box bg="$primary800" py="$3" px="$4">
-            <HStack space="none" alignItems="center">
+            <HStack space="xs" alignItems="center">
               <Text flex={3} size="xs" color="white" fontWeight="$bold">ITEM NAME</Text>
               <Text flex={1} size="xs" color="white" fontWeight="$bold" textAlign="center">TYPE</Text>
               <Text flex={1} size="xs" color="white" fontWeight="$bold" textAlign="center">QTY</Text>
@@ -203,7 +208,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
           />
         </Box>
       )}
-    </Box>
+    </ScreenWrapper>
   );
 };
 

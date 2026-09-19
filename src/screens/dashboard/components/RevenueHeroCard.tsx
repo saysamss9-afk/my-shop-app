@@ -36,8 +36,8 @@ const RevenueHeroCard: React.FC<Props> = ({ shopId, shopCode, shopName, revenue,
       p={isWide ? "$8" : "$6"}
       mb="$8"
       style={{
-        background: 'linear-gradient(135deg, #6E3BE6 0%, #8956FF 100%)',
-        ...getAppShadow({ offsetY: 18, radius: 26, color: 'rgba(110,59,230,0.18)' }),
+        background: 'linear-gradient(135deg, #000000 0%, #222222 100%)',
+        ...getAppShadow({ offsetY: 18, radius: 26, color: 'rgba(0,0,0,0.18)' }),
       } as any}
     >
       <VStack space="md">

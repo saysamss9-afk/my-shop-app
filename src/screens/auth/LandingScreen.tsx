@@ -28,8 +28,8 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
       title: 'Fast Sales',
       subtitle: 'Checkout in seconds',
       icon: 'cart',
-      tint: '#EDE7FF',
-      color: '#6E3BE6',
+      tint: '#FFF3E0',
+      color: '#E65100',
     },
     {
       title: 'Smart Inventory',
@@ -49,57 +49,57 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <Box flex={1} bg="$surfaceLavender">
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
-
-      <Box
-        h={320}
-        borderBottomLeftRadius={52}
-        borderBottomRightRadius={52}
-        justifyContent="center"
-        alignItems="center"
-        style={{
-          background: 'linear-gradient(135deg, #6E3BE6 0%, #7E5BFF 46%, #8F6BFF 100%)',
-          ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(110,59,230,0.20)' }),
-        } as any}
-      >
-        <VStack space="md" alignItems="center" px="$8">
-          <Center
-            w={110}
-            h={110}
-            rounded="$full"
-            bg="$white"
-            style={{ boxShadow: '0 16px 26px rgba(44, 22, 88, 0.18)' } as any}
-          >
-            <AppIcon name="store" size={58} color="#6E3BE6" />
-          </Center>
-
-          <VStack alignItems="center" space="xs">
-            <Text size="xs" color="rgba(255,255,255,0.8)" fontWeight="$bold" letterSpacing={2}>
-              RETAIL OPERATIONS
-            </Text>
-            <Heading size="3xl" color="$white" fontWeight="$black" letterSpacing={1}>
-              My Shop
-            </Heading>
-          </VStack>
-
-          <Text
-            color="rgba(255,255,255,0.92)"
-            textAlign="center"
-            size="md"
-            fontWeight="$medium"
-            maxWidth={280}
-          >
-            Modern retail management for smart businesses.
-          </Text>
-        </VStack>
-      </Box>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       <ScrollView
-        style={{ marginTop: 0, zIndex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 24 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
-        <VStack space="xl">
+        <Box
+          h={320}
+          borderBottomLeftRadius={52}
+          borderBottomRightRadius={52}
+          justifyContent="center"
+          alignItems="center"
+          style={{
+            background: 'linear-gradient(135deg, #000000 0%, #222222 100%)',
+            ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(0,0,0,0.20)' }),
+          } as any}
+        >
+          <VStack space="md" alignItems="center" px="$8">
+            <Center
+              w={110}
+              h={110}
+              rounded="$full"
+              bg="$white"
+              style={{ ...getAppShadow({ offsetY: 16, radius: 26, color: 'rgba(0, 0, 0, 0.18)', opacity: 0.18 }) }}
+            >
+              <AppIcon name="store" size={58} color="#E65100" />
+            </Center>
+
+            <VStack alignItems="center" space="xs">
+              <Text size="xs" color="rgba(255,255,255,0.8)" fontWeight="$bold" letterSpacing={2}>
+                RETAIL OPERATIONS
+              </Text>
+              <Heading size="3xl" color="$white" fontWeight="$black" letterSpacing={1}>
+                My Shop
+              </Heading>
+            </VStack>
+
+            <Text
+              color="rgba(255,255,255,0.92)"
+              textAlign="center"
+              size="md"
+              fontWeight="$medium"
+              maxWidth={280}
+            >
+              Modern retail management for smart businesses.
+            </Text>
+          </VStack>
+        </Box>
+
+        <VStack space="xl" p="$6">
           <Pressable
             onPress={() => navigation.navigate('Login')}
             bg="$white"
@@ -118,7 +118,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
           >
             <HStack alignItems="center" space="md">
               <Center w={62} h={62} rounded="$2xl" bg="$primary50">
-                <AppIcon name="login" size={28} color="#6E3BE6" />
+                <AppIcon name="login" size={28} color="#E65100" />
               </Center>
 
               <VStack flex={1} space="xs">

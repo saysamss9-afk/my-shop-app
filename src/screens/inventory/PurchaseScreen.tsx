@@ -33,7 +33,8 @@ import {
   TrashIcon,
 } from '@gluestack-ui/themed';
 import { ShoppingCart, FileText, Calendar, PlusCircle } from 'lucide-react-native';
-import { usePurchase, PurchaseItem } from '../../hooks/usePurchase';
+import { usePurchase } from '../../hooks/usePurchase';
+import type { PurchaseItem } from '../../hooks/usePurchase';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { getAppShadow, getButtonHeight } from '../../utils/platformStyles';
 import AddPurchaseItemModal from './components/AddPurchaseItemModal';
@@ -74,14 +75,17 @@ const PurchaseScreen = ({ route, navigation }: any) => {
 
     const success = await submitPurchase(supplierId, invoiceNumber, parseFloat(amountPaid || '0'));
     if (success) {
-        Alert.alert("Success", "Purchase recorded successfully.");
-        navigation.goBack();
+        Alert.alert(
+          "Success",
+          "Purchase recorded successfully.",
+          [{ text: "OK", onPress: () => navigation.goBack() }]
+        );
     }
   };
 
   return (
     <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#F3ECFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
       <Box px="$4" pt="$2" pb="$4">
@@ -109,7 +113,7 @@ const PurchaseScreen = ({ route, navigation }: any) => {
                                 placeholder="Select Supplier"
                                 value={suppliers.find(s => s.id === supplierId)?.name || ''}
                             />
-                            <SelectIcon mr="$3"><Icon as={ChevronDownIcon} /></SelectIcon>
+                            <SelectIcon as={ChevronDownIcon} mr="$3" />
                         </SelectTrigger>
                         <SelectPortal>
                             <SelectBackdrop />

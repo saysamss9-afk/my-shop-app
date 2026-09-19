@@ -44,7 +44,7 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete, i
         >
         <HStack space="md" alignItems="center">
             {onSelectToggle && (
-                <Pressable onPress={(e: any) => { e.stopPropagation(); onSelectToggle(); }}>
+                <Pressable onPress={(e: import('react-native').GestureResponderEvent) => { e.stopPropagation(); onSelectToggle(); }}>
                     <Center w={24} h={24} rounded="$full" borderWidth={2} borderColor={isSelected ? "$primary600" : "$text300"} bg={isSelected ? "$primary600" : "transparent"} mr="$1">
                         {isSelected && <Icon as={CheckCircle2} size="xs" color="white" />}
                     </Center>
@@ -81,16 +81,16 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete, i
             {isDraft ? (
                 <VStack space="xs">
                     <Badge action="warning" variant="outline" size="sm" rounded="$lg">
-                        <BadgeText size="xxs" fontWeight="$bold">PENDING REVIEW</BadgeText>
+                        <BadgeText size="2xs" fontWeight="$bold">PENDING REVIEW</BadgeText>
                     </Badge>
                     <Text size="xs" color="$text500">Stocked during purchase. Needs barcode & pricing.</Text>
                 </VStack>
             ) : (
                 <VStack space="xs">
-                    <VStack space="xxs">
+                    <VStack space="xs">
                         <HStack space="xs" alignItems="center">
                             <Badge action="info" variant="solid" size="sm" rounded="$full">
-                                <BadgeText size="xxs">UNIT</BadgeText>
+                                <BadgeText size="2xs">UNIT</BadgeText>
                             </Badge>
                             <Text size="xs" color="$text500">
                             {item.stockQuantity} {item.unit} @ {currency}{(item.price ?? 0).toFixed(2)}
@@ -99,17 +99,17 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete, i
                         {item.barcode && (
                             <HStack space="xs" alignItems="center" ml="$4">
                                 <Icon as={Scan} size="xs" color="$text400" />
-                                <Text size="xxs" color="$text400" fontWeight="$bold">{item.barcode}</Text>
+                                <Text size="2xs" color="$text400" fontWeight="$bold">{item.barcode}</Text>
                             </HStack>
                         )}
                     </VStack>
 
                     {item.bulkPrice > 0 && (
-                        <VStack space="xxs">
-                            <HStack space="xs" alignItems="center">
-                                <Badge action="warning" variant="solid" size="sm" rounded="$full">
-                                    <BadgeText size="xxs">{(item.bulkUnit || 'BULK').toUpperCase()}</BadgeText>
-                                </Badge>
+                    <VStack space="xs">
+                        <HStack space="xs" alignItems="center">
+                            <Badge action="warning" variant="solid" size="sm" rounded="$full">
+                                <BadgeText size="2xs">{(item.bulkUnit || 'BULK').toUpperCase()}</BadgeText>
+                            </Badge>
                                 <Text size="xs" color="$text500">
                                 {item.bulkStockQuantity} {item.bulkUnit || 'items'} @ {currency}{(item.bulkPrice ?? 0).toFixed(2)}
                                 </Text>
@@ -117,7 +117,7 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete, i
                             {item.bulkBarcode && (
                                 <HStack space="xs" alignItems="center" ml="$4">
                                     <Icon as={Scan} size="xs" color="$text400" />
-                                    <Text size="xxs" color="$text400" fontWeight="$bold">{item.bulkBarcode}</Text>
+                                    <Text size="2xs" color="$text400" fontWeight="$bold">{item.bulkBarcode}</Text>
                                 </HStack>
                             )}
                         </VStack>
@@ -133,21 +133,21 @@ const ProductListItem: React.FC<Props> = ({ item, currency, onPress, onDelete, i
             )}
             {isLowStock && !isDraft && (
                 <Badge action="error" variant="outline" size="sm" rounded="$lg">
-                <BadgeText size="xxs" fontWeight="$bold">LOW STOCK</BadgeText>
+                <BadgeText size="2xs" fontWeight="$bold">LOW STOCK</BadgeText>
                 </Badge>
             )}
             {isMediumStock && !isDraft && (
                 <Badge action="warning" variant="outline" size="sm" rounded="$lg">
-                <BadgeText size="xxs" fontWeight="$bold">MEDIUM STOCK</BadgeText>
+                <BadgeText size="2xs" fontWeight="$bold">MEDIUM STOCK</BadgeText>
                 </Badge>
             )}
             {isHighStock && !isDraft && (
                 <Badge action="success" variant="outline" size="sm" rounded="$lg">
-                <BadgeText size="xxs" fontWeight="$bold">HIGH STOCK</BadgeText>
+                <BadgeText size="2xs" fontWeight="$bold">HIGH STOCK</BadgeText>
                 </Badge>
             )}
             {/** Delete action */}
-                        <Pressable onPress={(e: any) => { e?.stopPropagation?.(); onDelete && onDelete(); }}>
+                        <Pressable onPress={(e: import('react-native').GestureResponderEvent) => { e?.stopPropagation?.(); onDelete && onDelete(); }}>
                             <Box mt="$2">
                                 <Icon as={Trash2} size="sm" color="$text400" />
                             </Box>
