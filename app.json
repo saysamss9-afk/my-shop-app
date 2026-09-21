@@ -1,4 +1,36 @@
 {
-  "name": "MyShop",
-  "displayName": "My Shop"
+  "expo": {
+    "name": "My Shop",
+    "slug": "my-shop",
+    "version": "1.0.0",
+    "sdkVersion": "51.0.0",
+    "orientation": "portrait",
+    "icon": "./icon-user.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./icon-user.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./icon-user.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.abijahshops",
+      "googleServicesFile": "./google-services.json"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9ec931aa-98bb-4736-a709-ad2178bb3dc1"
+      }
+    },
+    "owner": "saysmanage"
+  }
 }

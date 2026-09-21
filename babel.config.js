@@ -1,15 +1,11 @@
-require('dotenv').config();
-
-module.exports = {
-  presets: [
-    ['module:@react-native/babel-preset', { useTransformReactJSX: true }],
-    ['@babel/preset-react', { runtime: 'automatic' }],
-    '@babel/preset-typescript',
-    '@babel/preset-flow'
-  ],
-  plugins: [
-    '@babel/plugin-transform-class-static-block',
-    ['react-native-reanimated/plugin', { processNestedWorklets: true }],
-    'transform-inline-environment-variables'
-  ],
+module.exports = function(api) {
+  api.cache(true);
+  return {
+    presets: ['babel-preset-expo'],
+    plugins: [
+      '@babel/plugin-transform-class-static-block',
+      ['react-native-reanimated/plugin', { processNestedWorklets: true }],
+      'transform-inline-environment-variables'
+    ],
+  };
 };
