@@ -1,20 +1,24 @@
 import { Platform } from 'react-native';
 
+const firebaseConfig = {
+  projectId: "my-shop-699ad",
+  appId: Platform.select({
+    android: "1:308718634009:android:0d0236f006bcc187899688",
+    ios: "1:308718634009:web:3eab3c5d82e5286d899688", // Default to web/ios if not specified
+    default: "1:308718634009:web:3eab3c5d82e5286d899688",
+  }),
+  storageBucket: "my-shop-699ad.firebasestorage.app",
+  apiKey: "AIzaSyAEmRd1MawUvqh8tir2x8R90YuVD6W78cY", // Use the key from google-services.json
+  authDomain: "my-shop-699ad.firebaseapp.com",
+  messagingSenderId: "308718634009",
+};
+
 let firebaseExport: any;
 
 if (Platform.OS === 'web') {
   const firebase = require('firebase/compat/app').default;
   require('firebase/compat/auth');
   require('firebase/compat/firestore');
-
-  const firebaseConfig = {
-    projectId: process.env.FIREBASE_PROJECT_ID || "my-shop-699ad",
-    appId: process.env.FIREBASE_APP_ID || "1:308718634009:web:3eab3c5d82e5286d899688",
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "my-shop-699ad.firebasestorage.app",
-    apiKey: process.env.FIREBASE_API_KEY || "AIzaSyA3CHNO48bFvw6SE0J0Dd8AM5o0mZzCNQM",
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || "my-shop-699ad.firebaseapp.com",
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "308718634009",
-  };
 
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
@@ -43,6 +47,14 @@ if (Platform.OS === 'web') {
   const nativeApp = require('@react-native-firebase/app').default;
   const nativeAuth = require('@react-native-firebase/auth').default;
   const nativeFirestore = require('@react-native-firebase/firestore').default;
+
+  if (!nativeApp.apps.length) {
+    try {
+      nativeApp.initializeApp(firebaseConfig);
+    } catch (error) {
+      console.error('Firebase native initialization failed:', error);
+    }
+  }
 
   firebaseExport = {
     apps: nativeApp.apps,

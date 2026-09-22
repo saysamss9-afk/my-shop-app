@@ -16,7 +16,7 @@ interface Props {
   setSearchQuery: (query: string) => void;
 }
 
-const InventorySearch: React.FC<Props> = ({ searchQuery, setSearchQuery }) => {
+const ProductSearch: React.FC<Props> = ({ searchQuery, setSearchQuery }) => {
   const [localQuery, setLocalQuery] = useState(searchQuery);
 
   useEffect(() => {
@@ -54,4 +54,4 @@ const InventorySearch: React.FC<Props> = ({ searchQuery, setSearchQuery }) => {
   );
 };
 
-export default InventorySearch;
+export default ProductSearch;

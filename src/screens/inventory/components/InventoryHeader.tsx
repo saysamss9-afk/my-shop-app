@@ -27,7 +27,7 @@ interface Props {
   userRole?: string;
 }
 
-const InventoryHeader: React.FC<Props> = ({
+const ProductHeader: React.FC<Props> = ({
     onBack,
     onToggleFilter,
     showLowStockOnly,
@@ -117,4 +117,4 @@ const InventoryHeader: React.FC<Props> = ({
   );
 };
 
-export default InventoryHeader;
+export default ProductHeader;

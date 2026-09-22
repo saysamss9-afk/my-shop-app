@@ -37,8 +37,8 @@ import ProductListItem from './components/ProductListItem';
 import AddProductModal from './components/AddProductModal';
 import EditProductModal from './components/EditProductModal';
 import EntryTypeModal from './components/EntryTypeModal';
-import InventoryHeader from './components/InventoryHeader';
-import InventorySearch from './components/InventorySearch';
+import ProductHeader from './components/InventoryHeader';
+import ProductSearch from './components/InventorySearch';
 import { PrintingService } from '../../services/PrintingService';
 
 const InventoryScreen = ({ route, navigation }: any) => {
@@ -174,7 +174,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
 
   const renderHeader = () => (
     <VStack bg="$surfaceLavender">
-      <InventoryHeader
+      <ProductHeader
         onBack={() => navigation.goBack()}
         onToggleFilter={toggleLowStockFilter}
         showLowStockOnly={showLowStockOnly}
@@ -188,7 +188,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         userRole={userRole}
       />
 
-      <InventorySearch
+      <ProductSearch
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
       />

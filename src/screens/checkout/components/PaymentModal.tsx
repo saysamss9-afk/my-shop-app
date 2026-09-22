@@ -38,13 +38,21 @@ interface Props {
 
 const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onConfirm, selectedCustomer, cart }) => {
   const [method, setMethod] = useState('CASH');
+  const [cashReceived, setCashReceived] = useState('');
+  const [reference, setReference] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
       setIsSubmitting(false);
+      setCashReceived('');
+      setReference('');
+      setMethod('CASH');
     }
   }, [isOpen]);
+
+  const cashAmount = parseFloat(cashReceived) || 0;
+  const change = cashAmount > total ? cashAmount - total : 0;
 
   const handleConfirm = async () => {
     if (isSubmitting) return;
@@ -113,9 +121,43 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
 
                   <Divider />
 
+                  {/* Cash Calculation */}
+                  {method === 'CASH' && (
+                      <VStack space="md" p="$4" bg="$primary50" rounded="$2xl">
+                          <HStack justifyContent="space-between" alignItems="center">
+                              <Text size="sm" fontWeight="$bold" color="$primary700">Cash Received</Text>
+                              <Input variant="outline" size="md" w={150} bg="$white" borderRadius={12}>
+                                  <InputField
+                                      placeholder="0.00"
+                                      keyboardType="numeric"
+                                      value={cashReceived}
+                                      onChangeText={setCashReceived}
+                                  />
+                              </Input>
+                          </HStack>
+                          <HStack justifyContent="space-between" alignItems="center">
+                              <Text size="sm" fontWeight="$bold" color="$primary700">Change to Return</Text>
+                              <Heading size="md" color="$success700">{currency}{change.toFixed(2)}</Heading>
+                          </HStack>
+                      </VStack>
+                  )}
+
                   {/* Payment Selection */}
                   <VStack space="md">
                       <Text size="sm" fontWeight="$black" color="$text800">Select Payment Method</Text>
+
+                      {(method === 'MOMO' || method === 'CARD') && (
+                          <VStack space="xs" mb="$2">
+                              <Text size="xs" fontWeight="$bold" color="$text600">Transaction Reference / Receipt #</Text>
+                              <Input variant="outline" size="md" bg="$white" borderRadius={12}>
+                                  <InputField
+                                      placeholder="Optional code..."
+                                      value={reference}
+                                      onChangeText={setReference}
+                                  />
+                              </Input>
+                          </VStack>
+                      )}
 
                       <HStack space="sm" flexWrap="wrap">
                           {PAYMENT_METHODS.map((m) => (

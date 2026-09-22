@@ -8,7 +8,7 @@ yarn-error.log
 yarn.lock
 
 # Android
-android/
+# android/  <-- Removed this to allow committing the native folder
 .gradle/
 build/
 *.apk
@@ -18,7 +18,7 @@ build/
 !debug.keystore
 
 # iOS
-ios/
+# ios/      <-- Consider removing this if you have an ios folder
 ios/build/
 ios/Pods/
 *.pbxuser

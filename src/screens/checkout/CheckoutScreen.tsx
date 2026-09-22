@@ -56,7 +56,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
   } = useCheckout(shopId, employeeId);
 
   const { customers, addCustomer } = useCustomers(shopId);
-  const { products: inventoryProducts, categories } = useInventory(shopId);
+  const { products, categories } = useInventory(shopId);
   const [searchQuery, setSearchQuery] = useState('');
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -77,7 +77,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
   const filteredProducts = useMemo(() => {
     if (searchQuery.length === 0) return [];
 
-    return inventoryProducts.filter(p => {
+    return products.filter(p => {
       const category = categories.find(c => c.id === p.categoryId);
       const categoryName = category ? category.name.toLowerCase() : '';
       const lowerQuery = searchQuery.toLowerCase();
@@ -89,7 +89,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         (p.bulkBarcode && p.bulkBarcode.includes(searchQuery))
       );
     });
-  }, [searchQuery, inventoryProducts, categories]);
+  }, [searchQuery, products, categories]);
 
   const handleCameraScan = async (barcode: string) => {
     const found = await searchProductByBarcode(barcode);
@@ -307,13 +307,10 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         isLoading={isLoading}
         onCheckout={() => {
             Keyboard.dismiss();
-            if (Platform.OS === 'android') {
-                setTimeout(() => {
-                    setShowPaymentModal(true);
-                }, 200);
-            } else {
+            // Standardizing modal trigger across all platforms
+            setTimeout(() => {
                 setShowPaymentModal(true);
-            }
+            }, 150);
         }}
       />
 
@@ -342,7 +339,7 @@ const CheckoutScreen = ({ route, navigation }: any) => {
       <SelectProductModal
         isOpen={showProductModal}
         onClose={() => setShowProductModal(false)}
-        products={inventoryProducts}
+        products={products}
         categories={categories}
         currency={currency}
         onSelect={(product, isBulk) => {
