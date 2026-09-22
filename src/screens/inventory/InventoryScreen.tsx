@@ -321,7 +321,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
             // A small delay ensures the first modal has finished its transition.
             setTimeout(() => {
                 setIsModalOpen(true);
-            }, Platform.OS === 'android' ? 300 : 0);
+            }, Platform.OS === 'android' ? 500 : 0);
         }}
       />
 

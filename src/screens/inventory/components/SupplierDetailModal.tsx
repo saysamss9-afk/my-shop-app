@@ -79,67 +79,67 @@ const SupplierDetailModal: React.FC<Props> = ({
           </ModalCloseButton>
         </ModalHeader>
         <ModalBody>
-          <VStack space="lg" py="$4">
-            {/* Contact Info Card */}
-            <Box bg="$backgroundLight50" p="$4" rounded="$2xl">
-              <VStack space="md">
-                <HStack space="md" alignItems="center">
-                  <Icon as={User} size="sm" color="$primary600" />
-                  <GlueText size="sm" fontWeight="$bold">{supplier.contactPerson || 'No contact person'}</GlueText>
-                </HStack>
-                {(supplier.phone || supplier.contactInfo) && (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <VStack space="lg" py="$4">
+              {/* Contact Info Card */}
+              <Box bg="$backgroundLight50" p="$4" rounded="$2xl">
+                <VStack space="md">
                   <HStack space="md" alignItems="center">
-                    <Icon as={Phone} size="sm" color="$primary600" />
-                    <GlueText size="sm">{supplier.phone || supplier.contactInfo}</GlueText>
+                    <Icon as={User} size="sm" color="$primary600" />
+                    <GlueText size="sm" fontWeight="$bold" numberOfLines={1}>{supplier.contactPerson || 'No contact person'}</GlueText>
                   </HStack>
-                )}
-                {supplier.email && (
-                  <HStack space="md" alignItems="center">
-                    <Icon as={Mail} size="sm" color="$primary600" />
-                    <GlueText size="sm">{supplier.email}</GlueText>
-                  </HStack>
-                )}
-                {supplier.address && (
-                  <HStack space="md" alignItems="center">
-                    <Icon as={MapPin} size="sm" color="$primary600" />
-                    <GlueText size="sm" flex={1}>{supplier.address}</GlueText>
-                  </HStack>
-                )}
-              </VStack>
-            </Box>
+                  {(supplier.phone || supplier.contactInfo) && (
+                    <HStack space="md" alignItems="center">
+                      <Icon as={Phone} size="sm" color="$primary600" />
+                      <GlueText size="sm" numberOfLines={1}>{supplier.phone || supplier.contactInfo}</GlueText>
+                    </HStack>
+                  )}
+                  {supplier.email && (
+                    <HStack space="md" alignItems="center">
+                      <Icon as={Mail} size="sm" color="$primary600" />
+                      <GlueText size="sm" numberOfLines={1}>{supplier.email}</GlueText>
+                    </HStack>
+                  )}
+                  {supplier.address && (
+                    <HStack space="md" alignItems="center">
+                      <Icon as={MapPin} size="sm" color="$primary600" />
+                      <GlueText size="sm" flex={1}>{supplier.address}</GlueText>
+                    </HStack>
+                  )}
+                </VStack>
+              </Box>
 
-            {/* Financial Summary */}
-            <HStack space="md">
-               <Box flex={1} bg="$error50" p="$3" rounded="$xl">
-                  <HStack space="xs" alignItems="center" mb="$1">
-                    <Icon as={Wallet} size="xs" color="$error600" />
-                    <GlueText size="xs" color="$error600" fontWeight="$bold">BALANCE</GlueText>
-                  </HStack>
-                  <Heading size="md" color="$error700">{currency}{supplier.currentBalance.toLocaleString()}</Heading>
-               </Box>
-               <Box flex={1} bg="$primary50" p="$3" rounded="$xl">
-                  <HStack space="xs" alignItems="center" mb="$1">
-                    <Icon as={Package} size="xs" color="$primary600" />
-                    <GlueText size="xs" color="$primary600" fontWeight="$bold">PRODUCTS</GlueText>
-                  </HStack>
-                  <Heading size="md" color="$primary700">{products.length}</Heading>
-               </Box>
-            </HStack>
+              {/* Financial Summary */}
+              <HStack space="md">
+                 <Box flex={1} bg="$error50" p="$3" rounded="$xl">
+                    <HStack space="xs" alignItems="center" mb="$1">
+                      <Icon as={Wallet} size="xs" color="$error600" />
+                      <GlueText size="xs" color="$error600" fontWeight="$bold">BALANCE</GlueText>
+                    </HStack>
+                    <Heading size="md" color="$error700" numberOfLines={1}>{currency}{supplier.currentBalance.toLocaleString()}</Heading>
+                 </Box>
+                 <Box flex={1} bg="$primary50" p="$3" rounded="$xl">
+                    <HStack space="xs" alignItems="center" mb="$1">
+                      <Icon as={Package} size="xs" color="$primary600" />
+                      <GlueText size="xs" color="$primary600" fontWeight="$bold">PRODUCTS</GlueText>
+                    </HStack>
+                    <Heading size="md" color="$primary700">{products.length}</Heading>
+                 </Box>
+              </HStack>
 
-            <Divider my="$2" />
+              <Divider my="$2" />
 
-            <Heading size="sm" fontWeight="$bold">Associated Products</Heading>
+              <Heading size="sm" fontWeight="$bold">Associated Products</Heading>
 
-            {loading ? (
-              <Center py="$10">
-                <Spinner color="$primary600" />
-              </Center>
-            ) : products.length === 0 ? (
-              <Center py="$10">
-                <GlueText color="$text400">No products linked to this supplier.</GlueText>
-              </Center>
-            ) : (
-              <ScrollView showsVerticalScrollIndicator={false}>
+              {loading ? (
+                <Center py="$10">
+                  <Spinner color="$primary600" />
+                </Center>
+              ) : products.length === 0 ? (
+                <Center py="$10">
+                  <GlueText color="$text400">No products linked to this supplier.</GlueText>
+                </Center>
+              ) : (
                 <VStack space="sm">
                   {products.map((item) => (
                     <HStack
@@ -152,11 +152,11 @@ const SupplierDetailModal: React.FC<Props> = ({
                         borderWidth={1}
                         borderColor="$borderLight"
                     >
-                      <VStack flex={1}>
-                        <GlueText fontWeight="$bold" color="$text900">{item.name}</GlueText>
-                        <GlueText size="xs" color="$text500">{item.barcode || 'No barcode'}</GlueText>
+                      <VStack flex={1} mr="$2">
+                        <GlueText fontWeight="$bold" color="$text900" numberOfLines={1}>{item.name}</GlueText>
+                        <GlueText size="xs" color="$text500" numberOfLines={1}>{item.barcode || 'No barcode'}</GlueText>
                       </VStack>
-                      <VStack alignItems="flex-end">
+                      <VStack alignItems="flex-end" flexShrink={0}>
                         <GlueText size="sm" fontWeight="$bold" color={item.stockQuantity <= item.minStockLevel ? "$error600" : "$success600"}>
                           {item.stockQuantity} {item.unit}
                         </GlueText>
@@ -165,9 +165,9 @@ const SupplierDetailModal: React.FC<Props> = ({
                     </HStack>
                   ))}
                 </VStack>
-              </ScrollView>
-            )}
-          </VStack>
+              )}
+            </VStack>
+          </ScrollView>
         </ModalBody>
         <ModalFooter>
           <Button action="secondary" variant="outline" onPress={onClose} borderRadius={16} w="100%">

@@ -47,9 +47,9 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
                 <Icon as={Store} color={isOwing ? "$error600" : "$primary600"} size="md" />
             </Center>
 
-            <VStack flex={1} space="xs">
+            <VStack flex={1} space="xs" mr="$2">
                 <HStack space="xs" alignItems="center">
-                    <Heading size="sm" color="$text900" fontWeight="$bold">
+                    <Heading size="sm" color="$text900" fontWeight="$bold" numberOfLines={1} style={{ flex: 1 }}>
                         {item.name}
                     </Heading>
                     {item.syncStatus === 0 ? (
@@ -60,20 +60,20 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
                 </HStack>
 
                 <HStack space="md" alignItems="center">
-                    <HStack space="xs" alignItems="center">
+                    <HStack space="xs" alignItems="center" flex={1}>
                         <Icon as={Phone} size="xs" color="$text400" />
-                        <Text size="xs" color="$text500">
+                        <Text size="xs" color="$text500" numberOfLines={1}>
                             {item.phone || item.contactInfo || item.email || 'No contact'}
                         </Text>
                     </HStack>
-                    <HStack space="xs" alignItems="center">
+                    <HStack space="xs" alignItems="center" flexShrink={0}>
                         <Icon as={Package} size="xs" color="$text400" />
-                        <Text size="xs" color="$text500">{productCount} Products</Text>
+                        <Text size="xs" color="$text500">{productCount} P</Text>
                     </HStack>
                 </HStack>
             </VStack>
 
-            <VStack alignItems="flex-end" space="xs">
+            <VStack alignItems="flex-end" space="xs" flexShrink={0} minWidth={80}>
                 <Text size="xs" fontWeight="$bold" color="$text500">Balance</Text>
                 <Text size="md" color={isOwing ? '$error600' : '$success600'} fontWeight="$black">
                     {currency}{currentBalance.toFixed(2)}

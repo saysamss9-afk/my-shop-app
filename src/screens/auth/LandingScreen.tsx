@@ -50,7 +50,7 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <Box flex={1} bg="$surfaceLavender">
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor="#E65100" />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -63,11 +63,11 @@ const LandingScreen: React.FC<Props> = ({ navigation }) => {
           borderBottomRightRadius={52}
           justifyContent="center"
           alignItems="center"
-          bg="$secondary600"
+          bg="$primary600"
           style={{
-            backgroundColor: '#000000',
-            background: 'linear-gradient(135deg, #000000 0%, #1A1A1A 100%)',
-            ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(0,0,0,0.25)' }),
+            backgroundColor: '#E65100',
+            background: 'linear-gradient(135deg, #FF9800 0%, #E65100 100%)',
+            ...getAppShadow({ offsetY: 18, radius: 32, color: 'rgba(230, 81, 0, 0.25)' }),
           } as any}
         >
           <VStack space="md" alignItems="center" px="$8">

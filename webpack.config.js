@@ -47,6 +47,7 @@ const babelLoaderConfiguration = {
       plugins: [
         'react-native-web',
         '@babel/plugin-transform-class-static-block',
+        '@babel/plugin-transform-export-namespace-from',
         ['react-native-reanimated/plugin', { processNestedWorklets: true }],
       ],
     },

@@ -121,8 +121,12 @@ const EditProductModal: React.FC<Props> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '85%' }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
           <ModalHeader>
             <VStack>
               <HStack space="xs" alignItems="center">
@@ -143,7 +147,11 @@ const EditProductModal: React.FC<Props> = ({
             </ModalCloseButton>
           </ModalHeader>
           <ModalBody>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ flexGrow: 1 }}
+            >
               <VStack space="xl" py="$4" opacity={canEdit ? 1 : 0.8}>
               <FormControl isRequired isDisabled={!canEdit}>
                 <FormControlLabel mb="$1">

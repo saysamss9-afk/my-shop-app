@@ -308,9 +308,10 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         onCheckout={() => {
             Keyboard.dismiss();
             // Standardizing modal trigger across all platforms
+            // On Android, a slightly longer delay ensures the keyboard is fully hidden and transitions work
             setTimeout(() => {
                 setShowPaymentModal(true);
-            }, 150);
+            }, Platform.OS === 'android' ? 300 : 150);
         }}
       />
 

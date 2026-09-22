@@ -82,14 +82,22 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '85%' }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
           <ModalHeader>
             <Heading size="lg" fontWeight="$black">Add Product</Heading>
             <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
           </ModalHeader>
           <ModalBody>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ flexGrow: 1 }}
+            >
               <VStack space="xl" py="$4">
             <FormControl isRequired>
               <FormControlLabel mb="$1"><FormControlLabelText>Select Product</FormControlLabelText></FormControlLabel>
