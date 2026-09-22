@@ -71,52 +71,70 @@ const imageLoaderConfiguration = {
   },
 };
 
-module.exports = {
-  entry: [path.resolve(appDirectory, 'index.web.js')],
-  cache: false,
-  output: {
-    filename: 'bundle.web.js',
-    path: path.resolve(appDirectory, 'dist'),
-  },
-  module: {
-    rules: [
-      babelLoaderConfiguration,
-      mjsLoaderConfiguration,
-      imageLoaderConfiguration,
-      {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+module.exports = (env, argv) => {
+  const isProduction = argv.mode === 'production';
+
+  return {
+    entry: [path.resolve(appDirectory, 'index.web.js')],
+    cache: false,
+    output: {
+      filename: isProduction ? '[name].[contenthash].js' : 'bundle.web.js',
+      path: path.resolve(appDirectory, 'dist'),
+      clean: true,
+    },
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
       },
-    ],
-  },
-  plugins: [
-    new webpack.DefinePlugin({
-      __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
-      'process.env.FIREBASE_PROJECT_ID': JSON.stringify(process.env.FIREBASE_PROJECT_ID),
-      'process.env.FIREBASE_APP_ID': JSON.stringify(process.env.FIREBASE_APP_ID),
-      'process.env.FIREBASE_STORAGE_BUCKET': JSON.stringify(process.env.FIREBASE_STORAGE_BUCKET),
-      'process.env.FIREBASE_API_KEY': JSON.stringify(process.env.FIREBASE_API_KEY),
-      'process.env.FIREBASE_AUTH_DOMAIN': JSON.stringify(process.env.FIREBASE_AUTH_DOMAIN),
-      'process.env.FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(process.env.FIREBASE_MESSAGING_SENDER_ID),
-      global: 'window',
-    }),
-    new HtmlWebpackPlugin({
-      template: path.resolve(appDirectory, 'web/index.html'),
-    }),
-    new webpack.ProvidePlugin({
-      React: 'react',
-      process: 'process/browser.js',
-    }),
-    new CopyPlugin({
-      patterns: [
-        { from: 'web/manifest.json', to: 'manifest.json' },
-        { from: 'web/service-worker.js', to: 'service-worker.js' },
-        { from: 'icon-user.png', to: 'icon-user.png' },
+      minimize: isProduction,
+    },
+    module: {
+      rules: [
+        babelLoaderConfiguration,
+        mjsLoaderConfiguration,
+        imageLoaderConfiguration,
+        {
+          test: /\.css$/,
+          use: ['style-loader', 'css-loader'],
+        },
       ],
-    }),
-  ],
-  resolve: {
+    },
+    plugins: [
+      new webpack.DefinePlugin({
+        __DEV__: JSON.stringify(!isProduction),
+        'process.env.FIREBASE_PROJECT_ID': JSON.stringify(process.env.FIREBASE_PROJECT_ID),
+        'process.env.FIREBASE_APP_ID': JSON.stringify(process.env.FIREBASE_APP_ID),
+        'process.env.FIREBASE_STORAGE_BUCKET': JSON.stringify(process.env.FIREBASE_STORAGE_BUCKET),
+        'process.env.FIREBASE_API_KEY': JSON.stringify(process.env.FIREBASE_API_KEY),
+        'process.env.FIREBASE_AUTH_DOMAIN': JSON.stringify(process.env.FIREBASE_AUTH_DOMAIN),
+        'process.env.FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(process.env.FIREBASE_MESSAGING_SENDER_ID),
+        global: 'window',
+      }),
+      new HtmlWebpackPlugin({
+        template: path.resolve(appDirectory, 'web/index.html'),
+      }),
+      new webpack.ProvidePlugin({
+        React: 'react',
+        process: 'process/browser.js',
+      }),
+      new CopyPlugin({
+        patterns: [
+          { from: 'web/manifest.json', to: 'manifest.json' },
+          { from: 'web/service-worker.js', to: 'service-worker.js' },
+          { from: 'icon-user.png', to: 'icon-user.png' },
+        ],
+      }),
+    ],
+    resolve: {
     alias: {
       'react-native$': 'react-native-web',
       'lucide-react-native$': 'lucide-react',
@@ -152,5 +170,5 @@ module.exports = {
         warnings: false,
       },
     },
-  },
+  };
 };

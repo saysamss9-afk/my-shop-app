@@ -179,8 +179,8 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   ], [shopId, employeeId, userRole, shopPlan, navigation]);
 
   return (
-    <ScreenWrapper withHeader scrollable>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <ScreenWrapper withHeader scrollable backgroundColor="#FFF3E0">
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF3E0" />
 
       <DashboardHeader
         userRole={userRole}

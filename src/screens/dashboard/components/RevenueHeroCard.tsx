@@ -31,14 +31,14 @@ const RevenueHeroCard: React.FC<Props> = ({ shopId, shopCode, shopName, revenue,
 
   return (
     <Box
-      bg="$secondary900"
+      bg="$primary600"
       rounded="$3xl"
       p={isWide ? "$8" : "$6"}
       mb="$8"
       style={{
-        backgroundColor: '#000000',
-        background: 'linear-gradient(135deg, #000000 0%, #1A1A1A 100%)',
-        ...getAppShadow({ offsetY: 18, radius: 26, color: 'rgba(0,0,0,0.22)' }),
+        backgroundColor: '#E65100',
+        background: 'linear-gradient(135deg, #E65100 0%, #FF8F00 100%)',
+        ...getAppShadow({ offsetY: 18, radius: 26, color: 'rgba(230,81,0,0.22)' }),
       } as any}
     >
       <VStack space="md">

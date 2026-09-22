@@ -23,6 +23,7 @@ export class ShopRepository {
     return await firestore().collection('shop_requests').add({
       ...request,
       status: 'PENDING',
+      notified: false,
       createdAt: firestore.FieldValue.serverTimestamp(),
     });
   }

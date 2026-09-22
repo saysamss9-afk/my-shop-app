@@ -93,12 +93,14 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     let unsubReq: any;
     let unsubShops: any;
     let unsubUpgrades: any;
+    let unsubNotify: any;
 
     const unsubscribeAuth = firebase.auth().onAuthStateChanged((user: User | null) => {
       // Clean up previous listeners if auth changes
       if (unsubReq) unsubReq();
       if (unsubShops) unsubShops();
       if (unsubUpgrades) unsubUpgrades();
+      if (unsubNotify) unsubNotify();
 
       if (!user || user.uid !== "l2JP5nnzVSP6gd8aSDEqI60Tbfl2") {
         navigation.replace('Landing');
@@ -134,6 +136,25 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         }, (error: any) => {
           console.error("AdminDashboard: Error fetching upgrade requests:", error);
         });
+
+      // Notification listener for new shop requests
+      unsubNotify = firebase.firestore().collection('shop_requests')
+        .where('status', '==', 'PENDING')
+        .where('notified', '==', false)
+        .onSnapshot((snapshot: any) => {
+           if (!snapshot.empty) {
+              snapshot.docs.forEach((doc: any) => {
+                const req = doc.data();
+                displayAlert(
+                  "New Shop Request",
+                  `A new request for "${req.shopName}" has been submitted by ${req.ownerName}.`,
+                  [{ text: "View", onPress: () => setViewMode('requests') }]
+                );
+                // Mark as notified so it doesn't alert again
+                doc.ref.update({ notified: true });
+              });
+           }
+        });
     });
 
     return () => {
@@ -141,6 +162,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       if (unsubReq) unsubReq();
       if (unsubShops) unsubShops();
       if (unsubUpgrades) unsubUpgrades();
+      if (unsubNotify) unsubNotify();
     };
   }, [navigation]);
 
@@ -322,8 +344,8 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   ), []);
 
   return (
-    <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <ScreenWrapper withHeader backgroundColor="#FFF3E0">
+      <StatusBar barStyle="light-content" backgroundColor="#BF360C" />
 
       <AdminHeader
         viewMode={viewMode}

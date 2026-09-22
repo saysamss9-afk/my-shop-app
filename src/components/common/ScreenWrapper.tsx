@@ -9,6 +9,7 @@ interface ScreenWrapperProps {
   scrollable?: boolean;
   withHeader?: boolean;
   contentContainerStyle?: any;
+  backgroundColor?: string;
 }
 
 const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
@@ -16,6 +17,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   scrollable = false,
   withHeader = false,
   contentContainerStyle,
+  backgroundColor,
 }) => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -26,9 +28,9 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       flex={1}
       pt={withHeader ? 0 : insets.top}
       pb={insets.bottom}
-      bg="$surfaceLavender"
+      bg={backgroundColor ? undefined : "$surfaceLavender"}
       style={{
-        backgroundColor: '#E5E7EB',
+        backgroundColor: backgroundColor || '#E5E7EB',
       } as any}
     >
       <StatusBar
