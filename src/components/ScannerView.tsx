@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, ActivityIndicator, Vibration, Animated } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, Vibration, Animated, TouchableOpacity } from 'react-native';
 import {
   Camera,
   useCameraDevice,
@@ -25,6 +25,11 @@ export const ScannerView: React.FC<ScannerViewProps> = ({ onScan, isActive }) =>
   const [hasPermission, setHasPermission] = useState(false);
   const [lastScan, setLastScan] = useState(0);
   const flashAnim = useRef(new Animated.Value(0)).current;
+
+  const handleRequestPermission = async () => {
+    const status = await requestCameraPermissionSafely();
+    setHasPermission(status === 'granted' || status === 'not-required');
+  };
 
   useEffect(() => {
     let isCancelled = false;
@@ -77,6 +82,9 @@ export const ScannerView: React.FC<ScannerViewProps> = ({ onScan, isActive }) =>
     return (
       <View style={styles.container}>
         <Text style={styles.text}>Camera permission is required to scan barcodes.</Text>
+        <TouchableOpacity style={styles.button} onPress={handleRequestPermission}>
+          <Text style={styles.buttonText}>Grant Permission</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -124,6 +132,17 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     marginTop: 20,
+  },
+  button: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ScrollView, StatusBar } from 'react-native';
+import { ScrollView, StatusBar, Keyboard } from 'react-native';
 import { displayAlert } from '../../utils/alert';
 import {
   Box,
@@ -159,7 +159,10 @@ const PurchaseScreen = ({ route, navigation }: any) => {
                     size="sm"
                     variant="outline"
                     action="primary"
-                    onPress={() => setIsItemModalOpen(true)}
+                    onPress={() => {
+                        Keyboard.dismiss();
+                        setIsItemModalOpen(true);
+                    }}
                     borderRadius={12}
                 >
                     <Icon as={PlusCircle} mr="$2" size="sm" />

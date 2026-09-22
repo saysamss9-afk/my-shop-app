@@ -131,28 +131,27 @@ const AddProductModal: React.FC<Props> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ModalHeader>
-            <VStack>
-              <Heading size="lg" fontWeight="$black">Add New Product</Heading>
-              <GlueText size="xs" color="$text500">Provide complete product and pricing details.</GlueText>
-            </VStack>
-            <ModalCloseButton>
-              <Icon as={CloseIcon} />
-            </ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
+      <ModalContent rounded="$3xl" maxHeight="90%" w="$full" style={{ marginBottom: insets.bottom + 12 }}>
+        <ModalHeader>
+          <VStack>
+            <Heading size="lg" fontWeight="$black">Add New Product</Heading>
+            <GlueText size="xs" color="$text500">Provide complete product and pricing details.</GlueText>
+          </VStack>
+          <ModalCloseButton>
+            <Icon as={CloseIcon} />
+          </ModalCloseButton>
+        </ModalHeader>
+        <ModalBody p="$0">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ flexGrow: 1 }}
+              contentContainerStyle={{ padding: 24 }}
             >
-              <VStack space="xl" py="$4">
+              <VStack space="xl">
               <FormControl isRequired>
                 <FormControlLabel mb="$1">
                   <FormControlLabelText size="sm">Product Name</FormControlLabelText>
@@ -391,6 +390,7 @@ const AddProductModal: React.FC<Props> = ({
 
             </VStack>
           </ScrollView>
+          </KeyboardAvoidingView>
         </ModalBody>
         <ModalFooter style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
           <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
@@ -400,7 +400,6 @@ const AddProductModal: React.FC<Props> = ({
             <ButtonText fontWeight="$bold">Add Product</ButtonText>
           </Button>
         </ModalFooter>
-        </KeyboardAvoidingView>
       </ModalContent>
     </Modal>
   );

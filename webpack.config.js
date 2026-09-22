@@ -135,39 +135,40 @@ module.exports = (env, argv) => {
       }),
     ],
     resolve: {
-    alias: {
-      'react-native$': 'react-native-web',
-      'lucide-react-native$': 'lucide-react',
-      'react-native-sqlite-storage': path.resolve(appDirectory, 'src/web-mocks.js'),
-      'react-native-print': path.resolve(appDirectory, 'src/web-mocks.js'),
-      'react-native-vision-camera': path.resolve(appDirectory, 'src/web-mocks.js'),
-      '@react-native-community/netinfo': path.resolve(appDirectory, 'src/netinfo-web-mock.ts'),
-      'react-native-vector-icons/MaterialCommunityIcons': path.resolve(appDirectory, 'src/web-mocks.js'),
-      '@react-native-vector-icons/material-design-icons': path.resolve(appDirectory, 'src/web-mocks.js'),
-      '@expo/vector-icons/MaterialCommunityIcons': path.resolve(appDirectory, 'src/web-mocks.js'),
-      '@react-native-firebase/app': path.resolve(appDirectory, 'src/firebase-config.ts'),
-      '@react-native-firebase/auth': path.resolve(appDirectory, 'src/auth-web-mock.ts'),
-      '@react-native-firebase/firestore': path.resolve(appDirectory, 'src/firestore-web-mock.ts'),
-      '@react-native-clipboard/clipboard': path.resolve(appDirectory, 'src/clipboard-web-mock.ts'),
+      alias: {
+        'react-native$': 'react-native-web',
+        'lucide-react-native$': 'lucide-react',
+        'react-native-sqlite-storage': path.resolve(appDirectory, 'src/web-mocks.js'),
+        'react-native-print': path.resolve(appDirectory, 'src/web-mocks.js'),
+        'react-native-vision-camera': path.resolve(appDirectory, 'src/web-mocks.js'),
+        '@react-native-community/netinfo': path.resolve(appDirectory, 'src/netinfo-web-mock.ts'),
+        'react-native-vector-icons/MaterialCommunityIcons': path.resolve(appDirectory, 'src/web-mocks.js'),
+        '@react-native-vector-icons/material-design-icons': path.resolve(appDirectory, 'src/web-mocks.js'),
+        '@expo/vector-icons/MaterialCommunityIcons': path.resolve(appDirectory, 'src/web-mocks.js'),
+        '@react-native-firebase/app': path.resolve(appDirectory, 'src/firebase-config.ts'),
+        '@react-native-firebase/auth': path.resolve(appDirectory, 'src/auth-web-mock.ts'),
+        '@react-native-firebase/firestore': path.resolve(appDirectory, 'src/firestore-web-mock.ts'),
+        '@react-native-clipboard/clipboard': path.resolve(appDirectory, 'src/clipboard-web-mock.ts'),
+      },
+      extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.jsx', '.jsx', '.web.js', '.js', '.mjs', '.json'],
+      modules: [path.resolve(appDirectory, 'node_modules'), 'node_modules'],
+      mainFields: ['browser', 'module', 'main'],
+      fallback: {
+        process: require.resolve('process/browser'),
+      },
     },
-    extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.jsx', '.jsx', '.web.js', '.js', '.mjs', '.json'],
-    modules: [path.resolve(appDirectory, 'node_modules'), 'node_modules'],
-    mainFields: ['browser', 'module', 'main'],
-    fallback: {
-      process: require.resolve('process/browser'),
-    },
-  },
-  devServer: {
-    historyApiFallback: true,
-    static: {
-      directory: path.resolve(appDirectory, 'dist'),
-    },
-    port: 3000,
-    hot: false,
-    client: {
-      overlay: {
-        errors: true,
-        warnings: false,
+    devServer: {
+      historyApiFallback: true,
+      static: {
+        directory: path.resolve(appDirectory, 'dist'),
+      },
+      port: 3000,
+      hot: false,
+      client: {
+        overlay: {
+          errors: true,
+          warnings: false,
+        },
       },
     },
   };

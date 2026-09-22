@@ -68,41 +68,41 @@ const SupplierDetailModal: React.FC<Props> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, height: '80%' }}>
-        <ModalHeader>
-          <VStack>
-            <Heading size="lg" fontWeight="$black">{supplier.name}</Heading>
-            <GlueText size="xs" color="$text500">Supplier Profile & Products</GlueText>
+      <ModalContent rounded="$3xl" maxHeight="85%" w="$full" style={{ marginBottom: insets.bottom + 12 }}>
+        <ModalHeader borderBottomWidth={1} borderBottomColor="$borderLight">
+          <VStack flex={1} mr="$2">
+            <Heading size="lg" fontWeight="$black" numberOfLines={2}>{supplier.name}</Heading>
+            <GlueText size="xs" color="$text500">Supplier Profile & Linked Products</GlueText>
           </VStack>
           <ModalCloseButton>
             <Icon as={CloseIcon} />
           </ModalCloseButton>
         </ModalHeader>
-        <ModalBody>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <VStack space="lg" py="$4">
+        <ModalBody p="$0">
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+            <VStack space="lg">
               {/* Contact Info Card */}
               <Box bg="$backgroundLight50" p="$4" rounded="$2xl">
                 <VStack space="md">
                   <HStack space="md" alignItems="center">
                     <Icon as={User} size="sm" color="$primary600" />
-                    <GlueText size="sm" fontWeight="$bold" numberOfLines={1}>{supplier.contactPerson || 'No contact person'}</GlueText>
+                    <GlueText size="sm" fontWeight="$bold" flex={1}>{supplier.contactPerson || 'No contact person specified'}</GlueText>
                   </HStack>
                   {(supplier.phone || supplier.contactInfo) && (
                     <HStack space="md" alignItems="center">
                       <Icon as={Phone} size="sm" color="$primary600" />
-                      <GlueText size="sm" numberOfLines={1}>{supplier.phone || supplier.contactInfo}</GlueText>
+                      <GlueText size="sm" flex={1}>{supplier.phone || supplier.contactInfo}</GlueText>
                     </HStack>
                   )}
                   {supplier.email && (
                     <HStack space="md" alignItems="center">
                       <Icon as={Mail} size="sm" color="$primary600" />
-                      <GlueText size="sm" numberOfLines={1}>{supplier.email}</GlueText>
+                      <GlueText size="sm" flex={1}>{supplier.email}</GlueText>
                     </HStack>
                   )}
                   {supplier.address && (
-                    <HStack space="md" alignItems="center">
-                      <Icon as={MapPin} size="sm" color="$primary600" />
+                    <HStack space="md" alignItems="flex-start">
+                      <Icon as={MapPin} size="sm" color="$primary600" style={{ marginTop: 2 }} />
                       <GlueText size="sm" flex={1}>{supplier.address}</GlueText>
                     </HStack>
                   )}
@@ -116,7 +116,7 @@ const SupplierDetailModal: React.FC<Props> = ({
                       <Icon as={Wallet} size="xs" color="$error600" />
                       <GlueText size="xs" color="$error600" fontWeight="$bold">BALANCE</GlueText>
                     </HStack>
-                    <Heading size="md" color="$error700" numberOfLines={1}>{currency}{supplier.currentBalance.toLocaleString()}</Heading>
+                    <Heading size="md" color="$error700" numberOfLines={1}>{currency}{(supplier.currentBalance ?? 0).toFixed(2)}</Heading>
                  </Box>
                  <Box flex={1} bg="$primary50" p="$3" rounded="$xl">
                     <HStack space="xs" alignItems="center" mb="$1">
@@ -129,15 +129,15 @@ const SupplierDetailModal: React.FC<Props> = ({
 
               <Divider my="$2" />
 
-              <Heading size="sm" fontWeight="$bold">Associated Products</Heading>
+              <Heading size="sm" fontWeight="$bold">Associated Products ({products.length})</Heading>
 
               {loading ? (
-                <Center py="$10">
+                <Center py="$8">
                   <Spinner color="$primary600" />
                 </Center>
               ) : products.length === 0 ? (
-                <Center py="$10">
-                  <GlueText color="$text400">No products linked to this supplier.</GlueText>
+                <Center py="$8">
+                  <GlueText color="$text400">No products linked to this supplier yet.</GlueText>
                 </Center>
               ) : (
                 <VStack space="sm">
@@ -153,8 +153,8 @@ const SupplierDetailModal: React.FC<Props> = ({
                         borderColor="$borderLight"
                     >
                       <VStack flex={1} mr="$2">
-                        <GlueText fontWeight="$bold" color="$text900" numberOfLines={1}>{item.name}</GlueText>
-                        <GlueText size="xs" color="$text500" numberOfLines={1}>{item.barcode || 'No barcode'}</GlueText>
+                        <GlueText fontWeight="$bold" color="$text900">{item.name}</GlueText>
+                        {item.barcode && <GlueText size="xs" color="$text500">Barcode: {item.barcode}</GlueText>}
                       </VStack>
                       <VStack alignItems="flex-end" flexShrink={0}>
                         <GlueText size="sm" fontWeight="$bold" color={item.stockQuantity <= item.minStockLevel ? "$error600" : "$success600"}>
@@ -169,7 +169,7 @@ const SupplierDetailModal: React.FC<Props> = ({
             </VStack>
           </ScrollView>
         </ModalBody>
-        <ModalFooter>
+        <ModalFooter borderTopWidth={1} borderTopColor="$borderLight" pt="$3">
           <Button action="secondary" variant="outline" onPress={onClose} borderRadius={16} w="100%">
             <ButtonText>Close Profile</ButtonText>
           </Button>

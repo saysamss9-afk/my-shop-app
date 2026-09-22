@@ -34,16 +34,16 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
   return (
     <Box
       bg="$white"
-      p="$5"
+      p="$4"
       rounded="$3xl"
-      mb="$4"
+      mb="$3"
       borderWidth={1}
       borderColor="$borderLight"
       style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
     >
       <Pressable onPress={onPress}>
         <HStack space="md" alignItems="center">
-            <Center w={52} h={52} rounded={16} bg={isOwing ? "$error50" : "$primary50"}>
+            <Center w={48} h={48} rounded={16} bg={isOwing ? "$error50" : "$primary50"}>
                 <Icon as={Store} color={isOwing ? "$error600" : "$primary600"} size="md" />
             </Center>
 
@@ -59,7 +59,7 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
                     )}
                 </HStack>
 
-                <HStack space="md" alignItems="center">
+                <HStack space="md" alignItems="center" flexWrap="wrap">
                     <HStack space="xs" alignItems="center" flex={1}>
                         <Icon as={Phone} size="xs" color="$text400" />
                         <Text size="xs" color="$text500" numberOfLines={1}>
@@ -68,14 +68,14 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
                     </HStack>
                     <HStack space="xs" alignItems="center" flexShrink={0}>
                         <Icon as={Package} size="xs" color="$text400" />
-                        <Text size="xs" color="$text500">{productCount} P</Text>
+                        <Text size="xs" color="$text500">{productCount} Items</Text>
                     </HStack>
                 </HStack>
             </VStack>
 
-            <VStack alignItems="flex-end" space="xs" flexShrink={0} minWidth={80}>
-                <Text size="xs" fontWeight="$bold" color="$text500">Balance</Text>
-                <Text size="md" color={isOwing ? '$error600' : '$success600'} fontWeight="$black">
+            <VStack alignItems="flex-end" space="xs" flexShrink={0}>
+                <Text size="2xs" fontWeight="$bold" color="$text500">Balance</Text>
+                <Text size="sm" color={isOwing ? '$error600' : '$success600'} fontWeight="$black">
                     {currency}{currentBalance.toFixed(2)}
                 </Text>
                 <Badge size="sm" variant="solid" action={isOwing ? "error" : "success"} borderRadius="$full">
@@ -85,7 +85,7 @@ const SupplierListItem: React.FC<Props> = ({ item, currency, onPay, onPurchase, 
         </HStack>
       </Pressable>
 
-      <HStack mt="$4" pt="$4" borderTopWidth={1} borderTopColor="$backgroundLight100" space="md">
+      <HStack mt="$3" pt="$3" borderTopWidth={1} borderTopColor="$backgroundLight100" space="md">
             <Button
                 flex={1}
                 size="sm"

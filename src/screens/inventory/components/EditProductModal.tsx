@@ -121,38 +121,37 @@ const EditProductModal: React.FC<Props> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ModalHeader>
-            <VStack>
-              <HStack space="xs" alignItems="center">
-                  <Heading size="lg" fontWeight="$black">
-                  {product?.status === 'DRAFT' ? 'Review New Item' : 'Product Details'}
-                  </Heading>
-                  {!canEdit && <Icon as={LockIcon} size="sm" color="$text400" />}
-              </HStack>
-              {product?.status === 'DRAFT' && canEdit && (
-                  <GlueText size="xs" color="$warning600" fontWeight="$bold">Assign barcode and pricing to activate</GlueText>
-              )}
-              {!canEdit && (
-                  <GlueText size="xs" color="$text400">View-only mode (Manager access required to edit)</GlueText>
-              )}
-            </VStack>
-            <ModalCloseButton>
-              <Icon as={CloseIcon} />
-            </ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
+      <ModalContent rounded="$3xl" maxHeight="90%" w="$full" style={{ marginBottom: insets.bottom + 12 }}>
+        <ModalHeader>
+          <VStack>
+            <HStack space="xs" alignItems="center">
+                <Heading size="lg" fontWeight="$black">
+                {product?.status === 'DRAFT' ? 'Review New Item' : 'Product Details'}
+                </Heading>
+                {!canEdit && <Icon as={LockIcon} size="sm" color="$text400" />}
+            </HStack>
+            {product?.status === 'DRAFT' && canEdit && (
+                <GlueText size="xs" color="$warning600" fontWeight="$bold">Assign barcode and pricing to activate</GlueText>
+            )}
+            {!canEdit && (
+                <GlueText size="xs" color="$text400">View-only mode (Manager access required to edit)</GlueText>
+            )}
+          </VStack>
+          <ModalCloseButton>
+            <Icon as={CloseIcon} />
+          </ModalCloseButton>
+        </ModalHeader>
+        <ModalBody p="$0">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ flexGrow: 1 }}
+              contentContainerStyle={{ padding: 24 }}
             >
-              <VStack space="xl" py="$4" opacity={canEdit ? 1 : 0.8}>
+              <VStack space="xl" opacity={canEdit ? 1 : 0.8}>
               <FormControl isRequired isDisabled={!canEdit}>
                 <FormControlLabel mb="$1">
                   <FormControlLabelText size="sm">Product Name</FormControlLabelText>
@@ -411,6 +410,7 @@ const EditProductModal: React.FC<Props> = ({
 
             </VStack>
           </ScrollView>
+          </KeyboardAvoidingView>
         </ModalBody>
         <ModalFooter style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
           <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
@@ -422,7 +422,6 @@ const EditProductModal: React.FC<Props> = ({
             </Button>
           )}
         </ModalFooter>
-        </KeyboardAvoidingView>
       </ModalContent>
     </Modal>
   );

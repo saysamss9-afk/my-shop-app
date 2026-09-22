@@ -70,26 +70,25 @@ const SupplierPaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, suppli
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ModalHeader>
-            <VStack>
-              <Heading size="lg" fontWeight="$black">Record Payment</Heading>
-              <Text size="xs" color="$text500">To {supplier.name}</Text>
-            </VStack>
-            <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
+      <ModalContent rounded="$3xl" maxHeight="90%" w="$full" style={{ marginBottom: insets.bottom + 12 }}>
+        <ModalHeader>
+          <VStack>
+            <Heading size="lg" fontWeight="$black">Record Payment</Heading>
+            <Text size="xs" color="$text500">To {supplier.name}</Text>
+          </VStack>
+          <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
+        </ModalHeader>
+        <ModalBody p="$0">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ flexGrow: 1 }}
+              contentContainerStyle={{ padding: 24 }}
             >
-              <VStack space="xl" py="$4">
+              <VStack space="xl">
                 <Box bg="$backgroundLight50" p="$4" rounded="$2xl">
                     <HStack justifyContent="space-between" alignItems="center">
                         <Text size="sm" color="$text600">Outstanding Balance</Text>
@@ -157,16 +156,16 @@ const SupplierPaymentModal: React.FC<Props> = ({ isOpen, onClose, onSave, suppli
                 </FormControl>
               </VStack>
             </ScrollView>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
-              <ButtonText>Cancel</ButtonText>
-            </Button>
-            <Button action="primary" onPress={handleSave} borderRadius={16} bg="$success600" style={{ height: getButtonHeight(50) }}>
-              <ButtonText fontWeight="$bold">Confirm Payment</ButtonText>
-            </Button>
-          </ModalFooter>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
+            <ButtonText>Cancel</ButtonText>
+          </Button>
+          <Button action="primary" onPress={handleSave} borderRadius={16} bg="$success600" style={{ height: getButtonHeight(50) }}>
+            <ButtonText fontWeight="$bold">Confirm Payment</ButtonText>
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

@@ -82,23 +82,22 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ModalHeader>
-            <Heading size="lg" fontWeight="$black">Add Product</Heading>
-            <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
+      <ModalContent rounded="$3xl" maxHeight="90%" w="$full" style={{ marginBottom: insets.bottom + 12 }}>
+        <ModalHeader>
+          <Heading size="lg" fontWeight="$black">Add Product</Heading>
+          <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
+        </ModalHeader>
+        <ModalBody p="$0">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ flexGrow: 1 }}
+              contentContainerStyle={{ padding: 24 }}
             >
-              <VStack space="xl" py="$4">
+              <VStack space="xl">
             <FormControl isRequired>
               <FormControlLabel mb="$1"><FormControlLabelText>Select Product</FormControlLabelText></FormControlLabel>
               <Select onValueChange={(val) => {
@@ -186,8 +185,9 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
             </HStack>
           </VStack>
             </ScrollView>
-          </ModalBody>
-          <ModalFooter>
+          </KeyboardAvoidingView>
+        </ModalBody>
+        <ModalFooter>
           <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
             <ButtonText>Cancel</ButtonText>
           </Button>
@@ -195,7 +195,6 @@ const AddPurchaseItemModal: React.FC<Props> = ({ isOpen, onClose, products, onAd
             <ButtonText fontWeight="$bold">Add to Cart</ButtonText>
           </Button>
         </ModalFooter>
-        </KeyboardAvoidingView>
       </ModalContent>
     </Modal>
   );

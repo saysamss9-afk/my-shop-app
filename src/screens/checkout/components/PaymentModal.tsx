@@ -77,23 +77,22 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalBackdrop />
-      <ModalContent rounded="$3xl" style={{ marginBottom: insets.bottom + 12, maxHeight: '90%' }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ModalHeader borderBottomWidth={1} borderBottomColor="$borderLight">
-            <Heading size="lg" fontWeight="$black">Finalize Sale</Heading>
-            <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
+      <ModalContent rounded="$3xl" maxHeight="90%" w="$full" style={{ marginBottom: insets.bottom + 12 }}>
+        <ModalHeader borderBottomWidth={1} borderBottomColor="$borderLight">
+          <Heading size="lg" fontWeight="$black">Finalize Sale</Heading>
+          <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
+        </ModalHeader>
+        <ModalBody p="$0">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ flexGrow: 1 }}
+              contentContainerStyle={{ padding: 24 }}
             >
-              <VStack space="xl" py="$6">
+              <VStack space="xl">
                 {/* Amount Summary */}
                 <VStack space="xs" alignItems="center">
                   <Text size="sm" color="$text500" fontWeight="$bold">Total Amount Due</Text>
@@ -234,23 +233,23 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
                 </VStack>
               </VStack>
             </ScrollView>
-          </ModalBody>
-          <ModalFooter borderTopWidth={1} borderTopColor="$borderLight" pt="$4">
-            <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius="$xl" flex={1} isDisabled={isSubmitting}>
-              <ButtonText>Cancel</ButtonText>
-            </Button>
-            <Button
-              action="primary"
-              onPress={handleConfirm}
-              borderRadius="$xl"
-              bg={method === 'DEBT' ? '$error600' : '$primary600'}
-              flex={2}
-              isDisabled={isSubmitting}
-            >
-              <ButtonText fontWeight="$bold">{isSubmitting ? 'Saving...' : 'Finish & Save'}</ButtonText>
-            </Button>
-          </ModalFooter>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </ModalBody>
+        <ModalFooter borderTopWidth={1} borderTopColor="$borderLight" pt="$4">
+          <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius="$xl" flex={1} isDisabled={isSubmitting}>
+            <ButtonText>Cancel</ButtonText>
+          </Button>
+          <Button
+            action="primary"
+            onPress={handleConfirm}
+            borderRadius="$xl"
+            bg={method === 'DEBT' ? '$error600' : '$primary600'}
+            flex={2}
+            isDisabled={isSubmitting}
+          >
+            <ButtonText fontWeight="$bold">{isSubmitting ? 'Saving...' : 'Finish & Save'}</ButtonText>
+          </Button>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );

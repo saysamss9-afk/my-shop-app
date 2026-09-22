@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FlatList, StatusBar, Pressable } from 'react-native';
+import { FlatList, StatusBar, Pressable, ScrollView } from 'react-native';
 import {
   Box,
   VStack,
@@ -13,7 +13,6 @@ import {
   Input,
   InputField,
   InputSlot,
-  Divider,
   Badge,
   BadgeText,
 } from '@gluestack-ui/themed';
@@ -23,25 +22,41 @@ import { useDailyReport } from '../../hooks/useDailyReport';
 import { getAppShadow, isWeb } from '../../utils/platformStyles';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 
+const formatDate = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 const DailyReportScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [selectedDate, setSelectedDate] = useState(() => formatDate(new Date()));
 
   const { reportData, currency, isLoading, loadReport } = useDailyReport(shopId);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
       loadReport(selectedDate);
     }
   }, [selectedDate, loadReport]);
 
+  const changeDateByDays = (days: number) => {
+    const parts = selectedDate.split('-');
+    const current = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) || 1);
+    current.setDate(current.getDate() + days);
+    setSelectedDate(formatDate(current));
+  };
+
   const setToday = () => {
+    setSelectedDate(formatDate(new Date()));
+  };
+
+  const setYesterday = () => {
     const d = new Date();
-    setSelectedDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(formatDate(d));
   };
 
   const renderItem = ({ item, index }: { item: any, index: number }) => (
@@ -50,10 +65,10 @@ const DailyReportScreen = ({ route, navigation }: any) => {
       borderBottomWidth={1}
       borderColor="$borderLight"
     >
-      <HStack space="xs" alignItems="center" py="$3" px="$4">
-        {/* Item Name */}
-        <VStack flex={3} space="xs">
-          <Text size="sm" color={item.productId === 'DEBT_PAYMENT' ? "$success700" : "$text900"} fontWeight="$bold" numberOfLines={1}>
+      <HStack space="sm" alignItems="center" py="$3" px="$3" minWidth={580}>
+        {/* Item Name & ID */}
+        <VStack w={180} space="xs">
+          <Text size="xs" color={item.productId === 'DEBT_PAYMENT' ? "$success700" : "$text900"} fontWeight="$bold" numberOfLines={2}>
             {item.productName}
           </Text>
           <Text size="2xs" color="$text400">
@@ -62,34 +77,41 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         </VStack>
 
         {/* Type Badge */}
-        <Box flex={1} alignItems="center">
-          <Badge action={item.productId === 'DEBT_PAYMENT' ? 'success' : ((item.isBulk === 1 || item.isBulk === true || item.isBulk === 'true') ? "warning" : "info")} variant="outline" size="sm" rounded="$md">
-            <BadgeText size="2xs">{item.productId === 'DEBT_PAYMENT' ? 'PMT' : ((item.isBulk === 1 || item.isBulk === true || item.isBulk === 'true') ? "BLK" : "UNIT")}</BadgeText>
+        <Box w={70} alignItems="center">
+          <Badge
+            action={item.productId === 'DEBT_PAYMENT' ? 'success' : ((item.isBulk === 1 || item.isBulk === true || item.isBulk === 'true') ? "warning" : "info")}
+            variant="outline"
+            size="sm"
+            rounded="$md"
+          >
+            <BadgeText size="2xs" fontWeight="$bold">
+              {item.productId === 'DEBT_PAYMENT' ? 'PMT' : ((item.isBulk === 1 || item.isBulk === true || item.isBulk === 'true') ? "BULK" : "UNIT")}
+            </BadgeText>
           </Badge>
         </Box>
 
         {/* Quantity Sold */}
-        <Box flex={1} alignItems="center">
-          <Text size="sm" fontWeight="$bold" color="$text800">
+        <Box w={65} alignItems="center">
+          <Text size="xs" fontWeight="$bold" color="$text800">
             {item.totalQuantitySold ?? 0}
           </Text>
         </Box>
 
         {/* Revenue */}
-        <Box flex={2} alignItems="flex-end" pr="$2">
+        <Box w={135} alignItems="flex-end" pr="$2">
           {item.isOnCredit === 1 ? (
-            <Badge action="error" variant="solid" size="sm" rounded="$lg">
+            <Badge action="error" variant="solid" size="sm" rounded="$md">
               <BadgeText size="2xs" fontWeight="$bold">ON CREDIT</BadgeText>
             </Badge>
           ) : (
-            <Text size="sm" fontWeight="$black" color="$primary700">
+            <Text size="xs" fontWeight="$black" color="$primary700">
               {currency}{(item.totalRevenue || 0).toFixed(2)}
             </Text>
           )}
         </Box>
 
         {/* Remaining Stock */}
-        <Box flex={1.5} alignItems="flex-end">
+        <Box w={100} alignItems="flex-end">
           <Text
             size="xs"
             fontWeight="$bold"
@@ -107,7 +129,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <Box pt={Math.max(insets.top, 10)} pb="$4" px="$4">
+      <Box pt={Math.max(insets.top, 10)} pb="$3" px="$4">
         <HStack space="md" alignItems="center">
           <Pressable onPress={() => navigation.goBack()}>
             <Box p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
@@ -121,48 +143,75 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         </HStack>
       </Box>
 
-      {/* Date Picker Section */}
+      {/* Robust Date Selector Section */}
       <Box px="$4" pb="$4">
-        <HStack space="sm" alignItems="center">
-          <Box flex={1}>
-            <Input variant="outline" size="md" borderRadius={12} bg="$white">
-              <InputField
-                placeholder="YYYY-MM-DD"
-                value={selectedDate}
-                onChangeText={setSelectedDate}
-              />
-              {isWeb ? (
-                <InputSlot style={{ paddingRight: 8 }}>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e: any) => setSelectedDate(e.target.value)}
-                    style={{
-                      border: '1px solid #ccc',
-                      borderRadius: '6px',
-                      padding: '2px 6px',
-                      fontSize: '13px',
-                      cursor: 'pointer'
-                    }}
-                  />
-                </InputSlot>
-              ) : (
-                <InputSlot pr="$3">
-                  <MaterialCommunityIcons name="calendar" size={18} color="#666" />
-                </InputSlot>
-              )}
-            </Input>
-          </Box>
-          <Pressable onPress={setToday}>
-            <Box bg="$primary600" px="$4" py="$2.5" rounded="$xl">
-              <Text size="sm" color="white" fontWeight="$bold">Today</Text>
+        <VStack space="sm">
+          <HStack space="xs" alignItems="center">
+            {/* Prev Day Button */}
+            <Pressable onPress={() => changeDateByDays(-1)}>
+              <Box bg="$white" p="$2.5" rounded="$xl" borderWidth={1} borderColor="$borderLight" style={getAppShadow({ offsetY: 2, radius: 6, color: 'rgba(0,0,0,0.03)' })}>
+                <MaterialCommunityIcons name="chevron-left" size={20} color="#333" />
+              </Box>
+            </Pressable>
+
+            {/* Date Input Container */}
+            <Box flex={1}>
+              <Input variant="outline" size="md" borderRadius={12} bg="$white">
+                <InputField
+                  placeholder="YYYY-MM-DD"
+                  value={selectedDate}
+                  onChangeText={setSelectedDate}
+                  keyboardType="numeric"
+                />
+                {isWeb ? (
+                  <InputSlot style={{ paddingRight: 8 }}>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e: any) => setSelectedDate(e.target.value)}
+                      style={{
+                        border: '1px solid #ccc',
+                        borderRadius: '6px',
+                        padding: '2px 6px',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </InputSlot>
+                ) : (
+                  <InputSlot pr="$3">
+                    <MaterialCommunityIcons name="calendar" size={18} color="#666" />
+                  </InputSlot>
+                )}
+              </Input>
             </Box>
-          </Pressable>
-        </HStack>
+
+            {/* Next Day Button */}
+            <Pressable onPress={() => changeDateByDays(1)}>
+              <Box bg="$white" p="$2.5" rounded="$xl" borderWidth={1} borderColor="$borderLight" style={getAppShadow({ offsetY: 2, radius: 6, color: 'rgba(0,0,0,0.03)' })}>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#333" />
+              </Box>
+            </Pressable>
+          </HStack>
+
+          {/* Date Quick Action Presets */}
+          <HStack space="xs" justifyContent="flex-end">
+            <Pressable onPress={setYesterday}>
+              <Box bg="$backgroundLight100" px="$3" py="$1.5" rounded="$lg">
+                <Text size="2xs" color="$text700" fontWeight="$bold">Yesterday</Text>
+              </Box>
+            </Pressable>
+            <Pressable onPress={setToday}>
+              <Box bg="$primary600" px="$3" py="$1.5" rounded="$lg">
+                <Text size="2xs" color="white" fontWeight="$bold">Today</Text>
+              </Box>
+            </Pressable>
+          </HStack>
+        </VStack>
       </Box>
 
       {/* Summary Banner */}
-      <Box bg="$white" px="$5" py="$4" borderBottomWidth={1} borderColor="$borderLight" mb="$2">
+      <Box bg="$white" px="$5" py="$3" borderBottomWidth={1} borderColor="$borderLight" mb="$2">
         <HStack justifyContent="space-between" alignItems="center">
           <VStack>
             <Text size="xs" color="$text500" fontWeight="$bold">TOTAL ITEMS SOLD</Text>
@@ -183,87 +232,37 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         </Center>
       ) : (
         <Box flex={1} bg="$white" mx="$1" rounded="$xl" overflow="hidden" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.05)' }) }}>
-          {/* Excel Header */}
-          <Box bg="$primary800" py="$2.5" px="$3">
-            <HStack space="xs" alignItems="center">
-              <Text flex={4.5} size="2xs" color="white" fontWeight="$bold">ITEM (ID)</Text>
-              <Text flex={1} size="2xs" color="white" fontWeight="$bold" textAlign="center">T</Text>
-              <Text flex={1} size="2xs" color="white" fontWeight="$bold" textAlign="center">QTY</Text>
-              <Text flex={2.5} size="2xs" color="white" fontWeight="$bold" textAlign="right">REVENUE</Text>
-              <Text flex={2} size="2xs" color="white" fontWeight="$bold" textAlign="right">STOCK</Text>
-            </HStack>
-          </Box>
-
-          <FlatList
-            data={reportData}
-            keyExtractor={(item) => item.productId + (item.isBulk ? '_blk' : '_unit')}
-            renderItem={({ item, index }) => (
-              <Box
-                bg={index % 2 === 0 ? "$white" : "$backgroundLight50"}
-                borderBottomWidth={1}
-                borderColor="$borderLight"
-              >
-                <HStack space="xs" alignItems="center" py="$2.5" px="$3">
-                  {/* Item Name & ID - Horizontal */}
-                  <HStack flex={4.5} space="xs" alignItems="center">
-                    <Text size="xs" color={item.productId === 'DEBT_PAYMENT' ? "$success700" : "$text900"} fontWeight="$bold" numberOfLines={1} style={{ flexShrink: 1 }}>
-                      {item.productName}
-                    </Text>
-                    <Text size="2xs" color="$text400" numberOfLines={1}>
-                      ({item.productId.slice(-4).toUpperCase()})
-                    </Text>
-                  </HStack>
-
-                  {/* Type Badge - Mini */}
-                  <Box flex={1} alignItems="center">
-                    <Badge action={item.productId === 'DEBT_PAYMENT' ? 'success' : (item.isBulk ? "warning" : "info")} variant="outline" size="sm" rounded="$sm">
-                      <BadgeText size="2xs" fontWeight="$bold">{item.productId === 'DEBT_PAYMENT' ? 'PMT' : (item.isBulk ? "B" : "U")}</BadgeText>
-                    </Badge>
-                  </Box>
-
-                  {/* Quantity Sold */}
-                  <Box flex={1} alignItems="center">
-                    <Text size="xs" fontWeight="$bold" color="$text800">
-                      {item.totalQuantitySold ?? 0}
-                    </Text>
-                  </Box>
-
-                  {/* Revenue */}
-                  <Box flex={2.5} alignItems="flex-end" pr="$1">
-                    {item.isOnCredit === 1 ? (
-                      <Badge action="error" variant="solid" size="sm" rounded="$sm">
-                        <BadgeText size="2xs" fontWeight="$bold">CREDIT</BadgeText>
-                      </Badge>
-                    ) : (
-                      <Text size="xs" fontWeight="$black" color="$primary700">
-                        {currency}{(item.totalRevenue || 0).toFixed(2)}
-                      </Text>
-                    )}
-                  </Box>
-
-                  {/* Remaining Stock */}
-                  <Box flex={2} alignItems="flex-end">
-                    <Text
-                      size="xs"
-                      fontWeight="$bold"
-                      color={item.productId === 'DEBT_PAYMENT' ? '$text400' : ((item.currentStock || 0) <= 5 ? "$error600" : "$success600")}
-                    >
-                      {item.productId === 'DEBT_PAYMENT' ? '-' : `${item.currentStock ?? 0}`}
-                    </Text>
-                  </Box>
+          {/* Scrollable Table View for Full Content Display */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{ flexGrow: 1 }}>
+            <VStack flex={1} minWidth={580}>
+              {/* Table Header */}
+              <Box bg="$primary800" py="$2.5" px="$3">
+                <HStack space="sm" alignItems="center">
+                  <Text w={180} size="2xs" color="white" fontWeight="$bold">ITEM (ID)</Text>
+                  <Text w={70} size="2xs" color="white" fontWeight="$bold" textAlign="center">TYPE</Text>
+                  <Text w={65} size="2xs" color="white" fontWeight="$bold" textAlign="center">QTY</Text>
+                  <Text w={135} size="2xs" color="white" fontWeight="$bold" textAlign="right" pr="$2">REVENUE</Text>
+                  <Text w={100} size="2xs" color="white" fontWeight="$bold" textAlign="right">STOCK</Text>
                 </HStack>
               </Box>
-            )}
-            contentContainerStyle={{ paddingBottom: 40 }}
-            ListEmptyComponent={
-              <Center mt="$20">
-                <VStack space="md" alignItems="center">
-                  <MaterialCommunityIcons name="chart-box-outline" size={64} color="#ccc" />
-                  <Text color="$text400">No sales recorded for this date.</Text>
-                </VStack>
-              </Center>
-            }
-          />
+
+              {/* Table Rows */}
+              <FlatList
+                data={reportData}
+                keyExtractor={(item) => item.productId + (item.isBulk ? '_blk' : '_unit')}
+                renderItem={renderItem}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                ListEmptyComponent={
+                  <Center mt="$20" py="$10">
+                    <VStack space="md" alignItems="center">
+                      <MaterialCommunityIcons name="chart-box-outline" size={56} color="#ccc" />
+                      <Text color="$text400">No sales recorded for this date ({selectedDate}).</Text>
+                    </VStack>
+                  </Center>
+                }
+              />
+            </VStack>
+          </ScrollView>
         </Box>
       )}
     </ScreenWrapper>

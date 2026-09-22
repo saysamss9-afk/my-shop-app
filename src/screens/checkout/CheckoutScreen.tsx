@@ -132,40 +132,42 @@ const CheckoutScreen = ({ route, navigation }: any) => {
       />
 
       {/* Scanner Native Modal */}
-      <RNModal
-        visible={isScannerVisible}
-        animationType="slide"
-        onRequestClose={() => setIsScannerVisible(false)}
-      >
-        <Box flex={1} bg="$black">
-            <ScannerView
-                isActive={isScannerVisible}
-                onScan={handleCameraScan}
-            />
-            <Box position="absolute" top={0} left={0} right={0} pt="$10">
-                <HStack p="$4" alignItems="center" space="md">
-                    <Pressable onPress={() => setIsScannerVisible(false)} p="$2">
-                        <Icon as={CloseIcon} color="white" size="xl" />
-                    </Pressable>
-                    <Heading color="white" size="md">Scan Item</Heading>
-                </HStack>
-            </Box>
-            <Box position="absolute" bottom={0} left={0} right={0} p="$6" bg="$white" borderTopLeftRadius="$3xl" borderTopRightRadius="$3xl">
-                <VStack space="md" alignItems="center">
-                    <HStack space="sm" alignItems="center">
-                        <Text fontWeight="$bold" color="$text600">Items in Cart:</Text>
-                        <Badge action="info" variant="solid" rounded="$full">
-                            <BadgeText>{cart.length}</BadgeText>
-                        </Badge>
-                    </HStack>
-                    <Heading size="xl" color="$primary800">Total: {currency}{total.toFixed(2)}</Heading>
-                    <Button size="lg" w="$full" onPress={() => setIsScannerVisible(false)} borderRadius="$xl" bg="$primary800" style={{ height: getButtonHeight(52) }}>
-                        <ButtonText fontWeight="$bold">Done Scanning</ButtonText>
-                    </Button>
-                </VStack>
-            </Box>
-        </Box>
-      </RNModal>
+      {isScannerVisible && (
+        <RNModal
+          visible={isScannerVisible}
+          animationType="slide"
+          onRequestClose={() => setIsScannerVisible(false)}
+        >
+          <Box flex={1} bg="$black">
+              <ScannerView
+                  isActive={isScannerVisible}
+                  onScan={handleCameraScan}
+              />
+              <Box position="absolute" top={0} left={0} right={0} pt="$10">
+                  <HStack p="$4" alignItems="center" space="md">
+                      <Pressable onPress={() => setIsScannerVisible(false)} p="$2">
+                          <Icon as={CloseIcon} color="white" size="xl" />
+                      </Pressable>
+                      <Heading color="white" size="md">Scan Item</Heading>
+                  </HStack>
+              </Box>
+              <Box position="absolute" bottom={0} left={0} right={0} p="$6" bg="$white" borderTopLeftRadius="$3xl" borderTopRightRadius="$3xl">
+                  <VStack space="md" alignItems="center">
+                      <HStack space="sm" alignItems="center">
+                          <Text fontWeight="$bold" color="$text600">Items in Cart:</Text>
+                          <Badge action="info" variant="solid" rounded="$full">
+                              <BadgeText>{cart.length}</BadgeText>
+                          </Badge>
+                      </HStack>
+                      <Heading size="xl" color="$primary800">Total: {currency}{total.toFixed(2)}</Heading>
+                      <Button size="lg" w="$full" onPress={() => setIsScannerVisible(false)} borderRadius="$xl" bg="$primary800" style={{ height: getButtonHeight(52) }}>
+                          <ButtonText fontWeight="$bold">Done Scanning</ButtonText>
+                      </Button>
+                  </VStack>
+              </Box>
+          </Box>
+        </RNModal>
+      )}
 
       {/* Action Section: Scan -> Customer -> Search */}
       <Box pb="$4" zIndex={10}>
