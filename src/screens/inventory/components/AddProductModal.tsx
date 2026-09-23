@@ -51,6 +51,7 @@ interface Props {
   onSave: (product: any) => void;
   onScanPress: (target: 'unit' | 'bulk') => void;
   generateBarcode: () => string;
+  scannedBarcode?: { code: string; target: 'unit' | 'bulk'; timestamp: number } | null;
 }
 
 const AddProductModal: React.FC<Props> = ({
@@ -61,6 +62,7 @@ const AddProductModal: React.FC<Props> = ({
   onSave,
   onScanPress,
   generateBarcode,
+  scannedBarcode,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -101,6 +103,18 @@ const AddProductModal: React.FC<Props> = ({
       setHasBulkOption(entryMode === 'BULK');
     }
   }, [isOpen, entryMode]);
+
+  // Capture scanned barcode from Camera Scanner Modal
+  useEffect(() => {
+    if (scannedBarcode?.code && isOpen) {
+      if (scannedBarcode.target === 'unit') {
+        setFormData(prev => ({ ...prev, barcode: scannedBarcode.code }));
+      } else if (scannedBarcode.target === 'bulk') {
+        setFormData(prev => ({ ...prev, bulkBarcode: scannedBarcode.code }));
+        setHasBulkOption(true);
+      }
+    }
+  }, [scannedBarcode, isOpen]);
 
   const insets = useSafeAreaInsets();
 

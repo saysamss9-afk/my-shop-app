@@ -23,10 +23,14 @@ export const useDailyReport = (shopId: string) => {
         setCurrency(shopResults[0].rows.item(0).currency || '$');
       }
 
-      // Parse selectedDate (YYYY-MM-DD) to start and end of day timestamps
-      const date = new Date(selectedDate);
-      const startOfDay = new Date(date.setHours(0, 0, 0, 0)).getTime();
-      const endOfDay = new Date(date.setHours(23, 59, 59, 999)).getTime();
+      // Parse selectedDate (YYYY-MM-DD) to start and end of day in local system time
+      const parts = selectedDate.split('-').map(Number);
+      const year = parts[0] || new Date().getFullYear();
+      const month = (parts[1] || 1) - 1;
+      const day = parts[2] || 1;
+
+      const startOfDay = new Date(year, month, day, 0, 0, 0, 0).getTime();
+      const endOfDay = new Date(year, month, day, 23, 59, 59, 999).getTime();
 
       const data = await analyticsRepo.getDailyItemSales(safeShopId, startOfDay, endOfDay);
       setReportData(data);

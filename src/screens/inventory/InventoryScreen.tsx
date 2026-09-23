@@ -41,6 +41,8 @@ import ProductHeader from './components/InventoryHeader';
 import ProductSearch from './components/InventorySearch';
 import { PrintingService } from '../../services/PrintingService';
 
+import { useFocusEffect } from '@react-navigation/native';
+
 const InventoryScreen = ({ route, navigation }: any) => {
   const { shopId, userRole } = route.params;
   const { isTablet, isLandscape } = useResponsive();
@@ -58,7 +60,15 @@ const InventoryScreen = ({ route, navigation }: any) => {
     toggleLowStockFilter,
     generateBarcode,
     triggerManualSync,
+    refreshInventory,
   } = useInventory(shopId);
+
+  // Reload inventory data whenever screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshInventory();
+    }, [refreshInventory])
+  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -68,6 +78,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING'>('ALL');
   const [scanTarget, setScanTarget] = useState<'unit' | 'bulk' | null>(null);
+  const [scannedBarcode, setScannedBarcode] = useState<{ code: string; target: 'unit' | 'bulk'; timestamp: number } | null>(null);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
   const numColumns = isTablet ? (isLandscape ? 3 : 2) : 1;
@@ -105,21 +116,22 @@ const InventoryScreen = ({ route, navigation }: any) => {
       status: 'ACTIVE',
     });
     setIsModalOpen(false);
+    setScannedBarcode(null);
     displayAlert("Success", `${productData.name} has been added to your products.`);
   };
 
   const handleUpdate = async (updatedProduct: Product) => {
       await updateProduct(updatedProduct);
       setIsEditModalOpen(false);
+      setScannedBarcode(null);
       displayAlert("Updated", `${updatedProduct.name} details have been saved.`);
   };
 
   const handleBarCodeScanned = (code: string) => {
-    console.log("Scanned barcode:", code);
-    if (scanTarget === 'unit') {
-      displayAlert("Barcode Scanned", `Unit Barcode matched: ${code}`);
-    } else if (scanTarget === 'bulk') {
-      displayAlert("Barcode Scanned", `Bulk Barcode matched: ${code}`);
+    console.log("Scanned barcode:", code, "target:", scanTarget);
+    if (scanTarget === 'unit' || scanTarget === 'bulk') {
+      setScannedBarcode({ code, target: scanTarget, timestamp: Date.now() });
+      displayAlert("Barcode Captured", `${scanTarget === 'unit' ? 'Unit' : 'Bulk'} Barcode captured: ${code}`);
     }
     setScanTarget(null);
   };
@@ -333,6 +345,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onSave={handleSave}
         onScanPress={setScanTarget}
         generateBarcode={generateBarcode}
+        scannedBarcode={scannedBarcode}
       />
 
       <EditProductModal
@@ -344,9 +357,11 @@ const InventoryScreen = ({ route, navigation }: any) => {
         product={selectedProduct}
         categories={categories}
         onSave={handleUpdate}
+        onDelete={handleDelete}
         onScanPress={setScanTarget}
         generateBarcode={generateBarcode}
         canEdit={userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'ADMIN'}
+        scannedBarcode={scannedBarcode}
       />
 
       {/* Camera Scanner Modal */}

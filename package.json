@@ -142,9 +142,14 @@
   "engines": {
     "node": ">=18"
   },
+  "description": "My Shop Management System",
+  "author": "SaysManage",
   "build": {
     "appId": "com.abijahshops.myshop",
     "productName": "My Shop",
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
     "directories": {
       "output": "dist_electron"
     },

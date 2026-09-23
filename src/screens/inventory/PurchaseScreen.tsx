@@ -33,7 +33,7 @@ import {
   ChevronDownIcon,
   TrashIcon,
 } from '@gluestack-ui/themed';
-import { ShoppingCart, FileText, Calendar, PlusCircle } from 'lucide-react-native';
+import { ShoppingCart, FileText, Calendar, PlusCircle, ArrowLeft } from 'lucide-react-native';
 import { usePurchase } from '../../hooks/usePurchase';
 import type { PurchaseItem } from '../../hooks/usePurchase';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
@@ -91,8 +91,8 @@ const PurchaseScreen = ({ route, navigation }: any) => {
       {/* Header */}
       <Box px="$4" pt="$2" pb="$4">
         <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
-            <Icon as={ArrowLeftIcon} color="$text900" />
+          <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' })}>
+            <ArrowLeft size={22} color="#111827" />
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">New Purchase</Heading>

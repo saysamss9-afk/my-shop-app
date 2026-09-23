@@ -176,26 +176,30 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Product Valuation (Snapshot)</Heading>
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
-                <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="xs">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
+                  <VStack flex={1} mr="$2" space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={Package} color="$primary600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Total Stock Cost Value</Text>
                     </HStack>
                     <Text size="xs" color="$text400">Capital locked in current products</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$text900">{currency}{(snapshot?.totalStockCostValue || 0).toFixed(2)}</Text>
+                  <Text size="md" fontWeight="$bold" color="$text900" textAlign="right" flexShrink={0}>
+                    {currency}{(snapshot?.totalStockCostValue || 0).toFixed(2)}
+                  </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="xs">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
+                  <VStack flex={1} mr="$2" space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={TrendingUp} color="$success600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Total Expected Sales Value</Text>
                     </HStack>
                     <Text size="xs" color="$text400">Revenue if all stock is sold at current price</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$success700">{currency}{(snapshot?.totalStockSellingValue || 0).toFixed(2)}</Text>
+                  <Text size="md" fontWeight="$bold" color="$success700" textAlign="right" flexShrink={0}>
+                    {currency}{(snapshot?.totalStockSellingValue || 0).toFixed(2)}
+                  </Text>
                 </HStack>
                 <Divider />
 
@@ -203,25 +207,25 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                 <HStack p="$4" bg="$backgroundLight50" space="md">
                   <VStack flex={1} space="xs">
                     <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Unit Items Only</Text>
-                    <HStack justifyContent="space-between">
+                    <HStack justifyContent="space-between" alignItems="center">
                       <Text size="xs" color="$text600">Cost:</Text>
-                      <Text size="xs" fontWeight="$bold">{currency}{(snapshot?.unitStockCostValue || 0).toFixed(2)}</Text>
+                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.unitStockCostValue || 0).toFixed(2)}</Text>
                     </HStack>
-                    <HStack justifyContent="space-between">
+                    <HStack justifyContent="space-between" alignItems="center">
                       <Text size="xs" color="$text600">Expected:</Text>
-                      <Text size="xs" fontWeight="$bold">{currency}{(snapshot?.unitStockSellingValue || 0).toFixed(2)}</Text>
+                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.unitStockSellingValue || 0).toFixed(2)}</Text>
                     </HStack>
                   </VStack>
                   <Box w={1} bg="$borderLight" />
                   <VStack flex={1} space="xs">
                     <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Bulk Items Only</Text>
-                    <HStack justifyContent="space-between">
+                    <HStack justifyContent="space-between" alignItems="center">
                       <Text size="xs" color="$text600">Cost:</Text>
-                      <Text size="xs" fontWeight="$bold">{currency}{(snapshot?.bulkStockCostValue || 0).toFixed(2)}</Text>
+                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.bulkStockCostValue || 0).toFixed(2)}</Text>
                     </HStack>
-                    <HStack justifyContent="space-between">
+                    <HStack justifyContent="space-between" alignItems="center">
                       <Text size="xs" color="$text600">Expected:</Text>
-                      <Text size="xs" fontWeight="$bold">{currency}{(snapshot?.bulkStockSellingValue || 0).toFixed(2)}</Text>
+                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.bulkStockSellingValue || 0).toFixed(2)}</Text>
                     </HStack>
                   </VStack>
                 </HStack>
@@ -234,26 +238,30 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Financial Liabilities & Receivables</Heading>
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
-                <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="xs">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
+                  <VStack flex={1} mr="$2" space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={Wallet} color="$error600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Owed to Suppliers</Text>
                     </HStack>
                     <Text size="xs" color="$text400">Total accounts payable</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$error700">{currency}{(snapshot?.totalSupplierDebt || 0).toFixed(2)}</Text>
+                  <Text size="md" fontWeight="$bold" color="$error700" textAlign="right" flexShrink={0}>
+                    {currency}{(snapshot?.totalSupplierDebt || 0).toFixed(2)}
+                  </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="xs">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
+                  <VStack flex={1} mr="$2" space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={Users} color="$info600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Owed by Customers</Text>
                     </HStack>
                     <Text size="xs" color="$text400">Total accounts receivable</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$info700">{currency}{(snapshot?.totalCustomerDebt || 0).toFixed(2)}</Text>
+                  <Text size="md" fontWeight="$bold" color="$info700" textAlign="right" flexShrink={0}>
+                    {currency}{(snapshot?.totalCustomerDebt || 0).toFixed(2)}
+                  </Text>
                 </HStack>
               </VStack>
             </Box>
@@ -264,28 +272,32 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Monthly Summary Breakdown</Heading>
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
-                <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="xs">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
+                  <VStack flex={1} mr="$2" space="xs">
                     <Text size="sm" fontWeight="$bold" color="$text900">Accumulated Sales</Text>
                     <Text size="xs" color="$text400">Total cash/credit turnover this month</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$text900">{currency}{totalRevenue.toFixed(2)}</Text>
+                  <Text size="md" fontWeight="$bold" color="$text900" textAlign="right" flexShrink={0}>
+                    {currency}{totalRevenue.toFixed(2)}
+                  </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" justifyContent="space-between" alignItems="center">
-                  <VStack space="xs">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
+                  <VStack flex={1} mr="$2" space="xs">
                     <HStack space="xs" alignItems="center">
                       <Icon as={TrendingDown} color="$error600" size="sm" />
                       <Text size="sm" fontWeight="$bold" color="$text900">Total Expenditure</Text>
                     </HStack>
                     <Text size="xs" color="$text400">Operating costs & overheads this month</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$error700">-{currency}{totalExpenses.toFixed(2)}</Text>
+                  <Text size="md" fontWeight="$bold" color="$error700" textAlign="right" flexShrink={0}>
+                    -{currency}{totalExpenses.toFixed(2)}
+                  </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" bg="$backgroundLight50" justifyContent="space-between" alignItems="center">
-                  <Text size="sm" fontWeight="$black" color="$text900">Monthly Net Result</Text>
-                  <Text size="md" fontWeight="$black" color={isPositive ? '$success700' : '$error700'}>
+                <HStack p="$4" bg="$backgroundLight50" justifyContent="space-between" alignItems="center" space="sm">
+                  <Text size="sm" fontWeight="$black" color="$text900" flex={1} mr="$2">Monthly Net Result</Text>
+                  <Text size="md" fontWeight="$black" color={isPositive ? '$success700' : '$error700'} textAlign="right" flexShrink={0}>
                     {isPositive ? '+' : '-'}{currency}{Math.abs(netPerformance).toFixed(2)}
                   </Text>
                 </HStack>

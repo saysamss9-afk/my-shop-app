@@ -344,8 +344,8 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   ), []);
 
   return (
-    <ScreenWrapper withHeader backgroundColor="#FFF3E0">
-      <StatusBar barStyle="light-content" backgroundColor="#BF360C" />
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <AdminHeader
         viewMode={viewMode}

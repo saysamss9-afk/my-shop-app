@@ -125,14 +125,30 @@ export class SaleRepository {
 
   async upsertRemoteSale(sale: any, items: any[]) {
     await this.db.transaction(async (tx: any) => {
+      const safeShopId = (sale.shopId || '').toString().trim();
+
+      // Ensure timestamp is a valid numeric millisecond value
+      let timestamp = Number(sale.timestamp);
+      if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+        if (sale.timestamp?.toMillis) {
+          timestamp = sale.timestamp.toMillis();
+        } else if (sale.timestamp?.seconds) {
+          timestamp = sale.timestamp.seconds * 1000;
+        } else if (sale.lastUpdated) {
+          timestamp = Number(sale.lastUpdated);
+        } else {
+          timestamp = Date.now();
+        }
+      }
+
       // 1. Insert or Replace the Sale record
       const saleQuery = `
         INSERT OR REPLACE INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
       `;
       const saleParams = [
-        sale.id, sale.shopId, sale.employeeId, sale.customerId || null, sale.timestamp,
-        sale.totalAmount, sale.paymentMethod || 'CASH', sale.paymentStatus || 'PAID',
+        sale.id, safeShopId, sale.employeeId || null, sale.customerId || null, timestamp,
+        Number(sale.totalAmount || 0), sale.paymentMethod || 'CASH', sale.paymentStatus || 'PAID',
         sale.dueDate || null, sale.isReverted ? 1 : 0
       ];
       await tx.executeSql(saleQuery, saleParams);

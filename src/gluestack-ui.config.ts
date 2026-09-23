@@ -23,9 +23,9 @@ export const config = createConfig({
       secondary500: '#000000', // Black Accent
       secondary600: '#222222',
       // Surface & shadow tokens
-      surfaceLavender: '#F3F4F6', // Dimmer, neutral soft background for better contrast
-      surfaceGradientStart: '#F3F4F6',
-      surfaceGradientEnd: '#E5E7EB',
+      surfaceLavender: '#F2EFE9', // Eye-friendly warm soft sand neutral background for day & night legibility
+      surfaceGradientStart: '#F2EFE9',
+      surfaceGradientEnd: '#E8E5DF',
       cardBg: '#FFFFFF',
       shadowSoft: 'rgba(0, 0, 0, 0.15)',
     },

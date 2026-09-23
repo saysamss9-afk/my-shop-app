@@ -90,12 +90,13 @@ export const useSuppliers = (shopId: string) => {
 
   const recordPayment = useCallback(async (supplierId: string, amount: number, paymentMethod: string, reference?: string, note?: string) => {
     try {
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
       const db = await getDBConnection();
       const repo = new SupplierRepository(db);
       const payment: Omit<SupplierPayment, 'syncStatus'> = {
         id: generateUUID(),
         supplierId,
-        shopId,
+        shopId: safeShopId,
         amount,
         paymentMethod,
         reference: reference || null,
@@ -104,6 +105,7 @@ export const useSuppliers = (shopId: string) => {
       };
       await repo.recordPayment(payment);
       await loadData();
+      triggerSync(safeShopId);
     } catch (e: any) {
       setError(e.message);
     }

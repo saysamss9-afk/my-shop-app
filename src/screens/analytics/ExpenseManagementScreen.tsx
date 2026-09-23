@@ -80,10 +80,14 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
     }
   };
 
-  // Filter expenses by selected month and year
+  // Filter expenses by selected month and year with safe timestamp conversion
   const filteredExpenses = expenses.filter(item => {
-    const d = new Date(item.timestamp);
-    return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
+    const ts = Number(item.timestamp);
+    if (isNaN(ts) || !ts) return false;
+    const d = new Date(ts);
+    return !isNaN(d.getTime()) &&
+           d.getMonth() === currentDate.getMonth() &&
+           d.getFullYear() === currentDate.getFullYear();
   });
 
   const totalSpent = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);

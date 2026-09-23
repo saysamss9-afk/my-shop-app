@@ -37,11 +37,16 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
     loadAnalytics
   } = useAnalytics(shopId);
 
-  const handleRefresh = () => {
-    const now = Date.now();
-    const startOfDay = new Date().setHours(0, 0, 0, 0);
-    loadAnalytics(startOfDay, now);
-  };
+  const handleRefresh = React.useCallback(() => {
+    const d = new Date();
+    const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0).getTime();
+    const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+    loadAnalytics(startOfMonth, endOfMonth);
+  }, [loadAnalytics]);
+
+  React.useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   const handleExport = async () => {
     const html = `

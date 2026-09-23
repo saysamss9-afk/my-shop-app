@@ -34,8 +34,9 @@ import {
   ChevronDownIcon,
   Box,
   Pressable,
+  ButtonIcon,
 } from '@gluestack-ui/themed';
-import { Camera, Scan, Package, LockIcon, Zap } from 'lucide-react-native';
+import { Camera, Scan, Package, LockIcon, Zap, Trash2 } from 'lucide-react-native';
 import { getButtonHeight } from '../../../utils/platformStyles';
 import { displayAlert } from '../../../utils/alert';
 import type { Product } from '../../../db/types';
@@ -49,9 +50,11 @@ interface Props {
   product: Product | null;
   categories: any[];
   onSave: (product: Product) => void;
+  onDelete?: (product: Product) => void;
   onScanPress: (target: 'unit' | 'bulk') => void;
   generateBarcode: () => string;
   canEdit?: boolean;
+  scannedBarcode?: { code: string; target: 'unit' | 'bulk'; timestamp: number } | null;
 }
 
 const EditProductModal: React.FC<Props> = ({
@@ -60,9 +63,11 @@ const EditProductModal: React.FC<Props> = ({
   product,
   categories,
   onSave,
+  onDelete,
   onScanPress,
   generateBarcode,
   canEdit = true,
+  scannedBarcode,
 }) => {
   const [formData, setFormData] = useState<any>(null);
   const [hasBulkOption, setHasBulkOption] = useState(false);
@@ -90,9 +95,40 @@ const EditProductModal: React.FC<Props> = ({
     }
   }, [isOpen, product]);
 
+  // Capture scanned barcode from Camera Scanner Modal
+  useEffect(() => {
+    if (scannedBarcode?.code && isOpen) {
+      if (scannedBarcode.target === 'unit') {
+        setFormData((prev: any) => (prev ? { ...prev, barcode: scannedBarcode.code } : prev));
+      } else if (scannedBarcode.target === 'bulk') {
+        setFormData((prev: any) => (prev ? { ...prev, bulkBarcode: scannedBarcode.code } : prev));
+        setHasBulkOption(true);
+      }
+    }
+  }, [scannedBarcode, isOpen]);
+
   const insets = useSafeAreaInsets();
 
   if (!formData) return null;
+
+  const handleDeletePress = () => {
+    if (!product || !onDelete) return;
+    displayAlert(
+      "Delete Product",
+      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            onDelete(product);
+            onClose();
+          }
+        }
+      ]
+    );
+  };
 
   const handleLocalSave = () => {
     if (!canEdit) return;
@@ -413,7 +449,20 @@ const EditProductModal: React.FC<Props> = ({
           </KeyboardAvoidingView>
         </ModalBody>
         <ModalFooter style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-          <Button variant="outline" action="secondary" onPress={onClose} mr="$3" borderRadius={16}>
+          {canEdit && onDelete && (
+            <Button
+              variant="outline"
+              action="negative"
+              onPress={handleDeletePress}
+              borderRadius={16}
+              mr="auto"
+              borderColor="$error300"
+            >
+              <ButtonIcon as={Trash2} color="$error600" mr="$1.5" />
+              <ButtonText color="$error600" fontWeight="$bold">Delete</ButtonText>
+            </Button>
+          )}
+          <Button variant="outline" action="secondary" onPress={onClose} mr="$2" borderRadius={16}>
             <ButtonText>{canEdit ? 'Cancel' : 'Close'}</ButtonText>
           </Button>
           {canEdit && (

@@ -93,21 +93,37 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
     await PrintingService.printSalesSummary(shopInfo, salesWithItems, currency);
   };
 
-  const filteredSales = sales.filter((sale: any) => {
-    const query = searchQuery.trim().toLowerCase();
-    const matchesSearch = !query ? true : (
-      sale.id.toLowerCase().includes(query) ||
-      (sale.customerName && sale.customerName.toLowerCase().includes(query)) ||
-      new Date(sale.timestamp).toLocaleDateString().toLowerCase().includes(query)
-    );
+  const monthSales = React.useMemo(() => {
+    return sales.filter((sale: any) => {
+      const ts = Number(sale.timestamp);
+      if (isNaN(ts) || ts <= 0) return false;
+      const d = new Date(ts);
+      return !isNaN(d.getTime()) &&
+             d.getFullYear() === currentDate.getFullYear() &&
+             d.getMonth() === currentDate.getMonth();
+    });
+  }, [sales, currentDate]);
 
-    if (!selectedDateFilter) return matchesSearch;
-    const date = new Date(sale.timestamp);
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}` === selectedDateFilter && matchesSearch;
-  });
+  const filteredSales = React.useMemo(() => {
+    return monthSales.filter((sale: any) => {
+      const query = searchQuery.trim().toLowerCase();
+      const ts = Number(sale.timestamp);
+      const dateStr = !isNaN(ts) ? new Date(ts).toLocaleDateString().toLowerCase() : '';
+
+      const matchesSearch = !query ? true : (
+        (sale.id && sale.id.toLowerCase().includes(query)) ||
+        (sale.customerName && sale.customerName.toLowerCase().includes(query)) ||
+        dateStr.includes(query)
+      );
+
+      if (!selectedDateFilter) return matchesSearch;
+      const date = new Date(ts);
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}` === selectedDateFilter && matchesSearch;
+    });
+  }, [monthSales, searchQuery, selectedDateFilter]);
 
   const monthLabel = currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
@@ -115,7 +131,8 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
     const groups: { [key: string]: any[] } = {};
 
     filteredSales.forEach(sale => {
-      const d = new Date(sale.timestamp);
+      const ts = Number(sale.timestamp);
+      const d = new Date(ts);
       const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!groups[dateKey]) {
         groups[dateKey] = [];

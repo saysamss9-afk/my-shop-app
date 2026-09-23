@@ -47,3 +47,7 @@ local.properties
 # Custom
 .gradle_home/
 .artifacts/
+
+# Desktop & Web Build Outputs (Build Electron Locally)
+dist/
+dist_electron/

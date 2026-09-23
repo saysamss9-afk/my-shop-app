@@ -23,14 +23,15 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   const { width } = useWindowDimensions();
   const horizontalPadding = getResponsivePadding(width, 24);
 
+  const bg = backgroundColor || '#F2EFE9';
+
   const content = (
     <Box
       flex={1}
       pt={withHeader ? 0 : insets.top}
       pb={insets.bottom}
-      bg={backgroundColor ? undefined : "$surfaceLavender"}
       style={{
-        backgroundColor: backgroundColor || '#E5E7EB',
+        backgroundColor: bg,
       } as any}
     >
       <StatusBar
@@ -52,7 +53,7 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         nestedScrollEnabled
-        contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
+        contentContainerStyle={[{ flexGrow: 1, backgroundColor: bg }, contentContainerStyle]}
       >
         {content}
       </ScrollView>

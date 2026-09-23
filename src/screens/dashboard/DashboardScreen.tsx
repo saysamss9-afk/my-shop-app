@@ -179,8 +179,8 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   ], [shopId, employeeId, userRole, shopPlan, navigation]);
 
   return (
-    <ScreenWrapper withHeader scrollable backgroundColor="#FFF3E0">
-      <StatusBar barStyle="dark-content" backgroundColor="#FFF3E0" />
+    <ScreenWrapper withHeader scrollable>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <DashboardHeader
         userRole={userRole}
@@ -241,7 +241,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Upgrade Subscription Plans Modal */}
       <Modal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)}>
         <ModalBackdrop />
-        <ModalContent rounded="$3xl" p="$5">
+        <ModalContent rounded="$3xl" p="$5" w="$full" maxHeight="90%">
           <ModalHeader>
             <Heading size="lg">Change Subscription Plan</Heading>
             <ModalCloseButton>
@@ -287,12 +287,12 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
                     borderColor="$borderLight"
                     bg="$backgroundLight50"
                   >
-                    <HStack justifyContent="space-between" alignItems="center">
-                      <VStack>
+                    <HStack justifyContent="space-between" alignItems="center" space="sm">
+                      <VStack flex={1} mr="$2">
                         <Text fontWeight="$bold" color="$text900">{planOption}</Text>
                         <Text size="xs" color="$text500">Submit adjustment notification</Text>
                       </VStack>
-                      <Button size="xs" variant="outline" action="primary" pointerEvents="none">
+                      <Button size="xs" variant="outline" action="primary" pointerEvents="none" flexShrink={0}>
                         <ButtonText>Request</ButtonText>
                       </Button>
                     </HStack>

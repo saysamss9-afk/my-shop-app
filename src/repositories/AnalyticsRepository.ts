@@ -136,7 +136,7 @@ export class AnalyticsRepository {
       FROM SaleItem si
       JOIN Sale s ON si.saleId = s.id
       JOIN Product p ON si.productId = p.id
-      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0 AND s.paymentStatus != 'DEBT'
+      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0
       GROUP BY p.id
       ORDER BY totalQuantity DESC
       LIMIT ?
@@ -155,7 +155,7 @@ export class AnalyticsRepository {
       SELECT e.name as employeeName, COUNT(s.id) as saleCount, TOTAL(s.totalAmount) as totalRevenue
       FROM Sale s
       JOIN Employee e ON s.employeeId = e.id
-      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0 AND s.paymentStatus != 'DEBT'
+      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0
       GROUP BY e.id
     `;
     const results = await this.db.executeSql(query, [safeShopId, safeShopId, start, end]);
@@ -167,6 +167,7 @@ export class AnalyticsRepository {
   }
 
   async getDailyItemSales(shopId: string, start: number, end: number): Promise<DailyItemSale[]> {
+    const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
     const query = `
       SELECT
         p.id as productId,
@@ -188,7 +189,7 @@ export class AnalyticsRepository {
       FROM SaleItem si
       JOIN Sale s ON si.saleId = s.id
       JOIN Product p ON si.productId = p.id
-      WHERE s.shopId = ? AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0
+      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0
       GROUP BY p.id, p.name, 3 -- Group by the calculated isBulk column
 
       UNION ALL
@@ -204,12 +205,12 @@ export class AnalyticsRepository {
         0 as isOnCredit
       FROM DebtPayment dp
       JOIN Customer c ON dp.customerId = c.id
-      WHERE dp.shopId = ? AND dp.timestamp BETWEEN ? AND ?
+      WHERE (dp.shopId = ? OR TRIM(dp.shopId) = ?) AND dp.timestamp BETWEEN ? AND ?
       GROUP BY dp.customerId
 
       ORDER BY totalRevenue DESC
     `;
-    const results = await this.db.executeSql(query, [shopId, start, end, shopId, start, end]);
+    const results = await this.db.executeSql(query, [safeShopId, safeShopId, start, end, safeShopId, safeShopId]);
     const items: any[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       items.push(results[0].rows.item(i));

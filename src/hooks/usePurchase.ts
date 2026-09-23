@@ -120,6 +120,7 @@ export const usePurchase = (shopId: string) => {
       await repo.createPurchase(order, items);
       setPurchaseCart([]);
       await loadData(); // Refresh history
+      triggerSync(shopId);
       return true;
     } catch (e: any) {
       setError(e.message);

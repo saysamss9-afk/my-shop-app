@@ -147,6 +147,7 @@ export class SyncManager {
       await this.safeSync('PullProducts', () => this.pullProducts(shopId, effectiveLastSynced));
       await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced));
       await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced));
+      await this.safeSync('PullSupplierPayments', () => this.pullSupplierPayments(shopId, effectiveLastSynced));
       await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced));
       await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced));
       if (isManager) {
@@ -289,6 +290,38 @@ export class SyncManager {
     }
   }
 
+  private async pullSupplierPayments(shopId: string, lastSyncedTime: number) {
+    try {
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('supplier_payments');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        let timestamp = Number(data.timestamp);
+        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+          if (data.timestamp?.toMillis) {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp?.seconds) {
+            timestamp = data.timestamp.seconds * 1000;
+          } else {
+            timestamp = Date.now();
+          }
+        }
+
+        await this.productRepo.db.executeSql(
+          'INSERT OR REPLACE INTO SupplierPayment(id, supplierId, shopId, amount, paymentMethod, reference, timestamp, note, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)',
+          [data.id, data.supplierId, safeShopId, Number(data.amount || 0), data.paymentMethod || 'CASH', data.reference || null, timestamp, data.note || null]
+        );
+      }
+    } catch (e) {
+      console.error('Pull Supplier Payments Error:', e);
+    }
+  }
+
   private async pullCustomers(shopId: string, lastSyncedTime: number) {
     try {
       let queryRef: any = firestore().collection('shops').doc(shopId).collection('customers');
@@ -346,7 +379,17 @@ export class SyncManager {
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        await this.saleRepo.upsertRemoteSale(data, data.items || []);
+        let timestamp = Number(data.timestamp);
+        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+          if (data.timestamp?.toMillis) {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp?.seconds) {
+            timestamp = data.timestamp.seconds * 1000;
+          } else {
+            timestamp = Date.now();
+          }
+        }
+        await this.saleRepo.upsertRemoteSale({ ...data, timestamp }, data.items || []);
       }
     } catch (e) {
       console.error('Pull Sales Error:', e);
@@ -355,7 +398,8 @@ export class SyncManager {
 
   private async pullExpenses(shopId: string, lastSyncedTime: number) {
     try {
-      let queryRef: any = firestore().collection('shops').doc(shopId).collection('expenses');
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('expenses');
       if (lastSyncedTime > 0) {
         queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
       }
@@ -363,9 +407,20 @@ export class SyncManager {
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
+        let timestamp = Number(data.timestamp);
+        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+          if (data.timestamp?.toMillis) {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp?.seconds) {
+            timestamp = data.timestamp.seconds * 1000;
+          } else {
+            timestamp = Date.now();
+          }
+        }
+
         await this.productRepo.db.executeSql(
           'INSERT OR REPLACE INTO Expense(id, shopId, category, amount, description, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
-          [data.id, data.shopId, data.category, data.amount, data.description || null, data.timestamp]
+          [data.id, safeShopId, data.category || 'Other Spendings', Number(data.amount || 0), data.description || null, timestamp]
         );
       }
     } catch (e) {
