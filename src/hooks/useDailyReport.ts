@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { getDBConnection } from '../db/database';
 import { AnalyticsRepository } from '../repositories/AnalyticsRepository';
 import type { DailyItemSale } from '../repositories/AnalyticsRepository';
+import { useSync } from '../sync/SyncContext';
 
 export const useDailyReport = (shopId: string) => {
+  const { dataChangeTick, syncStatus, triggerSync } = useSync();
   const [reportData, setReportData] = useState<DailyItemSale[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +21,9 @@ export const useDailyReport = (shopId: string) => {
 
       // Fetch shop currency
       const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [safeShopId]);
-      if (shopResults[0].rows.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '$');
+      if (shopResults[0]?.rows?.length > 0) {
+        const item = shopResults[0].rows.item ? shopResults[0].rows.item(0) : shopResults[0].rows[0];
+        setCurrency(item?.currency || '$');
       }
 
       // Parse selectedDate (YYYY-MM-DD) to start and end of day in local system time
@@ -41,11 +44,19 @@ export const useDailyReport = (shopId: string) => {
     }
   }, [shopId]);
 
+  const triggerManualSync = useCallback(() => {
+    const safeShopId = typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id : shopId;
+    triggerSync(safeShopId, true);
+  }, [shopId, triggerSync]);
+
   return {
     reportData,
     currency,
     isLoading,
+    syncStatus,
+    dataChangeTick,
     error,
     loadReport,
+    triggerManualSync,
   };
 };

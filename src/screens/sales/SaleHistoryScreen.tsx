@@ -16,7 +16,7 @@ import {
   InputField,
   InputSlot,
 } from '@gluestack-ui/themed';
-import { RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native';
+import { RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Calendar, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSales } from '../../hooks/useSales';
 import type { Sale } from '../../db/types';
@@ -25,6 +25,7 @@ import { getAppShadow, isWeb } from '../../utils/platformStyles';
 import { displayAlert } from '../../utils/alert';
 import { SyncStatus } from '../../sync/SyncManager';
 import { PrintingService } from '../../services/PrintingService';
+import { parseTimestamp } from '../../utils/dateUtils';
 
 // Sub-components
 import SaleHistoryItem from './components/SaleHistoryItem';
@@ -95,8 +96,8 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
 
   const monthSales = React.useMemo(() => {
     return sales.filter((sale: any) => {
-      const ts = Number(sale.timestamp);
-      if (isNaN(ts) || ts <= 0) return false;
+      const ts = parseTimestamp(sale.timestamp, 0);
+      if (ts <= 0) return false;
       const d = new Date(ts);
       return !isNaN(d.getTime()) &&
              d.getFullYear() === currentDate.getFullYear() &&
@@ -107,8 +108,8 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   const filteredSales = React.useMemo(() => {
     return monthSales.filter((sale: any) => {
       const query = searchQuery.trim().toLowerCase();
-      const ts = Number(sale.timestamp);
-      const dateStr = !isNaN(ts) ? new Date(ts).toLocaleDateString().toLowerCase() : '';
+      const ts = parseTimestamp(sale.timestamp, 0);
+      const dateStr = ts > 0 ? new Date(ts).toLocaleDateString().toLowerCase() : '';
 
       const matchesSearch = !query ? true : (
         (sale.id && sale.id.toLowerCase().includes(query)) ||
@@ -219,8 +220,8 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
       <Box pt={Math.max(insets.top, 10)} pb="$2" px="$4">
         <HStack justifyContent="space-between" alignItems="center">
           <HStack space="md" alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
-              <Icon as={ArrowLeftIcon} color="$text900" />
+            <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <ArrowLeft size={22} color="#111827" />
             </Pressable>
             <VStack>
               <Heading size="lg" color="$text900" fontWeight="$black">Sales History</Heading>

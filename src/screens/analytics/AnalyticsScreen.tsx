@@ -34,15 +34,13 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
     cashierPerformance,
     currency,
     isLoading,
-    loadAnalytics
+    loadAnalytics,
+    refresh
   } = useAnalytics(shopId);
 
   const handleRefresh = React.useCallback(() => {
-    const d = new Date();
-    const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0).getTime();
-    const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
-    loadAnalytics(startOfMonth, endOfMonth);
-  }, [loadAnalytics]);
+    refresh();
+  }, [refresh]);
 
   React.useEffect(() => {
     handleRefresh();

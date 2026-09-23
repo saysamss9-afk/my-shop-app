@@ -8,6 +8,7 @@ import { CustomerRepository } from '../repositories/CustomerRepository';
 import { PurchaseRepository } from '../repositories/PurchaseRepository';
 import { SystemRepository } from '../repositories/SystemRepository';
 import { generateUUID } from '../utils/uuid';
+import { parseTimestamp } from '../utils/dateUtils';
 
 export enum SyncStatus {
   Idle,
@@ -153,7 +154,7 @@ export class SyncManager {
       await this.safeSync('PullPurchaseReturns', () => this.pullPurchaseReturns(shopId, effectiveLastSynced));
       await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced));
       await this.safeSync('PullPayments', () => this.pullPayments(shopId, effectiveLastSynced));
-      await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced));
+      await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced, force));
       await this.safeSync('PullAdjustments', () => this.pullAdjustments(shopId, effectiveLastSynced));
       if (isManager) {
         await this.safeSync('PullExpenses', () => this.pullExpenses(shopId, effectiveLastSynced));
@@ -594,20 +595,23 @@ export class SyncManager {
     }
   }
 
-  private async pullSales(shopId: string, lastSyncedTime: number) {
+  private async pullSales(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
       if (!safeShopId) return;
 
-      let effectiveLastSynced = lastSyncedTime;
-      const countRes = await this.saleRepo.db.executeSql(
-        'SELECT COUNT(*) as count FROM Sale WHERE TRIM(shopId) = TRIM(?) AND isReverted = 0',
-        [safeShopId]
-      );
-      const count = countRes[0]?.rows?.item ? countRes[0].rows.item(0)?.count : countRes[0]?.rows?.[0]?.count ?? 0;
-      if (count === 0) {
-        console.log(`SyncManager (Native): Local Sale count is 0 for ${safeShopId}, doing full pull...`);
-        effectiveLastSynced = 0;
+      let effectiveLastSynced = isForceSync ? 0 : lastSyncedTime;
+      if (effectiveLastSynced > 0) {
+        const countRes = await this.saleRepo.db.executeSql(
+          'SELECT COUNT(*) as count FROM Sale WHERE TRIM(LOWER(shopId)) = TRIM(LOWER(?)) AND isReverted = 0',
+          [safeShopId]
+        );
+        const row = countRes[0]?.rows?.length > 0 ? (typeof countRes[0].rows.item === 'function' ? countRes[0].rows.item(0) : countRes[0].rows[0]) : {};
+        const count = Number(row?.count ?? row?.['COUNT(*)'] ?? row?.['count(*)'] ?? 0);
+        if (count === 0) {
+          console.log(`SyncManager (Native): Local Sale count is 0 for ${safeShopId}, doing full pull...`);
+          effectiveLastSynced = 0;
+        }
       }
 
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('sales');
@@ -618,22 +622,11 @@ export class SyncManager {
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        let timestamp = Number(data.timestamp);
-        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-          if (data.timestamp?.toMillis) {
-            timestamp = data.timestamp.toMillis();
-          } else if (data.timestamp?.seconds) {
-            timestamp = data.timestamp.seconds * 1000;
-          } else if (data.lastUpdated) {
-            timestamp = Number(data.lastUpdated);
-          } else {
-            timestamp = Date.now();
-          }
-        }
+        const timestamp = parseTimestamp(data.timestamp, parseTimestamp(data.lastUpdated, Date.now()));
         await this.saleRepo.upsertRemoteSale({ ...data, shopId: safeShopId, timestamp }, data.items || []);
       }
-    } catch (e) {
-      console.error('Pull Sales Error:', e);
+    } catch (e: any) {
+      console.error('Pull Sales Error:', e?.message || e);
     }
   }
 
@@ -761,6 +754,10 @@ export class SyncManager {
           id: sale.id,
           shopId: targetShopId,
           employeeId: sale.employeeId || "",
+          customerId: sale.customerId || null,
+          paymentMethod: sale.paymentMethod || "CASH",
+          paymentStatus: sale.paymentStatus || "PAID",
+          dueDate: sale.dueDate || null,
           timestamp: sale.timestamp || Date.now(),
           totalAmount: sale.totalAmount ?? 0,
           isReverted: sale.isReverted === 1,

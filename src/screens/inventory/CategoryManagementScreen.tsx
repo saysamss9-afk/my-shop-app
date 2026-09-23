@@ -142,8 +142,8 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Header */}
       <Box px="$4" pt={Math.max(insets.top, 10)} pb="$4">
         <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
-            <Icon as={ChevronLeft} color="$text900" />
+          <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+            <ChevronLeft size={22} color="#111827" />
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">Categories</Heading>

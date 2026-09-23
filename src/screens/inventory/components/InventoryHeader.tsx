@@ -10,7 +10,7 @@ import {
   ArrowLeftIcon,
   AddIcon,
 } from '@gluestack-ui/themed';
-import { Filter, RefreshCw, AlertTriangle, Plus } from 'lucide-react-native';
+import { Filter, RefreshCw, AlertTriangle, Plus, ArrowLeft } from 'lucide-react-native';
 import { Spinner } from '@gluestack-ui/themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SyncStatus } from '../../../sync/SyncManager';
@@ -43,8 +43,8 @@ const ProductHeader: React.FC<Props> = ({
     <Box px="$2" pt={Math.max(insets.top, 10)} pb="$4">
       <HStack justifyContent="space-between" alignItems="center">
         <HStack space="md" alignItems="center">
-          <Pressable onPress={onBack} p="$2" bg="$backgroundLight50" rounded="$full">
-            <Icon as={ArrowLeftIcon} color="$text900" />
+          <Pressable onPress={onBack} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+            <ArrowLeft size={22} color="#111827" />
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">

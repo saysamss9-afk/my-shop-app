@@ -73,7 +73,7 @@ export const useSales = (shopId: string) => {
   }, [loadSales]);
 
   const triggerManualSync = () => {
-    triggerSync(shopId);
+    triggerSync(shopId, true);
   };
 
   const getSaleDetails = useCallback(async (saleId: string) => {

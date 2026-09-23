@@ -18,10 +18,11 @@ import {
   TrashIcon,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
-import { User, ShieldCheck, CreditCard } from 'lucide-react-native';
+import { User, ShieldCheck, CreditCard, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firebase from '../../firebase-config';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import { getAppShadow } from '../../utils/platformStyles';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -69,8 +70,8 @@ const StaffManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       <Box px="$2" pt={Math.max(insets.top, 10)} pb="$4">
         <HStack justifyContent="space-between" alignItems="center">
           <HStack space="md" alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full">
-              <Icon as={ArrowLeftIcon} color="$text900" />
+            <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <ArrowLeft size={22} color="#111827" />
             </Pressable>
             <VStack>
               <Heading size="lg" color="$text900" fontWeight="$black">Staff List</Heading>

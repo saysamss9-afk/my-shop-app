@@ -5,7 +5,7 @@ import type { FinancialSummary, TopProduct, CashierPerformance, OwnerFinancialSn
 import { useSync } from '../sync/SyncContext';
 
 export const useAnalytics = (shopId: string) => {
-  const { dataChangeTick } = useSync();
+  const { dataChangeTick, triggerSync } = useSync();
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [snapshot, setSnapshot] = useState<OwnerFinancialSnapshot | null>(null);
   const [expenses, setExpenses] = useState(0);
@@ -45,7 +45,8 @@ export const useAnalytics = (shopId: string) => {
 
       const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE TRIM(id) = ?', [safeShopId]);
       if (shopResults[0]?.rows?.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '$');
+        const item = shopResults[0].rows.item ? shopResults[0].rows.item(0) : shopResults[0].rows[0];
+        setCurrency(item?.currency || '$');
       }
 
       const [s, tp, cp, snap] = await Promise.all([
@@ -70,6 +71,17 @@ export const useAnalytics = (shopId: string) => {
 
   const refresh = useCallback(() => {
     console.log("useAnalytics: Manual refresh triggered");
+    let safeShopId: string = '';
+    if (typeof shopId === 'string') {
+        safeShopId = shopId;
+    } else if (shopId && typeof shopId === 'object') {
+        safeShopId = (shopId as any).shopId || (shopId as any).id || (shopId as any).uid || '';
+    }
+    safeShopId = safeShopId.toString().trim();
+    if (safeShopId) {
+      triggerSync(safeShopId, true);
+    }
+
     if (lastRangeRef.current) {
         loadAnalytics(lastRangeRef.current.start, lastRangeRef.current.end);
     } else {
@@ -78,14 +90,14 @@ export const useAnalytics = (shopId: string) => {
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
         loadAnalytics(startOfMonth, endOfMonth);
     }
-  }, [loadAnalytics]);
+  }, [loadAnalytics, shopId, triggerSync]);
 
   // Handle dataChangeTick (real-time updates)
   useEffect(() => {
-    if (dataChangeTick > 0) {
-        refresh();
+    if (dataChangeTick > 0 && lastRangeRef.current) {
+      loadAnalytics(lastRangeRef.current.start, lastRangeRef.current.end);
     }
-  }, [dataChangeTick, refresh]);
+  }, [dataChangeTick, loadAnalytics]);
 
   return {
     summary,

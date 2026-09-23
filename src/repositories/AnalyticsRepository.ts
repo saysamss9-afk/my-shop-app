@@ -44,11 +44,19 @@ export interface DailyItemSale {
 export class AnalyticsRepository {
   constructor(private db: SQLiteDatabase) {}
 
+  private getRangeBounds(start: number, end: number) {
+    const startMs = start < 1e11 ? start * 1000 : Math.floor(start);
+    const endMs = end < 1e11 ? end * 1000 : Math.floor(end);
+    const startSec = Math.floor(startMs / 1000);
+    const endSec = Math.floor(endMs / 1000);
+    return { startMs, endMs, startSec, endSec };
+  }
+
   async getFinancialSummary(shopId: string, start: number, end: number): Promise<FinancialSummary> {
     const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+    const { startMs, endMs, startSec, endSec } = this.getRangeBounds(start, end);
 
     // Use TOTAL() instead of SUM() as it returns 0.0 instead of NULL
-    // Use COALESCE on costPrice to avoid multiplication by NULL
     const revenueQuery = `
       SELECT
         TOTAL(totalAmount) as totalRevenue,
@@ -59,13 +67,25 @@ export class AnalyticsRepository {
           WHERE si.saleId = Sale.id
         )) as totalProfit
       FROM Sale
-      WHERE shopId = ? AND timestamp BETWEEN ? AND ? AND isReverted = 0 AND paymentStatus != 'DEBT'
+      WHERE (shopId = ? OR TRIM(shopId) = ?)
+        AND (
+          CAST(timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(timestamp AS INTEGER) BETWEEN ? AND ?
+        )
+        AND isReverted = 0 AND paymentStatus != 'DEBT'
     `;
-    const expenseQuery = `SELECT TOTAL(amount) as totalExpenses FROM Expense WHERE shopId = ? AND timestamp BETWEEN ? AND ?`;
+    const expenseQuery = `
+      SELECT TOTAL(amount) as totalExpenses FROM Expense
+      WHERE (shopId = ? OR TRIM(shopId) = ?)
+        AND (
+          CAST(timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(timestamp AS INTEGER) BETWEEN ? AND ?
+        )
+    `;
 
     const [revResults, expResults] = await Promise.all([
-      this.db.executeSql(revenueQuery, [safeShopId, start, end]),
-      this.db.executeSql(expenseQuery, [safeShopId, start, end])
+      this.db.executeSql(revenueQuery, [safeShopId, safeShopId, startMs, endMs, startSec, endSec]),
+      this.db.executeSql(expenseQuery, [safeShopId, safeShopId, startMs, endMs, startSec, endSec])
     ]);
 
     const revItem = revResults[0]?.rows?.length ? revResults[0].rows.item(0) : null;
@@ -81,8 +101,6 @@ export class AnalyticsRepository {
   async getOwnerFinancialSnapshot(shopId: string): Promise<OwnerFinancialSnapshot> {
     const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
 
-    // TOTAL() returns 0.0 instead of NULL
-    // status != 'DELETED' ensures we see everything currently in the shop's ledger
     const stockQuery = `
       SELECT
         COUNT(*) as itemCount,
@@ -93,16 +111,16 @@ export class AnalyticsRepository {
         TOTAL(COALESCE(costPrice, 0) * (COALESCE(bulkStockQuantity, 0) * COALESCE(bulkQuantity, 1))) as bulkCostValue,
         TOTAL(COALESCE(bulkPrice, 0) * COALESCE(bulkStockQuantity, 0)) as bulkSellingValue
       FROM Product
-      WHERE shopId = ? AND status != 'DELETED'
+      WHERE (shopId = ? OR TRIM(shopId) = ?) AND status != 'DELETED'
     `;
 
-    const supplierDebtQuery = `SELECT TOTAL(currentBalance) as total FROM Supplier WHERE shopId = ? AND currentBalance > 0`;
-    const customerDebtQuery = `SELECT TOTAL(currentBalance) as total FROM Customer WHERE shopId = ? AND currentBalance > 0`;
+    const supplierDebtQuery = `SELECT TOTAL(currentBalance) as total FROM Supplier WHERE (shopId = ? OR TRIM(shopId) = ?) AND currentBalance > 0`;
+    const customerDebtQuery = `SELECT TOTAL(currentBalance) as total FROM Customer WHERE (shopId = ? OR TRIM(shopId) = ?) AND currentBalance > 0`;
 
     const [stockRes, supplierRes, customerRes] = await Promise.all([
-      this.db.executeSql(stockQuery, [safeShopId]),
-      this.db.executeSql(supplierDebtQuery, [safeShopId]),
-      this.db.executeSql(customerDebtQuery, [safeShopId])
+      this.db.executeSql(stockQuery, [safeShopId, safeShopId]),
+      this.db.executeSql(supplierDebtQuery, [safeShopId, safeShopId]),
+      this.db.executeSql(customerDebtQuery, [safeShopId, safeShopId])
     ]);
 
     const stock = stockRes[0]?.rows?.item(0);
@@ -123,25 +141,40 @@ export class AnalyticsRepository {
   }
 
   async getTotalExpenses(shopId: string, start: number, end: number): Promise<number> {
-    const query = 'SELECT SUM(amount) as total FROM Expense WHERE shopId = ? AND timestamp BETWEEN ? AND ?';
-    const results = await this.db.executeSql(query, [shopId, start, end]);
+    const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+    const { startMs, endMs, startSec, endSec } = this.getRangeBounds(start, end);
+    const query = `
+      SELECT TOTAL(amount) as total FROM Expense
+      WHERE (shopId = ? OR TRIM(shopId) = ?)
+        AND (
+          CAST(timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(timestamp AS INTEGER) BETWEEN ? AND ?
+        )
+    `;
+    const results = await this.db.executeSql(query, [safeShopId, safeShopId, startMs, endMs, startSec, endSec]);
     const item = results[0]?.rows?.length ? results[0].rows.item(0) : null;
     return Number(item?.total || 0);
   }
 
   async getTopProducts(shopId: string, start: number, end: number, limit: number = 5): Promise<TopProduct[]> {
     const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+    const { startMs, endMs, startSec, endSec } = this.getRangeBounds(start, end);
     const query = `
       SELECT p.name, TOTAL(si.quantity) as totalQuantity, TOTAL(si.quantity * si.priceAtSale) as totalRevenue
       FROM SaleItem si
       JOIN Sale s ON si.saleId = s.id
       JOIN Product p ON si.productId = p.id
-      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0
+      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?)
+        AND (
+          CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+        )
+        AND s.isReverted = 0
       GROUP BY p.id
       ORDER BY totalQuantity DESC
       LIMIT ?
     `;
-    const results = await this.db.executeSql(query, [safeShopId, safeShopId, start, end, limit]);
+    const results = await this.db.executeSql(query, [safeShopId, safeShopId, startMs, endMs, startSec, endSec, limit]);
     const products: TopProduct[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       products.push(results[0].rows.item(i));
@@ -151,14 +184,20 @@ export class AnalyticsRepository {
 
   async getCashierPerformance(shopId: string, start: number, end: number): Promise<CashierPerformance[]> {
     const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+    const { startMs, endMs, startSec, endSec } = this.getRangeBounds(start, end);
     const query = `
       SELECT e.name as employeeName, COUNT(s.id) as saleCount, TOTAL(s.totalAmount) as totalRevenue
       FROM Sale s
       JOIN Employee e ON s.employeeId = e.id
-      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0
+      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?)
+        AND (
+          CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+        )
+        AND s.isReverted = 0
       GROUP BY e.id
     `;
-    const results = await this.db.executeSql(query, [safeShopId, safeShopId, start, end]);
+    const results = await this.db.executeSql(query, [safeShopId, safeShopId, startMs, endMs, startSec, endSec]);
     const performances: CashierPerformance[] = [];
     for (let i = 0; i < results[0].rows.length; i++) {
       performances.push(results[0].rows.item(i));
@@ -168,6 +207,8 @@ export class AnalyticsRepository {
 
   async getDailyItemSales(shopId: string, start: number, end: number): Promise<DailyItemSale[]> {
     const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+    const { startMs, endMs, startSec, endSec } = this.getRangeBounds(start, end);
+
     const query = `
       SELECT
         p.id as productId,
@@ -189,8 +230,13 @@ export class AnalyticsRepository {
       FROM SaleItem si
       JOIN Sale s ON si.saleId = s.id
       JOIN Product p ON si.productId = p.id
-      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?) AND s.timestamp BETWEEN ? AND ? AND s.isReverted = 0
-      GROUP BY p.id, p.name, 3 -- Group by the calculated isBulk column
+      WHERE (s.shopId = ? OR TRIM(s.shopId) = ?)
+        AND (
+          CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+        )
+        AND s.isReverted = 0
+      GROUP BY p.id, p.name, 3
 
       UNION ALL
 
@@ -205,15 +251,26 @@ export class AnalyticsRepository {
         0 as isOnCredit
       FROM DebtPayment dp
       JOIN Customer c ON dp.customerId = c.id
-      WHERE (dp.shopId = ? OR TRIM(dp.shopId) = ?) AND dp.timestamp BETWEEN ? AND ?
+      WHERE (dp.shopId = ? OR TRIM(dp.shopId) = ?)
+        AND (
+          CAST(dp.timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(dp.timestamp AS INTEGER) BETWEEN ? AND ?
+        )
       GROUP BY dp.customerId
 
       ORDER BY totalRevenue DESC
     `;
-    const results = await this.db.executeSql(query, [safeShopId, safeShopId, start, end, safeShopId, safeShopId]);
+    const results = await this.db.executeSql(query, [
+      safeShopId, safeShopId, startMs, endMs, startSec, endSec,
+      safeShopId, safeShopId, startMs, endMs, startSec, endSec
+    ]);
     const items: any[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      items.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        items.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return items;
   }

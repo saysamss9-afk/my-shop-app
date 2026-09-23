@@ -190,8 +190,8 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <VStack space="xl" pb="$10" pt={Math.max(insets.top, 10)} px="$4">
           <HStack space="md" alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$1" rounded="$full" bg="$backgroundLight50">
-              <Icon as={ChevronLeft} size="lg" color="$text900" />
+            <Pressable onPress={() => navigation.goBack()} p="$2.5" rounded="$full" bg="$white" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <ChevronLeft size={22} color="#111827" />
             </Pressable>
             <VStack>
               <Heading size="xl" color="$text900" fontWeight="$black">Branch Management</Heading>

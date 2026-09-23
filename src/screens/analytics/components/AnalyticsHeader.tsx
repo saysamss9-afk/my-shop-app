@@ -7,7 +7,7 @@ import {
   Heading,
   ArrowLeftIcon,
 } from '@gluestack-ui/themed';
-import { RefreshCw } from 'lucide-react-native';
+import { RefreshCw, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAppShadow } from '../../../utils/platformStyles';
 
@@ -28,7 +28,7 @@ const AnalyticsHeader: React.FC<Props> = ({ onBack, onRefresh }) => {
             bg="rgba(255,255,255,0.15)"
             rounded="$full"
           >
-            <Icon as={ArrowLeftIcon} color="white" size="md" />
+            <ArrowLeft size={22} color="#ffffff" />
           </Pressable>
           <Heading color="white" size="lg" fontWeight="$black">Top Items</Heading>
         </HStack>

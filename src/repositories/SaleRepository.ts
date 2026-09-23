@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Sale, SaleItem } from '../db/types';
+import { parseTimestamp } from '../utils/dateUtils';
 
 export class SaleRepository {
   constructor(public db: SQLiteDatabase) {}
@@ -7,12 +8,13 @@ export class SaleRepository {
   async insertSale(sale: Sale, items: SaleItem[]) {
     await this.db.transaction(async (tx: any) => {
       const safeShopId = sale.shopId?.toString().trim();
+      const timestamp = parseTimestamp(sale.timestamp, Date.now());
       const saleQuery = `
         INSERT INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
       `;
       const saleParams = [
-        sale.id, safeShopId, sale.employeeId, sale.customerId, sale.timestamp,
+        sale.id, safeShopId, sale.employeeId, sale.customerId, timestamp,
         sale.totalAmount, sale.paymentMethod, sale.paymentStatus, sale.dueDate
       ];
       await tx.executeSql(saleQuery, saleParams);
@@ -58,7 +60,7 @@ export class SaleRepository {
       LEFT JOIN Employee e ON s.employeeId = e.id
       LEFT JOIN Shop sh ON s.shopId = sh.id
       LEFT JOIN Customer c ON s.customerId = c.id
-      WHERE (s.shopId = ? OR s.shopId = ?)
+      WHERE (TRIM(LOWER(s.shopId)) = TRIM(LOWER(?)) OR s.shopId = ?)
       ORDER BY CAST(s.timestamp AS INTEGER) DESC
     `;
     const results = await this.db.executeSql(query, [safeShopId, shopId]);
@@ -67,7 +69,11 @@ export class SaleRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        sales.push(rows.item ? rows.item(i) : rows[i]);
+        const item = rows.item ? rows.item(i) : rows[i];
+        if (item) {
+          const ts = parseTimestamp(item.timestamp, Date.now());
+          sales.push({ ...item, timestamp: ts });
+        }
       }
     }
     return sales;
@@ -75,6 +81,11 @@ export class SaleRepository {
 
   async getSalesByShopAndRange(shopId: string, start: number, end: number): Promise<any[]> {
     const safeShopId = (shopId || '').toString().trim();
+    const startMs = start < 1e11 ? start * 1000 : Math.floor(start);
+    const endMs = end < 1e11 ? end * 1000 : Math.floor(end);
+    const startSec = Math.floor(startMs / 1000);
+    const endSec = Math.floor(endMs / 1000);
+
     const query = `
       SELECT
         s.*,
@@ -85,16 +96,24 @@ export class SaleRepository {
       LEFT JOIN Employee e ON s.employeeId = e.id
       LEFT JOIN Shop sh ON s.shopId = sh.id
       LEFT JOIN Customer c ON s.customerId = c.id
-      WHERE (s.shopId = ? OR s.shopId = ?) AND CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+      WHERE (TRIM(LOWER(s.shopId)) = TRIM(LOWER(?)) OR s.shopId = ?)
+        AND (
+          CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+          OR CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+        )
       ORDER BY CAST(s.timestamp AS INTEGER) DESC
     `;
-    const results = await this.db.executeSql(query, [safeShopId, shopId, Math.floor(start), Math.floor(end)]);
+    const results = await this.db.executeSql(query, [safeShopId, shopId, startMs, endMs, startSec, endSec]);
     const sales: any[] = [];
     const rows = results[0]?.rows;
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        sales.push(rows.item ? rows.item(i) : rows[i]);
+        const item = rows.item ? rows.item(i) : rows[i];
+        if (item) {
+          const ts = parseTimestamp(item.timestamp, Date.now());
+          sales.push({ ...item, timestamp: ts });
+        }
       }
     }
     return sales;
@@ -136,20 +155,7 @@ export class SaleRepository {
   async upsertRemoteSale(sale: any, items: any[]) {
     await this.db.transaction(async (tx: any) => {
       const safeShopId = (sale.shopId || '').toString().trim();
-
-      // Ensure timestamp is a valid numeric millisecond value
-      let timestamp = Number(sale.timestamp);
-      if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-        if (sale.timestamp?.toMillis) {
-          timestamp = sale.timestamp.toMillis();
-        } else if (sale.timestamp?.seconds) {
-          timestamp = sale.timestamp.seconds * 1000;
-        } else if (sale.lastUpdated) {
-          timestamp = Number(sale.lastUpdated);
-        } else {
-          timestamp = Date.now();
-        }
-      }
+      const timestamp = parseTimestamp(sale.timestamp, parseTimestamp(sale.lastUpdated, Date.now()));
 
       // 1. Insert or Replace the Sale record
       const saleQuery = `

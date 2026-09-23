@@ -16,11 +16,13 @@ import {
   Badge,
   BadgeText,
 } from '@gluestack-ui/themed';
+import { RefreshCw, ArrowLeft } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDailyReport } from '../../hooks/useDailyReport';
 import { getAppShadow, isWeb } from '../../utils/platformStyles';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import { SyncStatus } from '../../sync/SyncManager';
 
 const formatDate = (date: Date): string => {
   const y = date.getFullYear();
@@ -33,14 +35,14 @@ const DailyReportScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
   const [selectedDate, setSelectedDate] = useState(() => formatDate(new Date()));
 
-  const { reportData, currency, isLoading, loadReport } = useDailyReport(shopId);
+  const { reportData, currency, isLoading, syncStatus, dataChangeTick, loadReport, triggerManualSync } = useDailyReport(shopId);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
       loadReport(selectedDate);
     }
-  }, [selectedDate, loadReport]);
+  }, [selectedDate, dataChangeTick, loadReport]);
 
   const changeDateByDays = (days: number) => {
     const parts = selectedDate.split('-');
@@ -130,16 +132,32 @@ const DailyReportScreen = ({ route, navigation }: any) => {
 
       {/* Header */}
       <Box pt={Math.max(insets.top, 10)} pb="$3" px="$4">
-        <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()}>
-            <Box p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
-              <Icon as={ArrowLeftIcon} color="$text900" />
-            </Box>
-          </Pressable>
-          <VStack>
-            <Heading size="lg" color="$text900" fontWeight="$black">Daily Item Sales</Heading>
-            <Text size="xs" color="$text500">Performance report per item</Text>
-          </VStack>
+        <HStack justifyContent="space-between" alignItems="center">
+          <HStack space="md" alignItems="center">
+            <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <ArrowLeft size={22} color="#111827" />
+            </Pressable>
+            <VStack>
+              <Heading size="lg" color="$text900" fontWeight="$black">Daily Item Sales</Heading>
+              <Text size="xs" color="$text500">Performance report per item</Text>
+            </VStack>
+          </HStack>
+
+          <HStack space="sm" alignItems="center">
+            {syncStatus === SyncStatus.Syncing ? (
+              <Spinner color="$primary600" size="small" />
+            ) : (
+              <Pressable
+                onPress={() => triggerManualSync()}
+                p="$2"
+                rounded="$full"
+                bg="$white"
+                style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
+              >
+                <Icon as={RefreshCw} color="$primary600" size="sm" />
+              </Pressable>
+            )}
+          </HStack>
         </HStack>
       </Box>
 

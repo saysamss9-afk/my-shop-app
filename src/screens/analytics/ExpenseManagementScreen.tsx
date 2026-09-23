@@ -130,8 +130,8 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
       {/* Header */}
       <Box bg="$primary800" px="$4" pt={Math.max(insets.top, 10)} pb="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
         <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()}>
-            <Icon as={ChevronLeft} color="$white" size="md" />
+          <Pressable onPress={() => navigation.goBack()} p="$2" bg="rgba(255,255,255,0.15)" rounded="$full">
+            <ChevronLeft size={22} color="#ffffff" />
           </Pressable>
           <VStack>
             <Heading size="md" color="$white" fontWeight="$black">Expenditure Ledger</Heading>
