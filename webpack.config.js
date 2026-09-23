@@ -78,7 +78,7 @@ module.exports = (env, argv) => {
     entry: [path.resolve(appDirectory, 'index.web.js')],
     cache: false,
     output: {
-      filename: isProduction ? '[name].[contenthash].js' : 'bundle.web.js',
+      filename: isProduction ? '[name].[contenthash].js' : '[name].bundle.js',
       path: path.resolve(appDirectory, 'dist'),
       clean: true,
     },
@@ -137,7 +137,11 @@ module.exports = (env, argv) => {
     resolve: {
       alias: {
         'react-native$': 'react-native-web',
-        'lucide-react-native$': 'lucide-react',
+        'react-native-svg-raw': path.resolve(appDirectory, 'node_modules/react-native-svg/lib/module/ReactNativeSVG.web.js'),
+        'react-native-svg': path.resolve(appDirectory, 'src/react-native-svg-web-wrapper.js'),
+        'lucide-react-raw': path.resolve(appDirectory, 'node_modules/lucide-react/dist/cjs/lucide-react.js'),
+        'lucide-react-native': path.resolve(appDirectory, 'src/lucide-web-wrapper.js'),
+        'lucide-react': path.resolve(appDirectory, 'src/lucide-web-wrapper.js'),
         'react-native-sqlite-storage': path.resolve(appDirectory, 'src/web-mocks.js'),
         'react-native-print': path.resolve(appDirectory, 'src/web-mocks.js'),
         'react-native-vision-camera': path.resolve(appDirectory, 'src/web-mocks.js'),

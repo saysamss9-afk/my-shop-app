@@ -39,8 +39,14 @@ export class SupplierRepository {
     `;
     const results = await this.db.executeSql(query, [shopId]);
     const suppliers: any[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      suppliers.push(results[0].rows.item(i));
+    if (results[0]?.rows) {
+      for (let i = 0; i < results[0].rows.length; i++) {
+        const item = results[0].rows.item(i);
+        suppliers.push({
+          ...item,
+          productCount: Number(item.productCount || item.productcount || 0)
+        });
+      }
     }
     return suppliers;
   }
@@ -80,14 +86,14 @@ export class SupplierRepository {
     `;
 
     const results = await this.db.executeSql(statsQuery, [shopId, startTimestamp, shopId, startTimestamp, shopId]);
-    const row = results[0].rows.item(0);
+    const row = results[0]?.rows?.length > 0 ? results[0].rows.item(0) : {};
 
     return {
-      totalSuppliers: row.totalSuppliers || 0,
-      owedSuppliers: row.owedSuppliers || 0,
-      totalPayable: row.totalPayable || 0,
-      paidThisMonth: row.paidThisMonth || 0,
-      purchasesThisMonth: row.purchasesThisMonth || 0
+      totalSuppliers: Number(row.totalSuppliers || row.totalsuppliers || 0),
+      owedSuppliers: Number(row.owedSuppliers || row.owedsuppliers || 0),
+      totalPayable: Number(row.totalPayable || row.totalpayable || 0),
+      paidThisMonth: Number(row.paidThisMonth || row.paidthismonth || 0),
+      purchasesThisMonth: Number(row.purchasesThisMonth || row.purchasesthismonth || 0)
     };
   }
 

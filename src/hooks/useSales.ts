@@ -15,17 +15,19 @@ export const useSales = (shopId: string) => {
     setIsLoading(true);
     setError(null);
     try {
+      const safeShopId = (shopId || '').toString().trim();
       const db = await getDBConnection();
       const saleRepo = new SaleRepository(db);
 
-      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [shopId]);
-      if (shopResults[0].rows.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '$');
+      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE TRIM(id) = TRIM(?)', [safeShopId]);
+      if (shopResults[0]?.rows?.length > 0) {
+        const item = shopResults[0].rows.item ? shopResults[0].rows.item(0) : shopResults[0].rows[0];
+        setCurrency(item?.currency || '$');
       }
 
       const allSales = start !== undefined && end !== undefined
-        ? await saleRepo.getSalesByShopAndRange(shopId, start, end)
-        : await saleRepo.getSalesByShop(shopId);
+        ? await saleRepo.getSalesByShopAndRange(safeShopId, start, end)
+        : await saleRepo.getSalesByShop(safeShopId);
       setSales(allSales);
     } catch (e: any) {
       setError(e.message);

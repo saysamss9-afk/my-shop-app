@@ -6,6 +6,7 @@ import { SupplierRepository } from '../repositories/SupplierRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { PurchaseRepository } from '../repositories/PurchaseRepository';
 import { SystemRepository } from '../repositories/SystemRepository';
+import { generateUUID } from '../utils/uuid';
 
 export enum SyncStatus {
   Idle,
@@ -71,12 +72,12 @@ export class SyncManager {
     this.realtimeUnsubscribers = [];
   }
 
-  async triggerSync(shopIdInput?: string | any) {
+  async triggerSync(shopIdInput?: string | any, force = false) {
     if (this.status === SyncStatus.Syncing) return;
 
-    // Prevent redundant syncs within the cooldown period to save bandwidth/firestore reads
+    // Prevent redundant syncs within the cooldown period unless explicitly forced
     const now = Date.now();
-    if (this.lastSynced > 0 && (now - this.lastSynced) < this.SYNC_COOLDOWN_MS) {
+    if (!force && this.lastSynced > 0 && (now - this.lastSynced) < this.SYNC_COOLDOWN_MS) {
         console.log('SyncManager (Web): Skipping Firestore hit, last sync was less than 60s ago.');
         // We still trigger a local UI refresh via the callback to ensure data consistency
         this.onDataChangedCallback?.();
@@ -149,7 +150,12 @@ export class SyncManager {
       await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced));
       await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced));
       await this.safeSync('PullSupplierPayments', () => this.pullSupplierPayments(shopId, effectiveLastSynced));
+      await this.safeSync('PullPurchases', () => this.pullPurchases(shopId, effectiveLastSynced));
+      await this.safeSync('PullPurchaseReturns', () => this.pullPurchaseReturns(shopId, effectiveLastSynced));
       await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced));
+      await this.safeSync('PullPayments', () => this.pullPayments(shopId, effectiveLastSynced));
+      await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced));
+      await this.safeSync('PullAdjustments', () => this.pullAdjustments(shopId, effectiveLastSynced));
       await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced));
       if (isManager) {
         await this.safeSync('PullExpenses', () => this.pullExpenses(shopId, effectiveLastSynced));
@@ -286,14 +292,14 @@ export class SyncManager {
 
               await this.supplierRepo.insertSupplier({
                   id: data.id,
-                  shopId: data.shopId,
+                  shopId: data.shopId || shopId,
                   name: data.name ?? (local ? local.name : 'Unknown Supplier'),
                   contactPerson: data.contactPerson ?? (local ? local.contactPerson : null),
                   email: data.email ?? (local ? local.email : null),
                   phone: data.phone ?? (local ? local.phone : null),
                   address: data.address ?? (local ? local.address : null),
                   contactInfo: data.contactInfo ?? (local ? local.contactInfo : (data.phone ?? null)),
-                  currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
+                  currentBalance: Number(data.currentBalance ?? (local ? local.currentBalance : 0)),
                   syncStatus: 1
               });
           }
@@ -324,6 +330,14 @@ export class SyncManager {
           }
         }
 
+        const localRes = await this.productRepo.db.executeSql(
+          'SELECT syncStatus FROM SupplierPayment WHERE id = ?',
+          [data.id]
+        );
+        if (localRes[0]?.rows?.length > 0 && localRes[0].rows.item(0).syncStatus === 0) {
+          continue;
+        }
+
         await this.productRepo.db.executeSql(
           'INSERT OR REPLACE INTO SupplierPayment(id, supplierId, shopId, amount, paymentMethod, reference, timestamp, note, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)',
           [data.id, data.supplierId, safeShopId, Number(data.amount || 0), data.paymentMethod || 'CASH', data.reference || null, timestamp, data.note || null]
@@ -331,6 +345,123 @@ export class SyncManager {
       }
     } catch (e) {
       console.error('Web Pull Supplier Payments Error:', e);
+    }
+  }
+
+  private async pullPurchases(shopId: string, lastSyncedTime: number) {
+    try {
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      let queryRef: any = firebase.firestore().collection('shops').doc(safeShopId).collection('purchases');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const localResult = await this.purchaseRepo.db.executeSql(
+          'SELECT syncStatus FROM PurchaseOrder WHERE id = ?',
+          [data.id]
+        );
+        if (localResult[0]?.rows?.length > 0 && localResult[0].rows.item(0).syncStatus === 0) {
+          continue;
+        }
+
+        let timestamp = Number(data.timestamp);
+        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+          if (data.timestamp?.toMillis) {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp?.seconds) {
+            timestamp = data.timestamp.seconds * 1000;
+          } else {
+            timestamp = Date.now();
+          }
+        }
+
+        await this.purchaseRepo.db.executeSql(
+          'INSERT OR REPLACE INTO PurchaseOrder(id, shopId, supplierId, invoiceNumber, timestamp, totalCost, amountPaid, balance, paymentStatus, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)',
+          [
+            data.id,
+            data.shopId || safeShopId,
+            data.supplierId || null,
+            data.invoiceNumber || null,
+            timestamp,
+            Number(data.totalCost || 0),
+            Number(data.amountPaid || 0),
+            Number(data.balance || 0),
+            data.paymentStatus || 'PAID'
+          ]
+        );
+
+        if (Array.isArray(data.items)) {
+          for (const item of data.items) {
+            await this.purchaseRepo.db.executeSql(
+              'INSERT OR REPLACE INTO PurchaseOrderItem(id, purchaseOrderId, productId, productName, quantity, costPrice, isBulk) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              [
+                item.id || generateUUID(),
+                data.id,
+                item.productId || null,
+                item.productName || 'Unknown Item',
+                Number(item.quantity || 0),
+                Number(item.costPrice || 0),
+                item.isBulk ? 1 : 0
+              ]
+            );
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Web Pull Purchases Error:', e);
+    }
+  }
+
+  private async pullPurchaseReturns(shopId: string, lastSyncedTime: number) {
+    try {
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      let queryRef: any = firebase.firestore().collection('shops').doc(safeShopId).collection('purchase_returns');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const localResult = await this.purchaseRepo.db.executeSql(
+          'SELECT syncStatus FROM PurchaseReturn WHERE id = ?',
+          [data.id]
+        );
+        if (localResult[0]?.rows?.length > 0 && localResult[0].rows.item(0).syncStatus === 0) {
+          continue;
+        }
+
+        let timestamp = Number(data.timestamp);
+        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+          if (data.timestamp?.toMillis) {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp?.seconds) {
+            timestamp = data.timestamp.seconds * 1000;
+          } else {
+            timestamp = Date.now();
+          }
+        }
+
+        await this.purchaseRepo.db.executeSql(
+          'INSERT OR REPLACE INTO PurchaseReturn(id, purchaseOrderId, shopId, supplierId, productId, quantity, returnValue, reason, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)',
+          [
+            data.id,
+            data.purchaseOrderId || null,
+            data.shopId || safeShopId,
+            data.supplierId || null,
+            data.productId || null,
+            Number(data.quantity || 0),
+            Number(data.returnValue || 0),
+            data.reason || null,
+            timestamp
+          ]
+        );
+      }
+    } catch (e) {
+      console.error('Web Pull Purchase Returns Error:', e);
     }
   }
 
@@ -349,11 +480,11 @@ export class SyncManager {
 
               await this.customerRepo.insertCustomer({
                   id: data.id,
-                  shopId: data.shopId,
+                  shopId: data.shopId || shopId,
                   name: data.name ?? (local ? local.name : 'Unknown Customer'),
                   phone: data.phone ?? (local ? local.phone : null),
                   email: data.email ?? (local ? local.email : null),
-                  currentBalance: data.currentBalance ?? (local ? local.currentBalance : 0),
+                  currentBalance: Number(data.currentBalance ?? (local ? local.currentBalance : 0)),
                   syncStatus: 1
               });
           }
@@ -362,11 +493,120 @@ export class SyncManager {
       }
   }
 
-  private async pullSales(shopId: string, lastSyncedTime: number) {
+  private async pullPayments(shopId: string, lastSyncedTime: number) {
     try {
-      let queryRef: any = firebase.firestore().collection('shops').doc(shopId).collection('sales');
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      let queryRef: any = firebase.firestore().collection('shops').doc(safeShopId).collection('payments');
       if (lastSyncedTime > 0) {
         queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const localRes = await this.customerRepo.db.executeSql(
+          'SELECT syncStatus FROM DebtPayment WHERE id = ?',
+          [data.id]
+        );
+        if (localRes[0]?.rows?.length > 0 && localRes[0].rows.item(0).syncStatus === 0) {
+          continue;
+        }
+
+        let timestamp = Number(data.timestamp);
+        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+          if (data.timestamp?.toMillis) {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp?.seconds) {
+            timestamp = data.timestamp.seconds * 1000;
+          } else {
+            timestamp = Date.now();
+          }
+        }
+
+        await this.customerRepo.db.executeSql(
+          'INSERT OR REPLACE INTO DebtPayment(id, customerId, shopId, amount, paymentMethod, timestamp, note, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
+          [
+            data.id,
+            data.customerId || null,
+            data.shopId || safeShopId,
+            Number(data.amount || 0),
+            data.paymentMethod || 'CASH',
+            timestamp,
+            data.note || null
+          ]
+        );
+      }
+    } catch (e) {
+      console.error('Web Pull Debt Payments Error:', e);
+    }
+  }
+
+  private async pullAdjustments(shopId: string, lastSyncedTime: number) {
+    try {
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      let queryRef: any = firebase.firestore().collection('shops').doc(safeShopId).collection('inventory_adjustments');
+      if (lastSyncedTime > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      }
+      const snapshot = await queryRef.get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const localRes = await this.systemRepo.db.executeSql(
+          'SELECT syncStatus FROM InventoryAdjustment WHERE id = ?',
+          [data.id]
+        );
+        if (localRes[0]?.rows?.length > 0 && localRes[0].rows.item(0).syncStatus === 0) {
+          continue;
+        }
+
+        let timestamp = Number(data.timestamp);
+        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
+          if (data.timestamp?.toMillis) {
+            timestamp = data.timestamp.toMillis();
+          } else if (data.timestamp?.seconds) {
+            timestamp = data.timestamp.seconds * 1000;
+          } else {
+            timestamp = Date.now();
+          }
+        }
+
+        await this.systemRepo.db.executeSql(
+          'INSERT OR REPLACE INTO InventoryAdjustment(id, productId, shopId, quantity, reason, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
+          [
+            data.id,
+            data.productId || null,
+            data.shopId || safeShopId,
+            Number(data.quantity || 0),
+            data.reason || 'Manual Adjustment',
+            timestamp
+          ]
+        );
+      }
+    } catch (e) {
+      console.error('Web Pull Adjustments Error:', e);
+    }
+  }
+
+  private async pullSales(shopId: string, lastSyncedTime: number) {
+    try {
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+
+      let effectiveLastSynced = lastSyncedTime;
+      const countRes = await this.saleRepo.db.executeSql(
+        'SELECT COUNT(1) as count FROM Sale WHERE TRIM(shopId) = TRIM(?) AND isReverted = 0',
+        [safeShopId]
+      );
+      const count = countRes[0]?.rows?.item ? countRes[0].rows.item(0)?.count : countRes[0]?.rows?.[0]?.count ?? 0;
+      if (count === 0) {
+        console.log(`SyncManager (Web): Local Sale count is 0 for ${safeShopId}, doing full pull...`);
+        effectiveLastSynced = 0;
+      }
+
+      let queryRef: any = firebase.firestore().collection('shops').doc(safeShopId).collection('sales');
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -378,11 +618,13 @@ export class SyncManager {
             timestamp = data.timestamp.toMillis();
           } else if (data.timestamp?.seconds) {
             timestamp = data.timestamp.seconds * 1000;
+          } else if (data.lastUpdated) {
+            timestamp = Number(data.lastUpdated);
           } else {
             timestamp = Date.now();
           }
         }
-        await this.saleRepo.upsertRemoteSale({ ...data, timestamp }, data.items || []);
+        await this.saleRepo.upsertRemoteSale({ ...data, shopId: safeShopId, timestamp }, data.items || []);
       }
     } catch (e) {
       console.error('Web Pull Sales Error:', e);

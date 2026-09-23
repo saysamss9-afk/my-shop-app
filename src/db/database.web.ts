@@ -14,6 +14,10 @@ const initDB = async () => {
         alasql.options.casesensitive = false;
         (alasql as any).options.performance = false; // Disable performance tracing to prevent 'startTime' errors
 
+        // Register null-safe TRIM helper functions for AlaSQL
+        alasql.fn.TRIM = (val: any) => (val != null ? String(val).trim() : null);
+        alasql.fn.trim = (val: any) => (val != null ? String(val).trim() : null);
+
         console.log('AlaSQL initialized with localStorage persistence');
     } catch (e) {
         console.error('AlaSQL init error:', e);

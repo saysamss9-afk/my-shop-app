@@ -47,6 +47,7 @@ export class SaleRepository {
   }
 
   async getSalesByShop(shopId: string): Promise<any[]> {
+    const safeShopId = (shopId || '').toString().trim();
     const query = `
       SELECT
         s.*,
@@ -57,18 +58,23 @@ export class SaleRepository {
       LEFT JOIN Employee e ON s.employeeId = e.id
       LEFT JOIN Shop sh ON s.shopId = sh.id
       LEFT JOIN Customer c ON s.customerId = c.id
-      WHERE s.shopId = ?
-      ORDER BY s.timestamp DESC
+      WHERE (s.shopId = ? OR s.shopId = ?)
+      ORDER BY CAST(s.timestamp AS INTEGER) DESC
     `;
-    const results = await this.db.executeSql(query, [shopId]);
+    const results = await this.db.executeSql(query, [safeShopId, shopId]);
     const sales: any[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      sales.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        sales.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return sales;
   }
 
   async getSalesByShopAndRange(shopId: string, start: number, end: number): Promise<any[]> {
+    const safeShopId = (shopId || '').toString().trim();
     const query = `
       SELECT
         s.*,
@@ -79,13 +85,17 @@ export class SaleRepository {
       LEFT JOIN Employee e ON s.employeeId = e.id
       LEFT JOIN Shop sh ON s.shopId = sh.id
       LEFT JOIN Customer c ON s.customerId = c.id
-      WHERE s.shopId = ? AND s.timestamp BETWEEN ? AND ?
-      ORDER BY s.timestamp DESC
+      WHERE (s.shopId = ? OR s.shopId = ?) AND CAST(s.timestamp AS INTEGER) BETWEEN ? AND ?
+      ORDER BY CAST(s.timestamp AS INTEGER) DESC
     `;
-    const results = await this.db.executeSql(query, [shopId, start, end]);
+    const results = await this.db.executeSql(query, [safeShopId, shopId, Math.floor(start), Math.floor(end)]);
     const sales: any[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      sales.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        sales.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return sales;
   }
