@@ -191,6 +191,7 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         signOut={signOut}
         onTriggerSync={triggerSync}
         onSwitchBranch={handleSwitchBranch}
+        onLogout={() => handleSwitchAccount({ signOut, reset: navigation.reset })}
       />
 
       <RevenueHeroCard

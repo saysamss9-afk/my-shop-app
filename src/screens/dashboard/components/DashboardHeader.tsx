@@ -27,6 +27,7 @@ interface Props {
   signOut: () => Promise<void>;
   onTriggerSync: () => void;
   onSwitchBranch: (shopId: string, shopName: string) => void;
+  onLogout: () => void;
 }
 
 const DashboardHeader: React.FC<Props> = ({
@@ -37,7 +38,8 @@ const DashboardHeader: React.FC<Props> = ({
   syncStatus,
   signOut,
   onTriggerSync,
-  onSwitchBranch
+  onSwitchBranch,
+  onLogout
 }) => {
   const insets = useSafeAreaInsets();
   return (
@@ -104,7 +106,7 @@ const DashboardHeader: React.FC<Props> = ({
                 </Box>
             </Pressable>
           )}
-          <Pressable onPress={() => handleSwitchAccount({ signOut, reset: () => {} })}>
+          <Pressable onPress={onLogout}>
             <Box p="$2" bg="$white" rounded="$full">
               <Icon as={LogOut} color="$error600" size="md" />
             </Box>

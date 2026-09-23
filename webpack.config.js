@@ -142,6 +142,7 @@ module.exports = (env, argv) => {
         'lucide-react-raw': path.resolve(appDirectory, 'node_modules/lucide-react/dist/cjs/lucide-react.js'),
         'lucide-react-native': path.resolve(appDirectory, 'src/lucide-web-wrapper.js'),
         'lucide-react': path.resolve(appDirectory, 'src/lucide-web-wrapper.js'),
+        '@gluestack-ui/icon': path.resolve(appDirectory, 'src/gluestack-icon-web-wrapper.js'),
         'react-native-sqlite-storage': path.resolve(appDirectory, 'src/web-mocks.js'),
         'react-native-print': path.resolve(appDirectory, 'src/web-mocks.js'),
         'react-native-vision-camera': path.resolve(appDirectory, 'src/web-mocks.js'),
