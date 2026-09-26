@@ -11,8 +11,8 @@ import {
 } from '@gluestack-ui/themed';
 import { RotateCcw } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import type { Sale } from '../../../db/types';
 import { getAppShadow } from '../../../utils/platformStyles';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   item: any;
@@ -24,6 +24,11 @@ interface Props {
 }
 
 const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, isSelected = false, onToggleSelect }) => {
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  const flexDir = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -45,11 +50,15 @@ const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, i
         ':active': { bg: '$backgroundLight50' }
       }}
     >
-      <HStack space="md" alignItems="center">
+      <HStack space="md" alignItems="center" flexDirection={flexDir}>
         {onToggleSelect && (
-          <Pressable onPress={(e: import('react-native').GestureResponderEvent) => { e.stopPropagation(); onToggleSelect(); }}>
-            <Center w={24} h={24} rounded="$full" borderWidth={2} borderColor={isSelected ? "$primary600" : "$text300"} bg={isSelected ? "$primary600" : "transparent"}>
-              {isSelected && <MaterialCommunityIcons name="check" size={14} color="white" />}
+          <Pressable
+            onPress={(e: import('react-native').GestureResponderEvent) => { e.stopPropagation(); onToggleSelect(); }}
+            accessibilityLabel="Select sale transaction"
+            accessibilityRole="checkbox"
+          >
+            <Center w={28} h={28} rounded="$full" borderWidth={2} borderColor={isSelected ? "$primary600" : "$text300"} bg={isSelected ? "$primary600" : "transparent"}>
+              {isSelected && <MaterialCommunityIcons name="check" size={16} color="white" />}
             </Center>
           </Pressable>
         )}
@@ -57,20 +66,20 @@ const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, i
           <MaterialCommunityIcons name="receipt-text-outline" size={24} color="#1A237E" />
         </Center>
         <VStack flex={1} space="xs">
-          <Heading size="xs" color="$text900">
+          <Heading size="xs" color="$text900" textAlign={textAlign}>
             #{item.id.slice(-6).toUpperCase()}
           </Heading>
-          <Text size="xs" color="$text500">
+          <Text size="xs" color="$text500" textAlign={textAlign}>
             {formatDate(item.timestamp)}
           </Text>
-          <HStack space="xs" alignItems="center" mt="$1">
+          <HStack space="xs" alignItems="center" mt="$1" flexDirection={flexDir}>
             <MaterialCommunityIcons name="account-tie" size={12} color="#666" />
             <Text size="xs" color="$text600">
                 {item.staffName} ({item.staffRole})
             </Text>
           </HStack>
         </VStack>
-        <VStack alignItems="flex-end" space="xs">
+        <VStack alignItems={isRTL ? "flex-start" : "flex-end"} space="xs">
           <Text size="md" fontWeight="$black" color={item.isReverted === 1 ? "$text400" : "$text900"} style={item.isReverted === 1 ? { textDecorationLine: 'line-through' } : {}}>
             {currency}{item.totalAmount.toFixed(2)}
           </Text>
@@ -85,15 +94,19 @@ const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, i
                   onRevert(item.id);
               }}
               px="$3"
-              py="$1.5"
+              py="$2"
+              minHeight={36}
+              justifyContent="center"
               bg="$error600"
               rounded="$lg"
+              accessibilityLabel="Reverse Transaction"
+              accessibilityRole="button"
               style={getAppShadow({ offsetY: 2, radius: 4, color: 'rgba(219,68,85,0.2)' })}
               sx={{
                 ':active': { bg: '$error700' }
               }}
             >
-              <HStack space="xs" alignItems="center">
+              <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                 <Icon as={RotateCcw} color="$white" size="2xs" />
                 <Text color="$white" size="2xs" fontWeight="$bold">Reverse</Text>
               </HStack>

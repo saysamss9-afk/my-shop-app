@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, KeyboardAvoidingView, Platform, I18nManager, StatusBar } from 'react-native';
+import { KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { displayAlert } from '../../utils/alert';
 import {
   Box,
@@ -9,7 +9,6 @@ import {
   Text,
   Button,
   ButtonText,
-  ButtonIcon,
   Input,
   InputField,
   InputSlot,
@@ -18,7 +17,6 @@ import {
   FormControlLabel,
   FormControlLabelText,
   Icon,
-  ArrowLeftIcon,
   PhoneIcon,
   ChevronDownIcon,
   Menu,
@@ -32,22 +30,32 @@ import {
   Pressable,
   CheckCircleIcon,
   Center,
-  GlobeIcon,
   MailIcon,
+  Textarea,
+  TextareaInput,
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+  ActionsheetItem,
+  ActionsheetItemText,
+  ActionsheetScrollView,
+  Badge,
+  BadgeText,
 } from '@gluestack-ui/themed';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import SilkyButton from '../../components/common/SilkyButton';
 import { useAuthContext } from '../../auth/AuthContext';
 import type { StackScreenProps } from '@react-navigation/stack';
-import { User, MapPin, Globe } from 'lucide-react-native';
+import { User, MapPin, Globe, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { ShopRepository } from '../../repositories/ShopRepository';
 import { getAppShadow } from '../../utils/platformStyles';
-import { COUNTRIES, getCountryData } from '../../utils/geoData';
+import { getCountryData } from '../../utils/geoData';
 import { useTranslation } from 'react-i18next';
 import SearchableCountryPicker from '../../components/common/SearchableCountryPicker';
-import firebase from '../../firebase-config';
 
 type Props = StackScreenProps<RootStackParamList, 'ShopRequest'>;
 
@@ -86,7 +94,8 @@ const SHOP_CATEGORIES = [
     description: 'Max 3 staff including owner',
     basePrice: 100,
     color: '$blue600',
-    bg: '$blue50'
+    bg: '$blue50',
+    badgeText: 'STANDARD'
   },
   {
     id: 'BUSINESS',
@@ -94,7 +103,8 @@ const SHOP_CATEGORIES = [
     description: '4 or more staff',
     basePrice: 200,
     color: '$purple600',
-    bg: '$purple50'
+    bg: '$purple50',
+    badgeText: 'MOST POPULAR'
   },
   {
     id: 'PREMIUM',
@@ -102,7 +112,8 @@ const SHOP_CATEGORIES = [
     description: 'Shop with branches (up to 5)',
     basePrice: 300,
     color: '$amber600',
-    bg: '$amber50'
+    bg: '$amber50',
+    badgeText: 'MULTI-BRANCH'
   },
 ];
 
@@ -124,6 +135,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isCountryPickerOpen, setIsCountryPickerOpen] = useState(false);
+  const [isShopTypeSheetOpen, setIsShopTypeSheetOpen] = useState(false);
   const [email, setEmail] = useState('');
 
   const { user, isLoading: isAuthLoading } = useAuthContext();
@@ -142,20 +154,30 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
 
   const getConvertedPrice = (basePrice: number) => {
     const countryObj = getCountryData(country);
-    const rate = countryObj.rate;
+    const rate = countryObj?.rate && countryObj.rate > 0 ? countryObj.rate : 1;
     const converted = basePrice / rate;
     return converted.toFixed(2);
   };
 
   const nextStep = () => {
     if (currentStep === 1) {
-      if (!ownerName || !whatsappNumber || !shopName || !shopType || !email) {
+      if (!ownerName.trim() || !whatsappNumber.trim() || !shopName.trim() || !shopType || !email.trim()) {
         displayAlert(t('common.missing_info'), "Please fill in all fields including a valid contact email.");
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        displayAlert(t('common.error'), "Please enter a valid email address.");
+        return;
+      }
+      const cleanPhone = whatsappNumber.replace(/[^0-9+]/g, '');
+      if (cleanPhone.length < 8) {
+        displayAlert(t('common.error'), "Please enter a valid WhatsApp phone number.");
         return;
       }
     }
     if (currentStep === 2) {
-      if (!country || !location) {
+      if (!country || !location.trim()) {
         displayAlert(t('common.missing_info'), t('common.missing_info_desc'));
         return;
       }
@@ -182,19 +204,20 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
       console.log('ShopRequestScreen: Submitting shop request...', {
         shopName,
         shopCategory,
-        email
+        email,
+        userId: user?.uid || ''
       });
 
       await shopRepo.submitShopRequest({
-        userId: '',
-        userEmail: email,
-        ownerName,
-        whatsappNumber,
-        shopName,
+        userId: user?.uid || '',
+        userEmail: email.trim(),
+        ownerName: ownerName.trim(),
+        whatsappNumber: whatsappNumber.trim(),
+        shopName: shopName.trim(),
         shopType,
         shopCategory,
         registrationFee,
-        location,
+        location: location.trim(),
         country,
         currency,
       });
@@ -240,17 +263,24 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
       >
         <VStack space="md" pb="$10" pt={Math.max(insets.top, 10)}>
           <HStack justifyContent="space-between" alignItems="center" mt="$2" mb="$6">
-            <Button
-              variant="link"
+            <Pressable
               onPress={() => navigation.goBack()}
-              p="$0"
-              w="$10"
+              p="$3"
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              bg="$white"
+              rounded="$full"
+              accessibilityLabel={t('auth.back') || "Go back"}
+              accessibilityRole="button"
+              style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
             >
-              <ButtonIcon as={ArrowLeftIcon} size="xl" color="$primary800" />
-            </Button>
+              <ArrowLeft size={22} color="#111827" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
+            </Pressable>
 
             <Menu trigger={({ ...triggerProps }) => (
-                <Pressable {...triggerProps} p="$2" rounded="$full" bg="$primary50">
+                <Pressable {...triggerProps} p="$2.5" rounded="$full" bg="$primary50" minHeight={40} justifyContent="center">
                   <HStack space="xs" alignItems="center">
                     <Icon as={Globe} size="sm" color="$primary800" />
                     <Text size="xs" color="$primary800" fontWeight="$bold">{LANGUAGES.find(l => l.code === i18n.language)?.label || 'Language'}</Text>
@@ -276,7 +306,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
               {/* Step Indicator */}
               <HStack space="md" mb="$4" justifyContent="center" flexDirection={flexDir}>
                 {[1, 2, 3].map(step => (
-                  <Center key={step} w={30} h={30} rounded="$full" bg={currentStep >= step ? '$primary600' : '$backgroundLight200'}>
+                  <Center key={step} w={32} h={32} rounded="$full" bg={currentStep >= step ? '$primary600' : '$backgroundLight200'}>
                     <Text color="white" size="xs" fontWeight="$bold">{step}</Text>
                   </Center>
                 ))}
@@ -318,20 +348,20 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
 
                   <VStack space="xs">
                     <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>{t('auth.business_category')}</Text>
-                    <Menu trigger={({ ...triggerProps }) => (
-                        <Pressable {...triggerProps} borderWidth={1} borderColor="$borderLight" p="$3" rounded="$lg">
-                          <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
-                            <Text size="sm" color={shopType ? '$text900' : '$text400'}>{shopType || t('auth.select_category')}</Text>
-                            <Icon as={ChevronDownIcon} />
-                          </HStack>
-                        </Pressable>
-                      )}>
-                      {SHOP_TYPES.map(type => (
-                        <MenuItem key={type} textValue={type} onPress={() => setShopType(type)}>
-                          <MenuItemLabel size="sm">{type}</MenuItemLabel>
-                        </MenuItem>
-                      ))}
-                    </Menu>
+                    <Pressable
+                      onPress={() => setIsShopTypeSheetOpen(true)}
+                      borderWidth={1}
+                      borderColor="$borderLight"
+                      p="$3"
+                      rounded="$lg"
+                      minHeight={48}
+                      justifyContent="center"
+                    >
+                      <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+                        <Text size="sm" color={shopType ? '$text900' : '$text400'}>{shopType || t('auth.select_category')}</Text>
+                        <Icon as={ChevronDownIcon} />
+                      </HStack>
+                    </Pressable>
                   </VStack>
 
                   <Button size="lg" onPress={nextStep} borderRadius={14} bg="$primary800" mt="$4">
@@ -351,6 +381,8 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                       borderColor="$borderLight"
                       p="$3"
                       rounded="$lg"
+                      minHeight={48}
+                      justifyContent="center"
                     >
                       <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
                         <Text size="sm" color={country ? '$text900' : '$text400'}>{country || t('auth.select_country')}</Text>
@@ -375,10 +407,15 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
 
                   <FormControl isRequired>
                     <FormControlLabel style={{ flexDirection: flexDir }}><FormControlLabelText>{t('auth.business_address')}</FormControlLabelText></FormControlLabel>
-                    <Input variant="outline" size="md" borderRadius={12} style={{ flexDirection: flexDir }}>
-                      <InputSlot pl="$3"><Icon as={MapPin} size="sm" /></InputSlot>
-                      <InputField placeholder={t('auth.full_address_placeholder')} value={location} onChangeText={setLocation} multiline autoCorrect={false} textAlign={textAlign} />
-                    </Input>
+                    <Textarea size="md" borderRadius={12}>
+                      <TextareaInput
+                        placeholder={t('auth.full_address_placeholder')}
+                        value={location}
+                        onChangeText={setLocation}
+                        autoCorrect={false}
+                        textAlign={textAlign}
+                      />
+                    </Textarea>
                   </FormControl>
 
                   <HStack space="md" mt="$4" flexDirection={flexDir}>
@@ -410,6 +447,9 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                           <VStack space="xs" flex={1}>
                             <HStack space="sm" alignItems="center" flexDirection={flexDir}>
                               <Text fontWeight="$bold" color={shopCategory === cat.id ? cat.color : '$text900'}>{cat.label}</Text>
+                              <Badge size="xs" action={cat.id === 'BUSINESS' ? 'warning' : 'info'} borderRadius="$full">
+                                <BadgeText>{cat.badgeText}</BadgeText>
+                              </Badge>
                               {shopCategory === cat.id && <Icon as={CheckCircleIcon} size="xs" color={cat.color} />}
                             </HStack>
                             <Text size="xs" color="$text500" textAlign={textAlign}>{cat.description}</Text>
@@ -438,7 +478,7 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
             </VStack>
           </Box>
 
-          <HStack space="sm" mt="$8" p="$2" alignItems="center" bg="$primary50" rounded="$lg" flexDirection={flexDir}>
+          <HStack space="sm" mt="$8" p="$3" alignItems="center" bg="$primary50" rounded="$lg" flexDirection={flexDir}>
             <Icon as={User} size="xs" color="$primary800" />
             <Text size="xs" color="$primary800" flex={1} textAlign={textAlign}>
               {t('auth.admin_verify_note')}
@@ -446,6 +486,29 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
           </HStack>
         </VStack>
       </KeyboardAvoidingView>
+
+      {/* Shop Category Selection Actionsheet */}
+      <Actionsheet isOpen={isShopTypeSheetOpen} onClose={() => setIsShopTypeSheetOpen(false)}>
+        <ActionsheetBackdrop />
+        <ActionsheetContent maxHeight="70%">
+          <ActionsheetDragIndicatorWrapper>
+            <ActionsheetDragIndicator />
+          </ActionsheetDragIndicatorWrapper>
+          <ActionsheetScrollView>
+            {SHOP_TYPES.map((type) => (
+              <ActionsheetItem
+                key={type}
+                onPress={() => {
+                  setShopType(type);
+                  setIsShopTypeSheetOpen(false);
+                }}
+              >
+                <ActionsheetItemText size="sm">{type}</ActionsheetItemText>
+              </ActionsheetItem>
+            ))}
+          </ActionsheetScrollView>
+        </ActionsheetContent>
+      </Actionsheet>
 
       {/* Robust Success Modal for Web */}
       <Modal

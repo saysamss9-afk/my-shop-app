@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { SyncManager, SyncStatus } from './SyncManager';
 import { getDBConnection } from '../db/database';
 import { ProductRepository } from '../repositories/ProductRepository';
@@ -22,15 +22,17 @@ const SyncContext = createContext<SyncContextType>({
   syncManager: null,
   syncStatus: SyncStatus.Idle,
   dataChangeTick: 0,
-  triggerSync: async (shopId?: string, deepSync?: boolean) => {},
-  startRealtimeSync: (shopId: string) => {},
+  triggerSync: async () => {},
+  startRealtimeSync: () => {},
   stopRealtimeSync: () => {},
 });
 
 export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [manager, setManager] = React.useState<SyncManager | null>(null);
-  const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(SyncStatus.Idle);
-  const [dataChangeTick, setDataChangeTick] = React.useState(0);
+  const [manager, setManager] = useState<SyncManager | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(SyncStatus.Idle);
+  const [dataChangeTick, setDataChangeTick] = useState(0);
+
+  const managerRef = useRef<SyncManager | null>(null);
 
   useEffect(() => {
     let syncManager: SyncManager;
@@ -59,6 +61,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSyncStatus(syncManager.getStatus());
       });
       syncManager.initialize();
+      managerRef.current = syncManager;
       setManager(syncManager);
     };
 
@@ -72,23 +75,27 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const triggerSync = useCallback(async (shopId?: string, deepSync = false) => {
-    if (manager) {
+    if (managerRef.current) {
       setSyncStatus(SyncStatus.Syncing);
-      await manager.triggerSync(shopId);
-      setSyncStatus(manager.getStatus());
+      await managerRef.current.triggerSync(shopId);
+      setSyncStatus(managerRef.current.getStatus());
       setDataChangeTick(prev => prev + 1);
     }
-  }, [manager]);
+  }, []);
 
   const startRealtimeSync = useCallback((shopId: string) => {
-    if (manager) manager.startRealtimeSync(shopId);
-  }, [manager]);
+    if (managerRef.current) {
+      managerRef.current.startRealtimeSync(shopId);
+    }
+  }, []);
 
   const stopRealtimeSync = useCallback(() => {
-    if (manager) manager.stopRealtimeSync();
-  }, [manager]);
+    if (managerRef.current) {
+      managerRef.current.stopRealtimeSync();
+    }
+  }, []);
 
-  const contextValue = React.useMemo(() => ({
+  const contextValue = useMemo(() => ({
     syncManager: manager,
     syncStatus,
     dataChangeTick,

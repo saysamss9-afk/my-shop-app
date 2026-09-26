@@ -14,7 +14,6 @@ import {
   FabIcon,
   FabLabel,
   AddIcon,
-  ArrowLeftIcon,
   SearchIcon,
   Input,
   InputField,
@@ -30,11 +29,16 @@ import SupplierPaymentModal from './components/SupplierPaymentModal';
 import SupplierDetailModal from './components/SupplierDetailModal';
 import { getAppShadow } from '../../utils/platformStyles';
 import { SyncStatus } from '../../sync/SyncManager';
-
+import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 
 const SupplierScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  const flexDir = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
+
   const {
     suppliers, stats, isLoading, syncStatus, currency,
     addSupplier, recordPayment, triggerManualSync, getSupplierProducts, refreshSuppliers
@@ -91,20 +95,21 @@ const SupplierScreen = ({ route, navigation }: any) => {
         bg="$white"
         p="$4"
         rounded="$2xl"
-        mr="$4"
+        mr={isRTL ? "$0" : "$4"}
+        ml={isRTL ? "$4" : "$0"}
         w={160}
         style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.04)' }) }}
     >
         <VStack space="sm">
-            <HStack justifyContent="space-between" alignItems="center">
+            <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
                 <Center w={32} h={32} bg={`${color}10`} rounded="$lg">
                     <Icon as={icon} color={color} size="sm" />
                 </Center>
                 <GlueText size="2xs" color="$text400" fontWeight="$bold">{title}</GlueText>
             </HStack>
-            <VStack>
-                <Heading size="md" color="$text900" fontWeight="$black">{value}</Heading>
-                <GlueText size="2xs" color="$text500">{subValue}</GlueText>
+            <VStack alignItems={isRTL ? "flex-start" : "flex-end"}>
+                <Heading size="md" color="$text900" fontWeight="$black" textAlign={textAlign}>{value}</Heading>
+                <GlueText size="2xs" color="$text500" textAlign={textAlign}>{subValue}</GlueText>
             </VStack>
         </VStack>
     </Box>
@@ -116,30 +121,48 @@ const SupplierScreen = ({ route, navigation }: any) => {
 
       {/* Header */}
       <Box px="$4" pt={Math.max(insets.top, 10)} pb="$2">
-        <HStack justifyContent="space-between" alignItems="center" mb="$4">
-          <HStack space="md" alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
-              <ArrowLeft size={22} color="#111827" />
+        <HStack justifyContent="space-between" alignItems="center" mb="$4" flexDirection={flexDir}>
+          <HStack space="md" alignItems="center" flexDirection={flexDir}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              p="$3"
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              bg="$white"
+              rounded="$full"
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+              style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
+            >
+              <ArrowLeft size={22} color="#111827" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
             </Pressable>
             <VStack>
-              <Heading size="lg" color="$text900" fontWeight="$black">Suppliers</Heading>
-              <GlueText size="xs" color="$text500">Product Sourcing</GlueText>
+              <Heading size="lg" color="$text900" fontWeight="$black" textAlign={textAlign}>Suppliers</Heading>
+              <GlueText size="xs" color="$text500" textAlign={textAlign}>Product Sourcing</GlueText>
             </VStack>
           </HStack>
 
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" alignItems="center" flexDirection={flexDir}>
             <Pressable
                 onPress={() => navigation.navigate('PurchaseHistory', { shopId })}
-                p="$2.5"
+                p="$3"
+                minWidth={44}
+                minHeight={44}
+                justifyContent="center"
+                alignItems="center"
                 bg="$white"
                 rounded="$full"
+                accessibilityLabel="Purchase History"
+                accessibilityRole="button"
                 style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
             >
                 <History size={22} color="#4B5563" />
             </Pressable>
 
             {syncStatus === SyncStatus.Syncing ? (
-                <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
+                <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full" flexDirection={flexDir}>
                     <Spinner color="$primary600" size="small" />
                     <GlueText size="xs" color="$primary600" fontWeight="$bold">Syncing...</GlueText>
                 </HStack>
@@ -147,12 +170,16 @@ const SupplierScreen = ({ route, navigation }: any) => {
                 <Pressable
                     onPress={triggerManualSync}
                     bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
-                    px="$4"
+                    px="$3.5"
                     py="$2"
+                    minHeight={38}
+                    justifyContent="center"
                     rounded="$full"
+                    accessibilityLabel="Sync suppliers"
+                    accessibilityRole="button"
                     style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
                 >
-                    <HStack space="xs" alignItems="center">
+                    <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                         <Icon
                             as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
                             color="$white"
@@ -169,6 +196,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
 
         {/* Dashboard Horizontal Scroll */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+          <HStack flexDirection={flexDir}>
             <SummaryCard
                 title="TOTAL PAYABLE"
                 value={`${currency}${stats.totalPayable.toLocaleString()}`}
@@ -197,10 +225,11 @@ const SupplierScreen = ({ route, navigation }: any) => {
                 icon={Store}
                 color="#F59E0B"
             />
+          </HStack>
         </ScrollView>
 
         {/* Search Bar */}
-        <Input borderRadius={16} bg="$white" style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(0,0,0,0.02)' }) }}>
+        <Input borderRadius={16} bg="$white" style={{ flexDirection: flexDir, ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(0,0,0,0.02)' }) }}>
           <InputSlot pl="$3">
             <Icon as={SearchIcon} color="$text400" />
           </InputSlot>
@@ -208,6 +237,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
             placeholder="Search suppliers..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            textAlign={textAlign}
           />
           {searchQuery ? (
             <InputSlot pr="$3" onPress={() => setSearchQuery('')}>
@@ -248,6 +278,8 @@ const SupplierScreen = ({ route, navigation }: any) => {
         onPress={() => setIsModalOpen(true)}
         bg="$primary600"
         m="$6"
+        accessibilityLabel="Add New Supplier"
+        accessibilityRole="button"
         style={{ ...getAppShadow({ offsetY: 10, radius: 26, color: 'rgba(110,59,230,0.28)' }) }}
       >
         <FabIcon as={AddIcon} mr="$2" />
@@ -280,6 +312,7 @@ const SupplierScreen = ({ route, navigation }: any) => {
         supplier={selectedSupplier}
         currency={currency}
         fetchProducts={getSupplierProducts}
+        onOrderProducts={handlePurchase}
       />
     </ScreenWrapper>
   );

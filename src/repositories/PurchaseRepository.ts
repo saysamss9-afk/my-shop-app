@@ -10,13 +10,14 @@ export class PurchaseRepository {
     items: (Omit<PurchaseOrderItem, 'id' | 'purchaseOrderId'> & { barcode?: string, isNew?: boolean })[]
   ) {
     await this.db.transaction(async (tx: any) => {
+      const safeShopId = (order.shopId || '').toString().trim();
       // 1. Insert Purchase Order
       const orderQuery = `
         INSERT INTO PurchaseOrder(id, shopId, supplierId, invoiceNumber, timestamp, totalCost, amountPaid, balance, paymentStatus, syncStatus)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `;
       await tx.executeSql(orderQuery, [
-        order.id, order.shopId, order.supplierId, order.invoiceNumber,
+        order.id, safeShopId, order.supplierId, order.invoiceNumber,
         order.timestamp, order.totalCost, order.amountPaid, order.balance, order.paymentStatus
       ]);
 
@@ -36,7 +37,7 @@ export class PurchaseRepository {
             VALUES (?, ?, ?, NULL, NULL, NULL, NULL, 1, 0, 0, 'Carton', 0, ?, 0, 0, 'pcs', ?, 'DRAFT', 0)
           `;
           await tx.executeSql(newProductQuery, [
-            productId, order.shopId, item.productName, item.costPrice, order.supplierId
+            productId, safeShopId, item.productName, item.costPrice, order.supplierId
           ]);
         }
 

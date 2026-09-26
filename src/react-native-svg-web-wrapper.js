@@ -7,13 +7,15 @@ import React, { forwardRef } from 'react';
  */
 function cleanProps(props) {
   if (!props) return props;
-  const { dataSet, states, sx, ...rest } = props;
+  const { dataSet, states, sx, componentConfig, componentconfig, ...rest } = props;
   if (!dataSet || typeof dataSet !== 'object') {
     return rest;
   }
   const dataProps = {};
-  Object.keys(dataSet).forEach((key) => {
-    dataProps[`data-${key}`] = dataSet[key];
+  Object.entries(dataSet).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (key === 'componentConfig' || key === 'componentconfig') return;
+    dataProps[`data-${key}`] = value;
   });
   return { ...dataProps, ...rest };
 }

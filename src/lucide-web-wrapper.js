@@ -2,24 +2,31 @@ import * as LucideIcons from 'lucide-react-raw';
 import React, { forwardRef } from 'react';
 
 /**
- * Wraps a Lucide Icon component for React Web to filter out React Native Web specific props
- * such as `dataSet`, `states`, or `sx` that cause React DOM unknown property warnings on SVG elements.
+ * Removes Gluestack style metadata before setting props on DOM SVG elements.
+ * The generated `dataSet.componentConfig` value is not a valid DOM attribute and
+ * triggers the React warning seen in Web builds.
  */
+export function sanitizeProps(props = {}) {
+  const { dataSet, states, sx, componentConfig, componentconfig, ...restProps } = props;
+
+  const dataProps = {};
+  if (dataSet && typeof dataSet === 'object') {
+    Object.entries(dataSet).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      if (key === 'componentConfig' || key === 'componentconfig') return;
+      dataProps[`data-${key}`] = value;
+    });
+  }
+
+  return { ...dataProps, ...restProps };
+}
+
 const wrapIcon = (IconComponent) => {
   if (!IconComponent) return IconComponent;
 
   const WrappedIcon = forwardRef((props, ref) => {
-    const { dataSet, states, sx, ...restProps } = props;
-
-    // Convert dataSet object keys into valid data-* DOM attributes
-    const dataProps = {};
-    if (dataSet && typeof dataSet === 'object') {
-      Object.keys(dataSet).forEach((key) => {
-        dataProps[`data-${key}`] = dataSet[key];
-      });
-    }
-
-    return <IconComponent ref={ref} {...dataProps} {...restProps} />;
+    const sanitizedProps = sanitizeProps(props);
+    return <IconComponent ref={ref} {...sanitizedProps} />;
   });
 
   WrappedIcon.displayName = IconComponent.displayName || IconComponent.name || 'LucideIcon';
@@ -51,3 +58,4 @@ const LucideProxy = new Proxy(LucideIcons, {
 
 export default LucideProxy;
 module.exports = LucideProxy;
+module.exports.sanitizeProps = sanitizeProps;

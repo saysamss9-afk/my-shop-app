@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StatusBar } from 'react-native';
+import { ScrollView, StatusBar, useWindowDimensions } from 'react-native';
 import {
   Box,
   VStack,
@@ -14,14 +14,20 @@ import {
   Pressable,
   Center,
 } from '@gluestack-ui/themed';
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Landmark, Scale, Package, Users, Wallet, RefreshCw, AlertCircle } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Scale, Package, Users, Wallet, RefreshCw, AlertCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { getAppShadow } from '../../utils/platformStyles';
+import { useTranslation } from 'react-i18next';
 
 const ProfitLossScreen = ({ route, navigation }: any) => {
   const { shopId, userRole } = route.params;
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  const flexDir = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
+  const { width: windowWidth } = useWindowDimensions();
 
   // Enforce access control immediately for Shop Owners only
   if (userRole !== 'OWNER') {
@@ -63,11 +69,18 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
 
   const totalRevenue = summary?.totalRevenue || 0;
   const totalExpenses = summary?.totalExpenses || 0;
-  // User requested: profit or lose which will be total accumulated sales for the month - expenditure for the month
   const netPerformance = totalRevenue - totalExpenses;
   const isPositive = netPerformance >= 0;
 
   const monthLabel = currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+  // Helper for responsive font sizing so large currency figures never clip on small screens
+  const getHeadingSize = (val: number) => {
+    const strLen = (currency + val.toFixed(2)).length;
+    if (windowWidth < 360 || strLen > 14) return "lg";
+    if (strLen > 10) return "xl";
+    return "2xl";
+  };
 
   return (
     <ScreenWrapper withHeader>
@@ -75,30 +88,43 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
 
       {/* Top App Bar Header */}
       <Box bg="$primary800" px="$4" pt={Math.max(insets.top, 10)} pb="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
-        <HStack space="md" alignItems="center" justifyContent="space-between">
-          <HStack space="md" alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$2" bg="rgba(255,255,255,0.15)" rounded="$full">
-              <ChevronLeft size={22} color="#ffffff" />
+        <HStack space="md" alignItems="center" justifyContent="space-between" flexDirection={flexDir}>
+          <HStack space="md" alignItems="center" flexDirection={flexDir}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              p="$3"
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              bg="rgba(255,255,255,0.15)"
+              rounded="$full"
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
+              <ChevronLeft size={22} color="#ffffff" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
             </Pressable>
             <VStack>
-              <Heading size="md" color="$white" fontWeight="$black">Owner Financial Audit</Heading>
-              <Text size="xs" color="$primary200">
+              <Heading size="md" color="$white" fontWeight="$black" textAlign={textAlign}>Owner Financial Audit</Heading>
+              <Text size="xs" color="$primary200" textAlign={textAlign}>
                 {snapshot?.itemCount ? `Tracking ${snapshot.itemCount} active product items` : 'Comprehensive shop performance audit'}
               </Text>
             </VStack>
           </HStack>
 
           <Pressable
-            onPress={() => {
-              console.log("ProfitLossScreen: Refresh button pressed");
-              refresh();
-            }}
+            onPress={() => refresh()}
             p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
             rounded="$full"
             bg="$primary700"
             disabled={isLoading}
+            accessibilityLabel="Refresh audit data"
+            accessibilityRole="button"
             style={{
-              cursor: 'pointer',
               opacity: isLoading ? 0.6 : 1,
               ...getAppShadow({ offsetY: 2, radius: 6, color: 'rgba(0,0,0,0.2)' })
             }}
@@ -113,14 +139,32 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
       </Box>
 
       {/* Month Selector Carousel */}
-      <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2">
-        <HStack justifyContent="space-between" alignItems="center" px="$4">
-          <Pressable p="$2" onPress={handlePrevMonth}>
-            <Icon as={ChevronLeft} color="$primary700" size="sm" />
+      <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2" mt="$2">
+        <HStack justifyContent="space-between" alignItems="center" px="$4" flexDirection={flexDir}>
+          <Pressable
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            onPress={handlePrevMonth}
+            accessibilityLabel="Previous month"
+            accessibilityRole="button"
+          >
+            <Icon as={ChevronLeft} color="$primary700" size="sm" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
           </Pressable>
           <Heading size="sm" color="$text900" fontWeight="$bold">{monthLabel}</Heading>
-          <Pressable p="$2" onPress={handleNextMonth}>
-            <Icon as={ChevronRight} color="$primary700" size="sm" />
+          <Pressable
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            onPress={handleNextMonth}
+            accessibilityLabel="Next month"
+            accessibilityRole="button"
+          >
+            <Icon as={ChevronRight} color="$primary700" size="sm" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
           </Pressable>
         </HStack>
       </Box>
@@ -148,9 +192,9 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             </Button>
         </Center>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
-          {/* Monthly Performance Hero Card */}
+          {/* Monthly Performance Hero Card - Centered Amount for No Cutoffs */}
           <Box
             bg={isPositive ? '$success600' : '$error600'}
             p="$6"
@@ -158,14 +202,28 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
             mb="$6"
             style={getAppShadow({ offsetY: 8, radius: 18, color: isPositive ? 'rgba(67,160,71,0.2)' : 'rgba(229,57,53,0.2)' })}
           >
-            <VStack space="xs" alignItems="center">
-              <Text color="$white" size="xs" fontWeight="$bold" textTransform="uppercase" opacity={0.8}>
+            <VStack space="sm" alignItems="center" justifyContent="center" w="100%">
+              <Text color="$white" size="xs" fontWeight="$bold" textTransform="uppercase" opacity={0.8} textAlign="center">
                 {isPositive ? 'Net Monthly Surplus' : 'Net Monthly Deficit'}
               </Text>
-              <Heading color="$white" size="2xl" fontWeight="$black">
-                {isPositive ? '' : '-'}{currency}{Math.abs(netPerformance).toFixed(2)}
-              </Heading>
-              <Text color="$white" size="xs" opacity={0.9}>
+
+              {/* CENTERED DYNAMIC AMOUNT DISPLAY */}
+              <Box w="100%" alignItems="center" justifyContent="center" px="$2">
+                <Heading
+                  color="$white"
+                  size={getHeadingSize(Math.abs(netPerformance))}
+                  fontWeight="$black"
+                  textAlign="center"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.55}
+                  style={{ alignSelf: 'center', width: '100%' }}
+                >
+                  {isPositive ? '' : '-'}{currency}{Math.abs(netPerformance).toFixed(2)}
+                </Heading>
+              </Box>
+
+              <Text color="$white" size="xs" opacity={0.9} textAlign="center">
                 Based on Sales vs Expenditures for {monthLabel}
               </Text>
             </VStack>
@@ -173,60 +231,84 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
 
           {/* Section: Product Valuation */}
           <VStack space="md" mb="$6">
-            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Product Valuation (Snapshot)</Heading>
+            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1" textAlign={textAlign}>Product Valuation (Snapshot)</Heading>
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
-                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
-                  <VStack flex={1} mr="$2" space="xs">
-                    <HStack space="xs" alignItems="center">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm" flexDirection={flexDir}>
+                  <VStack flex={1} mr={isRTL ? "$0" : "$2"} ml={isRTL ? "$2" : "$0"} space="xs">
+                    <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                       <Icon as={Package} color="$primary600" size="sm" />
-                      <Text size="sm" fontWeight="$bold" color="$text900">Total Stock Cost Value</Text>
+                      <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>Total Stock Cost Value</Text>
                     </HStack>
-                    <Text size="xs" color="$text400">Capital locked in current products</Text>
+                    <Text size="xs" color="$text400" textAlign={textAlign}>Capital locked in current products</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$text900" textAlign="right" flexShrink={0}>
+                  <Text
+                    size="sm"
+                    fontWeight="$bold"
+                    color="$text900"
+                    textAlign="center"
+                    flexShrink={1}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{ width: '100%' }}
+                  >
                     {currency}{(snapshot?.totalStockCostValue || 0).toFixed(2)}
                   </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
-                  <VStack flex={1} mr="$2" space="xs">
-                    <HStack space="xs" alignItems="center">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm" flexDirection={flexDir}>
+                  <VStack flex={1} mr={isRTL ? "$0" : "$2"} ml={isRTL ? "$2" : "$0"} space="xs">
+                    <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                       <Icon as={TrendingUp} color="$success600" size="sm" />
-                      <Text size="sm" fontWeight="$bold" color="$text900">Total Expected Sales Value</Text>
+                      <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>Total Expected Sales Value</Text>
                     </HStack>
-                    <Text size="xs" color="$text400">Revenue if all stock is sold at current price</Text>
+                    <Text size="xs" color="$text400" textAlign={textAlign}>Revenue if all stock is sold at current price</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$success700" textAlign="right" flexShrink={0}>
+                  <Text
+                    size="sm"
+                    fontWeight="$bold"
+                    color="$success700"
+                    textAlign="center"
+                    flexShrink={1}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{ width: '100%' }}
+                  >
                     {currency}{(snapshot?.totalStockSellingValue || 0).toFixed(2)}
                   </Text>
                 </HStack>
                 <Divider />
 
-                {/* Sub-breakdown for Units and Bulk */}
-                <HStack p="$4" bg="$backgroundLight50" space="md">
-                  <VStack flex={1} space="xs">
-                    <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Unit Items Only</Text>
-                    <HStack justifyContent="space-between" alignItems="center">
-                      <Text size="xs" color="$text600">Cost:</Text>
-                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.unitStockCostValue || 0).toFixed(2)}</Text>
-                    </HStack>
-                    <HStack justifyContent="space-between" alignItems="center">
-                      <Text size="xs" color="$text600">Expected:</Text>
-                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.unitStockSellingValue || 0).toFixed(2)}</Text>
-                    </HStack>
+                {/* Sub-breakdown for Units and Bulk - Centered Amounts */}
+                <HStack p="$4" bg="$backgroundLight50" space="md" flexDirection={flexDir}>
+                  <VStack flex={1} space="xs" alignItems="center">
+                    <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase" textAlign="center">Unit Items Only</Text>
+                    <VStack w="100%" space="xs">
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <Text size="xs" color="$text600">Cost:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.unitStockCostValue || 0).toFixed(2)}</Text>
+                      </HStack>
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <Text size="xs" color="$text600">Expected:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.unitStockSellingValue || 0).toFixed(2)}</Text>
+                      </HStack>
+                    </VStack>
                   </VStack>
                   <Box w={1} bg="$borderLight" />
-                  <VStack flex={1} space="xs">
-                    <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase">Bulk Items Only</Text>
-                    <HStack justifyContent="space-between" alignItems="center">
-                      <Text size="xs" color="$text600">Cost:</Text>
-                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.bulkStockCostValue || 0).toFixed(2)}</Text>
-                    </HStack>
-                    <HStack justifyContent="space-between" alignItems="center">
-                      <Text size="xs" color="$text600">Expected:</Text>
-                      <Text size="xs" fontWeight="$bold" textAlign="right" flexShrink={0}>{currency}{(snapshot?.bulkStockSellingValue || 0).toFixed(2)}</Text>
-                    </HStack>
+                  <VStack flex={1} space="xs" alignItems="center">
+                    <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase" textAlign="center">Bulk Items Only</Text>
+                    <VStack w="100%" space="xs">
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <Text size="xs" color="$text600">Cost:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.bulkStockCostValue || 0).toFixed(2)}</Text>
+                      </HStack>
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <Text size="xs" color="$text600">Expected:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.bulkStockSellingValue || 0).toFixed(2)}</Text>
+                      </HStack>
+                    </VStack>
                   </VStack>
                 </HStack>
               </VStack>
@@ -235,31 +317,51 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
 
           {/* Section: Debts & Liabilities */}
           <VStack space="md" mb="$6">
-            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Financial Liabilities & Receivables</Heading>
+            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1" textAlign={textAlign}>Financial Liabilities & Receivables</Heading>
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
-                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
-                  <VStack flex={1} mr="$2" space="xs">
-                    <HStack space="xs" alignItems="center">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm" flexDirection={flexDir}>
+                  <VStack flex={1} mr={isRTL ? "$0" : "$2"} ml={isRTL ? "$2" : "$0"} space="xs">
+                    <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                       <Icon as={Wallet} color="$error600" size="sm" />
-                      <Text size="sm" fontWeight="$bold" color="$text900">Owed to Suppliers</Text>
+                      <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>Owed to Suppliers</Text>
                     </HStack>
-                    <Text size="xs" color="$text400">Total accounts payable</Text>
+                    <Text size="xs" color="$text400" textAlign={textAlign}>Total accounts payable</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$error700" textAlign="right" flexShrink={0}>
+                  <Text
+                    size="sm"
+                    fontWeight="$bold"
+                    color="$error700"
+                    textAlign="center"
+                    flexShrink={1}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{ width: '100%' }}
+                  >
                     {currency}{(snapshot?.totalSupplierDebt || 0).toFixed(2)}
                   </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
-                  <VStack flex={1} mr="$2" space="xs">
-                    <HStack space="xs" alignItems="center">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm" flexDirection={flexDir}>
+                  <VStack flex={1} mr={isRTL ? "$0" : "$2"} ml={isRTL ? "$2" : "$0"} space="xs">
+                    <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                       <Icon as={Users} color="$info600" size="sm" />
-                      <Text size="sm" fontWeight="$bold" color="$text900">Owed by Customers</Text>
+                      <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>Owed by Customers</Text>
                     </HStack>
-                    <Text size="xs" color="$text400">Total accounts receivable</Text>
+                    <Text size="xs" color="$text400" textAlign={textAlign}>Total accounts receivable</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$info700" textAlign="right" flexShrink={0}>
+                  <Text
+                    size="sm"
+                    fontWeight="$bold"
+                    color="$info700"
+                    textAlign="center"
+                    flexShrink={1}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{ width: '100%' }}
+                  >
                     {currency}{(snapshot?.totalCustomerDebt || 0).toFixed(2)}
                   </Text>
                 </HStack>
@@ -269,35 +371,67 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
 
           {/* Section: Periodic Summary */}
           <VStack space="md">
-            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1">Monthly Summary Breakdown</Heading>
+            <Heading size="xs" color="$text500" textTransform="uppercase" px="$1" textAlign={textAlign}>Monthly Summary Breakdown</Heading>
             <Box bg="$white" rounded="$2xl" borderWidth={1} borderColor="$borderLight" overflow="hidden" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.02)' })}>
               <VStack>
-                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
-                  <VStack flex={1} mr="$2" space="xs">
-                    <Text size="sm" fontWeight="$bold" color="$text900">Accumulated Sales</Text>
-                    <Text size="xs" color="$text400">Total cash/credit turnover this month</Text>
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm" flexDirection={flexDir}>
+                  <VStack flex={1} mr={isRTL ? "$0" : "$2"} ml={isRTL ? "$2" : "$0"} space="xs">
+                    <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>Accumulated Sales</Text>
+                    <Text size="xs" color="$text400" textAlign={textAlign}>Total cash/credit turnover this month</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$text900" textAlign="right" flexShrink={0}>
+                  <Text
+                    size="sm"
+                    fontWeight="$bold"
+                    color="$text900"
+                    textAlign="center"
+                    flexShrink={1}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{ width: '100%' }}
+                  >
                     {currency}{totalRevenue.toFixed(2)}
                   </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm">
-                  <VStack flex={1} mr="$2" space="xs">
-                    <HStack space="xs" alignItems="center">
+                <HStack p="$4" justifyContent="space-between" alignItems="center" space="sm" flexDirection={flexDir}>
+                  <VStack flex={1} mr={isRTL ? "$0" : "$2"} ml={isRTL ? "$2" : "$0"} space="xs">
+                    <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                       <Icon as={TrendingDown} color="$error600" size="sm" />
-                      <Text size="sm" fontWeight="$bold" color="$text900">Total Expenditure</Text>
+                      <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>Total Expenditure</Text>
                     </HStack>
-                    <Text size="xs" color="$text400">Operating costs & overheads this month</Text>
+                    <Text size="xs" color="$text400" textAlign={textAlign}>Operating costs & overheads this month</Text>
                   </VStack>
-                  <Text size="md" fontWeight="$bold" color="$error700" textAlign="right" flexShrink={0}>
+                  <Text
+                    size="sm"
+                    fontWeight="$bold"
+                    color="$error700"
+                    textAlign="center"
+                    flexShrink={1}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{ width: '100%' }}
+                  >
                     -{currency}{totalExpenses.toFixed(2)}
                   </Text>
                 </HStack>
                 <Divider />
-                <HStack p="$4" bg="$backgroundLight50" justifyContent="space-between" alignItems="center" space="sm">
-                  <Text size="sm" fontWeight="$black" color="$text900" flex={1} mr="$2">Monthly Net Result</Text>
-                  <Text size="md" fontWeight="$black" color={isPositive ? '$success700' : '$error700'} textAlign="right" flexShrink={0}>
+                <HStack p="$4" bg="$backgroundLight50" justifyContent="space-between" alignItems="center" space="sm" flexDirection={flexDir}>
+                  <Text size="sm" fontWeight="$black" color="$text900" flex={1} mr={isRTL ? "$0" : "$2"} ml={isRTL ? "$2" : "$0"} textAlign={textAlign}>
+                    Monthly Net Result
+                  </Text>
+                  <Text
+                    size="md"
+                    fontWeight="$black"
+                    color={isPositive ? '$success700' : '$error700'}
+                    textAlign="center"
+                    flexShrink={1}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                    style={{ width: '100%' }}
+                  >
                     {isPositive ? '+' : '-'}{currency}{Math.abs(netPerformance).toFixed(2)}
                   </Text>
                 </HStack>

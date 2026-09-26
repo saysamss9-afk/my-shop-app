@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, FlatList, StatusBar, Modal, Alert } from 'react-native';
+import { ScrollView, FlatList, StatusBar, Modal } from 'react-native';
 import {
   Box,
   VStack,
@@ -13,7 +13,6 @@ import {
   Input,
   InputField,
   Spinner,
-  Divider,
   Pressable,
   AddIcon,
   TrashIcon,
@@ -26,6 +25,7 @@ import { useExpenses } from '../../hooks/useExpenses';
 import { getAppShadow } from '../../utils/platformStyles';
 import { displayAlert } from '../../utils/alert';
 import type { Expense } from '../../db/types';
+import { useTranslation } from 'react-i18next';
 
 const CATEGORIES = [
   { id: 'Salaries', label: 'Salaries', icon: Briefcase, color: '#43A047', bgColor: '#E8F5E9' },
@@ -38,6 +38,10 @@ const CATEGORIES = [
 const ExpenseManagementScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
   const { expenses, isLoading, currency, addExpense, deleteExpense } = useExpenses(shopId);
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  const flexDir = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [modalVisible, setModalVisible] = useState(false);
@@ -97,24 +101,33 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
     const cat = CATEGORIES.find(c => c.id === item.category) || CATEGORIES[4];
     return (
       <Box bg="$white" p="$4" rounded="$xl" mb="$3" style={getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.03)' })}>
-        <HStack justifyContent="space-between" alignItems="center">
-          <HStack space="md" alignItems="center">
+        <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+          <HStack space="md" alignItems="center" flexDirection={flexDir}>
             <Box bg={cat.bgColor} p="$2.5" rounded="$xl">
               <Icon as={cat.icon} color={cat.color} size="md" />
             </Box>
             <VStack space="xs">
-              <Text size="sm" fontWeight="$bold" color="$text900">{item.category}</Text>
+              <Text size="sm" fontWeight="$bold" color="$text900" textAlign={textAlign}>{item.category}</Text>
               {item.description ? (
-                <Text size="xs" color="$text500">{item.description}</Text>
+                <Text size="xs" color="$text500" textAlign={textAlign}>{item.description}</Text>
               ) : null}
-              <Text size="2xs" color="$text400">
+              <Text size="2xs" color="$text400" textAlign={textAlign}>
                 {new Date(item.timestamp).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
               </Text>
             </VStack>
           </HStack>
-          <HStack space="md" alignItems="center">
+          <HStack space="md" alignItems="center" flexDirection={flexDir}>
             <Text size="md" fontWeight="$bold" color="$error700">-{currency}{item.amount.toFixed(2)}</Text>
-            <Pressable onPress={() => deleteExpense(item.id)}>
+            <Pressable
+              onPress={() => deleteExpense(item.id)}
+              p="$3"
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              accessibilityLabel="Delete expense"
+              accessibilityRole="button"
+            >
               <Icon as={TrashIcon} color="$text400" size="sm" />
             </Pressable>
           </HStack>
@@ -129,26 +142,55 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
 
       {/* Header */}
       <Box bg="$primary800" px="$4" pt={Math.max(insets.top, 10)} pb="$4" rounded="$2xl" mx="$4" mt="$2" style={getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.1)' })}>
-        <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()} p="$2" bg="rgba(255,255,255,0.15)" rounded="$full">
-            <ChevronLeft size={22} color="#ffffff" />
+        <HStack space="md" alignItems="center" flexDirection={flexDir}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            bg="rgba(255,255,255,0.15)"
+            rounded="$full"
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
+            <ChevronLeft size={22} color="#ffffff" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
           </Pressable>
           <VStack>
-            <Heading size="md" color="$white" fontWeight="$black">Expenditure Ledger</Heading>
-            <Text size="2xs" color="$primary200">Track company spendings and costs</Text>
+            <Heading size="md" color="$white" fontWeight="$black" textAlign={textAlign}>Expenditure Ledger</Heading>
+            <Text size="2xs" color="$primary200" textAlign={textAlign}>Track company spendings and costs</Text>
           </VStack>
         </HStack>
       </Box>
 
       {/* Month Navigator Switcher */}
-      <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2">
-        <HStack justifyContent="space-between" alignItems="center" px="$4">
-          <Pressable p="$2" onPress={handlePrevMonth}>
-            <Icon as={ChevronLeft} color="$primary700" size="sm" />
+      <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2" mt="$2">
+        <HStack justifyContent="space-between" alignItems="center" px="$4" flexDirection={flexDir}>
+          <Pressable
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            onPress={handlePrevMonth}
+            accessibilityLabel="Previous month"
+            accessibilityRole="button"
+          >
+            <Icon as={ChevronLeft} color="$primary700" size="sm" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
           </Pressable>
           <Heading size="sm" color="$text900" fontWeight="$bold">{monthLabel}</Heading>
-          <Pressable p="$2" onPress={handleNextMonth}>
-            <Icon as={ChevronRight} color="$primary700" size="sm" />
+          <Pressable
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            onPress={handleNextMonth}
+            accessibilityLabel="Next month"
+            accessibilityRole="button"
+          >
+            <Icon as={ChevronRight} color="$primary700" size="sm" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
           </Pressable>
         </HStack>
       </Box>
@@ -156,15 +198,24 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
       {/* Total Overview Hero */}
       <Box bg="$white" p="$5" m="$4" rounded="$2xl" style={getAppShadow({ offsetY: 6, radius: 16, color: 'rgba(0,0,0,0.04)' })}>
         <VStack space="xs" alignItems="center" py="$2">
-          <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Monthly Budget Spent</Text>
-          <Heading size="2xl" color="$error700" fontWeight="$black">{currency}{totalSpent.toFixed(2)}</Heading>
+          <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase" textAlign="center">Monthly Budget Spent</Text>
+          <Heading size="2xl" color="$error700" fontWeight="$black" textAlign="center" numberOfLines={1}>{currency}{totalSpent.toFixed(2)}</Heading>
         </VStack>
       </Box>
 
       {/* Expense List Header */}
-      <HStack justifyContent="space-between" alignItems="center" px="$5" mb="$2">
-        <Heading size="xs" color="$text500" textTransform="uppercase">Transaction History</Heading>
-        <Button size="xs" action="primary" bg="$primary700" borderRadius={8} onPress={() => setModalVisible(true)}>
+      <HStack justifyContent="space-between" alignItems="center" px="$5" mb="$2" flexDirection={flexDir}>
+        <Heading size="xs" color="$text500" textTransform="uppercase" textAlign={textAlign}>Transaction History</Heading>
+        <Button
+          size="xs"
+          action="primary"
+          bg="$primary700"
+          borderRadius={8}
+          minHeight={36}
+          onPress={() => setModalVisible(true)}
+          accessibilityLabel="Add New Expense"
+          accessibilityRole="button"
+        >
           <ButtonIcon as={AddIcon} mr="$1" />
           <ButtonText size="xs" fontWeight="$bold">Add New</ButtonText>
         </Button>
@@ -198,18 +249,18 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
         <Box flex={1} bg="rgba(0,0,0,0.5)" justifyContent="flex-end">
           <Box bg="$white" borderTopLeftRadius={24} borderTopRightRadius={24} p="$6" pb="$8">
             <VStack space="xl">
-              <HStack justifyContent="space-between" alignItems="center">
-                <Heading size="md" color="$text900" fontWeight="$black">Record Expenditure</Heading>
-                <Pressable onPress={() => setModalVisible(false)}>
+              <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+                <Heading size="md" color="$text900" fontWeight="$black" textAlign={textAlign}>Record Expenditure</Heading>
+                <Pressable onPress={() => setModalVisible(false)} p="$2" minWidth={44} minHeight={44} justifyContent="center" alignItems="center">
                   <Text size="sm" color="$text500" fontWeight="$medium">Cancel</Text>
                 </Pressable>
               </HStack>
 
               {/* Category Picker Selector */}
               <VStack space="xs">
-                <Text size="xs" fontWeight="$bold" color="$text700">Select Category</Text>
+                <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Select Category</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <HStack space="xs" pb="$2">
+                  <HStack space="xs" pb="$2" flexDirection={flexDir}>
                     {CATEGORIES.map(c => {
                       const isSelected = selectedCategory === c.id;
                       return (
@@ -224,6 +275,8 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
                           rounded="$xl"
                           alignItems="center"
                           minWidth={110}
+                          accessibilityLabel={`Category ${c.label}`}
+                          accessibilityRole="button"
                         >
                           <Icon as={c.icon} color={isSelected ? c.color : '$text400'} size="sm" mb="$1" />
                           <Text size="2xs" fontWeight="$bold" color={isSelected ? '$text900' : '$text500'}>{c.label}</Text>
@@ -236,25 +289,27 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
 
               {/* Amount Input */}
               <VStack space="xs">
-                <Text size="xs" fontWeight="$bold" color="$text700">Amount ({currency})</Text>
-                <Input variant="outline" size="md" borderRadius={12}>
+                <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Amount ({currency})</Text>
+                <Input variant="outline" size="md" borderRadius={12} style={{ flexDirection: flexDir }}>
                   <InputField
                     placeholder="0.00"
                     keyboardType="numeric"
                     value={amount}
                     onChangeText={setAmount}
+                    textAlign={textAlign}
                   />
                 </Input>
               </VStack>
 
               {/* Note/Description Input */}
               <VStack space="xs">
-                <Text size="xs" fontWeight="$bold" color="$text700">Description / Note</Text>
-                <Input variant="outline" size="md" borderRadius={12}>
+                <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Description / Note</Text>
+                <Input variant="outline" size="md" borderRadius={12} style={{ flexDirection: flexDir }}>
                   <InputField
                     placeholder="e.g. Electricity bill, Staff bonus..."
                     value={description}
                     onChangeText={setDescription}
+                    textAlign={textAlign}
                   />
                 </Input>
               </VStack>
@@ -267,6 +322,8 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
                 borderRadius={14}
                 onPress={handleAddExpense}
                 disabled={isSubmitting}
+                accessibilityLabel="Save Expenditure"
+                accessibilityRole="button"
               >
                 {isSubmitting ? <Spinner color="$white" mr="$2" /> : null}
                 <ButtonText fontWeight="$bold">Save Expenditure</ButtonText>

@@ -43,7 +43,7 @@ export const useAnalytics = (shopId: string) => {
       const db = await getDBConnection();
       const analyticsRepo = new AnalyticsRepository(db);
 
-      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE TRIM(id) = ?', [safeShopId]);
+      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE TRIM(LOWER(id)) = TRIM(LOWER(?)) OR id = ? OR TRIM(id) = ?', [safeShopId, safeShopId, safeShopId]);
       if (shopResults[0]?.rows?.length > 0) {
         const item = shopResults[0].rows.item ? shopResults[0].rows.item(0) : shopResults[0].rows[0];
         setCurrency(item?.currency || '$');

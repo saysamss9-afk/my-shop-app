@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FlatList, StatusBar, Pressable, ScrollView } from 'react-native';
+import { FlatList, StatusBar, ScrollView } from 'react-native';
 import {
   Box,
   VStack,
@@ -9,12 +9,12 @@ import {
   Icon,
   Spinner,
   Center,
-  ArrowLeftIcon,
   Input,
   InputField,
   InputSlot,
   Badge,
   BadgeText,
+  Pressable,
 } from '@gluestack-ui/themed';
 import { RefreshCw, ArrowLeft } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -23,6 +23,7 @@ import { useDailyReport } from '../../hooks/useDailyReport';
 import { getAppShadow, isWeb } from '../../utils/platformStyles';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import { SyncStatus } from '../../sync/SyncManager';
+import { useTranslation } from 'react-i18next';
 
 const formatDate = (date: Date): string => {
   const y = date.getFullYear();
@@ -33,6 +34,11 @@ const formatDate = (date: Date): string => {
 
 const DailyReportScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  const flexDir = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
+
   const [selectedDate, setSelectedDate] = useState(() => formatDate(new Date()));
 
   const { reportData, currency, isLoading, syncStatus, dataChangeTick, loadReport, triggerManualSync } = useDailyReport(shopId);
@@ -67,13 +73,13 @@ const DailyReportScreen = ({ route, navigation }: any) => {
       borderBottomWidth={1}
       borderColor="$borderLight"
     >
-      <HStack space="sm" alignItems="center" py="$3" px="$3" minWidth={580}>
+      <HStack space="sm" alignItems="center" py="$3" px="$3" minWidth={580} flexDirection={flexDir}>
         {/* Item Name & ID */}
         <VStack w={180} space="xs">
-          <Text size="xs" color={item.productId === 'DEBT_PAYMENT' ? "$success700" : "$text900"} fontWeight="$bold" numberOfLines={2}>
+          <Text size="xs" color={item.productId === 'DEBT_PAYMENT' ? "$success700" : "$text900"} fontWeight="$bold" numberOfLines={2} textAlign={textAlign}>
             {item.productName}
           </Text>
-          <Text size="2xs" color="$text400">
+          <Text size="2xs" color="$text400" textAlign={textAlign}>
             ID: {item.productId.slice(-6).toUpperCase()}
           </Text>
         </VStack>
@@ -100,7 +106,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         </Box>
 
         {/* Revenue */}
-        <Box w={135} alignItems="flex-end" pr="$2">
+        <Box w={135} alignItems={isRTL ? "flex-start" : "flex-end"} pr="$2">
           {item.isOnCredit === 1 ? (
             <Badge action="error" variant="solid" size="sm" rounded="$md">
               <BadgeText size="2xs" fontWeight="$bold">ON CREDIT</BadgeText>
@@ -113,7 +119,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
         </Box>
 
         {/* Remaining Stock */}
-        <Box w={100} alignItems="flex-end">
+        <Box w={100} alignItems={isRTL ? "flex-start" : "flex-end"}>
           <Text
             size="xs"
             fontWeight="$bold"
@@ -132,26 +138,44 @@ const DailyReportScreen = ({ route, navigation }: any) => {
 
       {/* Header */}
       <Box pt={Math.max(insets.top, 10)} pb="$3" px="$4">
-        <HStack justifyContent="space-between" alignItems="center">
-          <HStack space="md" alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
-              <ArrowLeft size={22} color="#111827" />
+        <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+          <HStack space="md" alignItems="center" flexDirection={flexDir}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              p="$3"
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              bg="$white"
+              rounded="$full"
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+              style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
+            >
+              <ArrowLeft size={22} color="#111827" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
             </Pressable>
             <VStack>
-              <Heading size="lg" color="$text900" fontWeight="$black">Daily Item Sales</Heading>
-              <Text size="xs" color="$text500">Performance report per item</Text>
+              <Heading size="lg" color="$text900" fontWeight="$black" textAlign={textAlign}>Daily Item Sales</Heading>
+              <Text size="xs" color="$text500" textAlign={textAlign}>Performance report per item</Text>
             </VStack>
           </HStack>
 
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" alignItems="center" flexDirection={flexDir}>
             {syncStatus === SyncStatus.Syncing ? (
               <Spinner color="$primary600" size="small" />
             ) : (
               <Pressable
                 onPress={() => triggerManualSync()}
-                p="$2"
+                p="$3"
+                minWidth={44}
+                minHeight={44}
+                justifyContent="center"
+                alignItems="center"
                 rounded="$full"
                 bg="$white"
+                accessibilityLabel="Sync report"
+                accessibilityRole="button"
                 style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
               >
                 <Icon as={RefreshCw} color="$primary600" size="sm" />
@@ -164,22 +188,31 @@ const DailyReportScreen = ({ route, navigation }: any) => {
       {/* Robust Date Selector Section */}
       <Box px="$4" pb="$4">
         <VStack space="sm">
-          <HStack space="xs" alignItems="center">
+          <HStack space="xs" alignItems="center" flexDirection={flexDir}>
             {/* Prev Day Button */}
-            <Pressable onPress={() => changeDateByDays(-1)}>
+            <Pressable
+              onPress={() => changeDateByDays(-1)}
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              accessibilityLabel="Previous day"
+              accessibilityRole="button"
+            >
               <Box bg="$white" p="$2.5" rounded="$xl" borderWidth={1} borderColor="$borderLight" style={getAppShadow({ offsetY: 2, radius: 6, color: 'rgba(0,0,0,0.03)' })}>
-                <MaterialCommunityIcons name="chevron-left" size={20} color="#333" />
+                <MaterialCommunityIcons name={isRTL ? "chevron-right" : "chevron-left"} size={20} color="#333" />
               </Box>
             </Pressable>
 
             {/* Date Input Container */}
             <Box flex={1}>
-              <Input variant="outline" size="md" borderRadius={12} bg="$white">
+              <Input variant="outline" size="md" borderRadius={12} bg="$white" style={{ flexDirection: flexDir }}>
                 <InputField
                   placeholder="YYYY-MM-DD"
                   value={selectedDate}
                   onChangeText={setSelectedDate}
                   keyboardType="numeric"
+                  textAlign={textAlign}
                 />
                 {isWeb ? (
                   <InputSlot style={{ paddingRight: 8 }}>
@@ -205,22 +238,42 @@ const DailyReportScreen = ({ route, navigation }: any) => {
             </Box>
 
             {/* Next Day Button */}
-            <Pressable onPress={() => changeDateByDays(1)}>
+            <Pressable
+              onPress={() => changeDateByDays(1)}
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              accessibilityLabel="Next day"
+              accessibilityRole="button"
+            >
               <Box bg="$white" p="$2.5" rounded="$xl" borderWidth={1} borderColor="$borderLight" style={getAppShadow({ offsetY: 2, radius: 6, color: 'rgba(0,0,0,0.03)' })}>
-                <MaterialCommunityIcons name="chevron-right" size={20} color="#333" />
+                <MaterialCommunityIcons name={isRTL ? "chevron-left" : "chevron-right"} size={20} color="#333" />
               </Box>
             </Pressable>
           </HStack>
 
           {/* Date Quick Action Presets */}
-          <HStack space="xs" justifyContent="flex-end">
-            <Pressable onPress={setYesterday}>
-              <Box bg="$backgroundLight100" px="$3" py="$1.5" rounded="$lg">
+          <HStack space="xs" justifyContent={isRTL ? "flex-start" : "flex-end"} flexDirection={flexDir}>
+            <Pressable
+              onPress={setYesterday}
+              minHeight={36}
+              justifyContent="center"
+              accessibilityLabel="Yesterday"
+              accessibilityRole="button"
+            >
+              <Box bg="$backgroundLight100" px="$3" py="$2" rounded="$lg">
                 <Text size="2xs" color="$text700" fontWeight="$bold">Yesterday</Text>
               </Box>
             </Pressable>
-            <Pressable onPress={setToday}>
-              <Box bg="$primary600" px="$3" py="$1.5" rounded="$lg">
+            <Pressable
+              onPress={setToday}
+              minHeight={36}
+              justifyContent="center"
+              accessibilityLabel="Today"
+              accessibilityRole="button"
+            >
+              <Box bg="$primary600" px="$3" py="$2" rounded="$lg">
                 <Text size="2xs" color="white" fontWeight="$bold">Today</Text>
               </Box>
             </Pressable>
@@ -230,13 +283,13 @@ const DailyReportScreen = ({ route, navigation }: any) => {
 
       {/* Summary Banner */}
       <Box bg="$white" px="$5" py="$3" borderBottomWidth={1} borderColor="$borderLight" mb="$2">
-        <HStack justifyContent="space-between" alignItems="center">
+        <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
           <VStack>
-            <Text size="xs" color="$text500" fontWeight="$bold">TOTAL ITEMS SOLD</Text>
-            <Heading size="md" color="$text900">{reportData.length} Products</Heading>
+            <Text size="xs" color="$text500" fontWeight="$bold" textAlign={textAlign}>TOTAL ITEMS SOLD</Text>
+            <Heading size="md" color="$text900" textAlign={textAlign}>{reportData.length} Products</Heading>
           </VStack>
-          <VStack alignItems="flex-end">
-            <Text size="xs" color="$text500" fontWeight="$bold">TOTAL REVENUE</Text>
+          <VStack alignItems={isRTL ? "flex-start" : "flex-end"}>
+            <Text size="xs" color="$text500" fontWeight="$bold" textAlign={textAlign}>TOTAL REVENUE</Text>
             <Heading size="md" color="$primary800">
               {currency}{reportData.reduce((acc, curr) => acc + (curr.isOnCredit === 1 ? 0 : curr.totalRevenue), 0).toFixed(2)}
             </Heading>
@@ -255,12 +308,12 @@ const DailyReportScreen = ({ route, navigation }: any) => {
             <VStack flex={1} minWidth={580}>
               {/* Table Header */}
               <Box bg="$primary800" py="$2.5" px="$3">
-                <HStack space="sm" alignItems="center">
-                  <Text w={180} size="2xs" color="white" fontWeight="$bold">ITEM (ID)</Text>
+                <HStack space="sm" alignItems="center" flexDirection={flexDir}>
+                  <Text w={180} size="2xs" color="white" fontWeight="$bold" textAlign={textAlign}>ITEM (ID)</Text>
                   <Text w={70} size="2xs" color="white" fontWeight="$bold" textAlign="center">TYPE</Text>
                   <Text w={65} size="2xs" color="white" fontWeight="$bold" textAlign="center">QTY</Text>
-                  <Text w={135} size="2xs" color="white" fontWeight="$bold" textAlign="right" pr="$2">REVENUE</Text>
-                  <Text w={100} size="2xs" color="white" fontWeight="$bold" textAlign="right">STOCK</Text>
+                  <Text w={135} size="2xs" color="white" fontWeight="$bold" textAlign={isRTL ? "left" : "right"} pr="$2">REVENUE</Text>
+                  <Text w={100} size="2xs" color="white" fontWeight="$bold" textAlign={isRTL ? "left" : "right"}>STOCK</Text>
                 </HStack>
               </Box>
 

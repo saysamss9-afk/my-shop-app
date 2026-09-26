@@ -26,10 +26,12 @@ export class ProductRepository {
 
   async getProductByBarcode(barcode: string, shopId: string): Promise<Product | null> {
     if (!barcode) return null;
-    const query = 'SELECT * FROM Product WHERE (barcode = ? OR bulkBarcode = ?) AND shopId = ? AND status != "DELETED" LIMIT 1';
-    const results = await this.db.executeSql(query, [barcode, barcode, shopId]);
-    if (results[0].rows.length > 0) {
-      return results[0].rows.item(0);
+    const safeShopId = (shopId || '').toString().trim();
+    const query = 'SELECT * FROM Product WHERE (barcode = ? OR bulkBarcode = ?) AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?) AND status != "DELETED" LIMIT 1';
+    const results = await this.db.executeSql(query, [barcode, barcode, safeShopId, shopId]);
+    const rows = results[0]?.rows;
+    if (rows && rows.length > 0) {
+      return rows.item ? rows.item(0) : rows[0];
     }
     return null;
   }
@@ -37,31 +39,42 @@ export class ProductRepository {
   async getProductById(id: string): Promise<Product | null> {
     const query = 'SELECT * FROM Product WHERE id = ?';
     const results = await this.db.executeSql(query, [id]);
-    if (results[0].rows.length > 0) {
-      return results[0].rows.item(0);
+    const rows = results[0]?.rows;
+    if (rows && rows.length > 0) {
+      return rows.item ? rows.item(0) : rows[0];
     }
     return null;
   }
 
   async getProductsByShop(shopId: string): Promise<Product[]> {
-    const query = 'SELECT * FROM Product WHERE shopId = ? AND status != "DELETED"';
-    const results = await this.db.executeSql(query, [shopId]);
+    const safeShopId = (shopId || '').toString().trim();
+    const query = 'SELECT * FROM Product WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?) AND status != "DELETED" ORDER BY name ASC';
+    const results = await this.db.executeSql(query, [safeShopId, shopId]);
     const products: Product[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      products.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        products.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return products;
   }
 
   async getUnsyncedProducts(shopId?: string): Promise<Product[]> {
-    const query = shopId
-      ? 'SELECT * FROM Product WHERE syncStatus = 0 AND shopId = ?'
+    const safeShopId = shopId ? (shopId || '').toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM Product WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?)'
       : 'SELECT * FROM Product WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const params = safeShopId ? [safeShopId, shopId] : [];
     const results = await this.db.executeSql(query, params);
     const products: Product[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      products.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        products.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return products;
   }
@@ -94,21 +107,22 @@ export class ProductRepository {
         bulkQuantity = ?, bulkPrice = ?, bulkUnit = ?, price = ?, costPrice = ?,
         stockQuantity = ?, bulkStockQuantity = ?,
         minStockLevel = ?, unit = ?, status = ?, syncStatus = 0
-      WHERE id = ? AND TRIM(shopId) = ?
+      WHERE id = ? AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?)
     `;
     const params = [
       product.categoryId, product.name, product.description, product.barcode, product.bulkBarcode,
       product.bulkQuantity, product.bulkPrice, product.bulkUnit || 'Carton', product.price, product.costPrice,
       product.stockQuantity, product.bulkStockQuantity,
-      product.minStockLevel, product.unit, product.status, product.id, safeShopId
+      product.minStockLevel, product.unit, product.status, product.id, safeShopId, product.shopId
     ];
     await this.db.executeSql(query, params);
   }
 
   async getLowStockCount(shopId: string): Promise<number> {
-    const query = 'SELECT COUNT(*) as total FROM Product WHERE shopId = ? AND status != "DELETED" AND stockQuantity <= minStockLevel';
-    const results = await this.db.executeSql(query, [shopId]);
-    const row = results?.[0]?.rows?.item?.(0) ?? null;
-    return Number(row?.total ?? 0);
+    const safeShopId = (shopId || '').toString().trim();
+    const query = 'SELECT COUNT(*) as total FROM Product WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?) AND status != "DELETED" AND stockQuantity <= minStockLevel';
+    const results = await this.db.executeSql(query, [safeShopId, shopId]);
+    const row = results?.[0]?.rows?.item ? results[0].rows.item(0) : (results?.[0]?.rows?.[0] ?? null);
+    return Number(row?.total ?? row?.TOTAL ?? 0);
   }
 }

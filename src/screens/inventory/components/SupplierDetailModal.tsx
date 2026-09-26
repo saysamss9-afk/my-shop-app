@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, FlatList } from 'react-native';
+import { ScrollView } from 'react-native';
 import {
   Heading,
   Icon,
@@ -28,9 +28,9 @@ import {
   MapPin,
   Wallet,
   Package,
+  Plus,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getButtonHeight } from '../../../utils/platformStyles';
 import type { Supplier, Product } from '../../../db/types';
 
 interface Props {
@@ -39,6 +39,7 @@ interface Props {
   supplier: (Supplier & { productCount: number }) | null;
   currency: string;
   fetchProducts: (id: string) => Promise<Product[]>;
+  onOrderProducts?: (supplier: Supplier) => void;
 }
 
 const SupplierDetailModal: React.FC<Props> = ({
@@ -47,6 +48,7 @@ const SupplierDetailModal: React.FC<Props> = ({
   supplier,
   currency,
   fetchProducts,
+  onOrderProducts,
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -129,7 +131,14 @@ const SupplierDetailModal: React.FC<Props> = ({
 
               <Divider my="$2" />
 
-              <Heading size="sm" fontWeight="$bold">Associated Products ({products.length})</Heading>
+              <HStack justifyContent="space-between" alignItems="center">
+                <Heading size="sm" fontWeight="$bold">Associated Products ({products.length})</Heading>
+                {onOrderProducts && (
+                  <Button size="xs" action="primary" variant="solid" bg="$primary600" borderRadius={10} onPress={() => { onClose(); onOrderProducts(supplier); }}>
+                    <ButtonText size="2xs" fontWeight="$bold">+ New Purchase</ButtonText>
+                  </Button>
+                )}
+              </HStack>
 
               {loading ? (
                 <Center py="$8">
@@ -154,7 +163,14 @@ const SupplierDetailModal: React.FC<Props> = ({
                     >
                       <VStack flex={1} mr="$2">
                         <GlueText fontWeight="$bold" color="$text900">{item.name}</GlueText>
-                        {item.barcode && <GlueText size="xs" color="$text500">Barcode: {item.barcode}</GlueText>}
+                        <HStack space="xs" alignItems="center">
+                          {item.barcode && <GlueText size="2xs" color="$text500">Barcode: {item.barcode}</GlueText>}
+                          {item.status === 'DRAFT' && (
+                            <Box bg="$warning100" px="$1.5" py="$0.5" rounded="$md">
+                              <GlueText size="2xs" color="$warning800" fontWeight="$bold">DRAFT</GlueText>
+                            </Box>
+                          )}
+                        </HStack>
                       </VStack>
                       <VStack alignItems="flex-end" flexShrink={0}>
                         <GlueText size="sm" fontWeight="$bold" color={item.stockQuantity <= item.minStockLevel ? "$error600" : "$success600"}>
@@ -170,9 +186,16 @@ const SupplierDetailModal: React.FC<Props> = ({
           </ScrollView>
         </ModalBody>
         <ModalFooter borderTopWidth={1} borderTopColor="$borderLight" pt="$3">
-          <Button action="secondary" variant="outline" onPress={onClose} borderRadius={16} w="100%">
-            <ButtonText>Close Profile</ButtonText>
-          </Button>
+          <HStack space="md" w="100%">
+            <Button action="secondary" variant="outline" onPress={onClose} borderRadius={16} flex={1}>
+              <ButtonText>Close Profile</ButtonText>
+            </Button>
+            {onOrderProducts && (
+              <Button action="primary" onPress={() => { onClose(); onOrderProducts(supplier); }} borderRadius={16} bg="$primary600" flex={1}>
+                <ButtonText fontWeight="$bold">New Purchase</ButtonText>
+              </Button>
+            )}
+          </HStack>
         </ModalFooter>
       </ModalContent>
     </Modal>

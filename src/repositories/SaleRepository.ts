@@ -121,15 +121,28 @@ export class SaleRepository {
 
   async getDetailedItemsForSale(saleId: string): Promise<any[]> {
     const query = `
-      SELECT si.*, p.name as productName, p.unit, p.bulkUnit
+      SELECT si.*, COALESCE(p.name, 'Item ' || si.productId) as productName, p.unit, p.bulkUnit
       FROM SaleItem si
       LEFT JOIN Product p ON si.productId = p.id
       WHERE si.saleId = ?
     `;
     const results = await this.db.executeSql(query, [saleId]);
     const items: any[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      items.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        const item = rows.item ? rows.item(i) : rows[i];
+        if (item) {
+          items.push({
+            ...item,
+            productName: item.productName || item.productname || 'Item ' + (item.productId || ''),
+            quantity: Number(item.quantity || 0),
+            priceAtSale: Number(item.priceAtSale || item.priceatsale || 0),
+            isBulk: Number(item.isBulk || item.isbulk || 0),
+          });
+        }
+      }
     }
     return items;
   }

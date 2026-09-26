@@ -36,7 +36,7 @@ export class PrintingService {
           printWindow.print();
         }
       } else {
-        console.warn('Printing is not supported on this platform platform structure.');
+        console.warn('Printing is not supported on this platform.');
       }
     } catch (error) {
       console.error('Printing failed:', error);
@@ -45,37 +45,45 @@ export class PrintingService {
   }
 
   private static generateHtml(receipt: Receipt): string {
-    const itemsHtml = receipt.items
-      .map(
-        (item) =>
-          `<tr>
-            <td>${item.name}</td>
-            <td>${item.quantity}</td>
-            <td>${receipt.currency}${item.price.toFixed(2)}</td>
-            <td style="text-align: right;">${receipt.currency}${(item.quantity * item.price).toFixed(2)}</td>
-          </tr>`
-      )
-      .join('');
+    const items = receipt.items || [];
+    const itemsHtml = items.length > 0
+      ? items.map(
+        (item) => {
+          const name = item.name || 'Item';
+          const qty = Number(item.quantity || 0);
+          const price = Number(item.price || 0);
+          return `<tr>
+            <td>${name}</td>
+            <td style="text-align: center;">${qty}</td>
+            <td>${receipt.currency}${price.toFixed(2)}</td>
+            <td style="text-align: right;">${receipt.currency}${(qty * price).toFixed(2)}</td>
+          </tr>`;
+        }
+      ).join('')
+      : `<tr><td colspan="4" style="text-align: center; color: #888;">No items listed</td></tr>`;
+
+    const total = Number(receipt.total || 0);
 
     return `
       <html>
         <body style='font-family: monospace; padding: 20px;'>
-          <h2 style='text-align: center;'>${receipt.shopName}</h2>
-          <p style='text-align: center;'>${receipt.address}</p>
+          <h2 style='text-align: center;'>${receipt.shopName || 'My Shop'}</h2>
+          <p style='text-align: center;'>${receipt.address || ''}</p>
           <hr/>
-          <p>Sale ID: ${receipt.saleId}</p>
-          <p>Date: ${receipt.timestamp}</p>
+          <p>Sale ID: ${receipt.saleId || 'N/A'}</p>
+          <p>Date: ${receipt.timestamp || ''}</p>
           <table style='width: 100%; text-align: left;'>
             <thead>
-              <tr><th>Item</th><th>Qty</th><th>Price</th><th style="text-align: right;">Total</th></tr>
+              <tr><th>Item</th><th style="text-align: center;">Qty</th><th>Price</th><th style="text-align: right;">Total</th></tr>
             </thead>
             <tbody>
               ${itemsHtml}
             </tbody>
           </table>
           <hr/>
-          <h3 style='text-align: right;'>Total: ${receipt.currency}${receipt.total.toFixed(2)}</h3>
-          <p>Served by: ${receipt.employeeName}</p>
+          <h3 style='text-align: right;'>Total: ${receipt.currency || '$'}${total.toFixed(2)}</h3>
+          <p>Served by: ${receipt.employeeName || 'Staff'}</p>
+          ${receipt.customerName ? `<p>Customer: ${receipt.customerName}</p>` : ''}
           <p style='text-align: center; margin-top: 20px;'>Thank you for choosing us! We value your presence and hope to see you again soon.</p>
         </body>
       </html>
@@ -132,17 +140,16 @@ export class PrintingService {
             <h3 style="text-align: center; color: #1e293b; margin-top: 0;" class="no-print">Print Preview Sheet</h3>
             <div class="grid-container">
               ${products.map(p => {
-                const codeValue = p.barcode || p.id.slice(-8).toUpperCase();
+                const codeValue = p.barcode || (p.id ? p.id.slice(-8).toUpperCase() : 'CODE');
                 return `
                 <div class="barcode-card">
                   <div style="font-size: 11px; font-weight: 700; margin-bottom: 2px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 100%;">
-                    ${p.name}
+                    ${p.name || 'Product'}
                   </div>
                   <div style="font-size: 9px; color: #64748b; margin-bottom: 6px;">
-                    LN: ${p.id.slice(-6).toUpperCase()}
+                    LN: ${(p.id || '').slice(-6).toUpperCase()}
                   </div>
 
-                  <!-- Absolute size render metrics with forced color adjustment for all printers -->
                   <div style="display: flex; align-items: stretch; justify-content: center; width: 120px; height: 36px; background: #fff; overflow: hidden; margin-bottom: 4px; border-bottom: 1px solid #eee;">
                     <span class="bar-line" style="width: 2px; border-left-width: 2px; margin-right: 2px;"></span>
                     <span class="bar-line" style="width: 1px; border-left-width: 1px; margin-right: 1px;"></span>
@@ -212,34 +219,46 @@ export class PrintingService {
           </head>
           <body>
             <div class="header">
-              <h2 style="margin: 0;">${shopInfo.name}</h2>
+              <h2 style="margin: 0;">${shopInfo.name || 'My Shop'}</h2>
               <div style="font-size: 12px;">${shopInfo.address || ''}</div>
               <h3 style="margin: 10px 0 0 0;">BATCH SALES REPORT</h3>
             </div>
 
-            ${sales.map(s => `
+            ${sales.map(s => {
+              const saleId = (s.id || '').slice(-8).toUpperCase();
+              const timestampStr = s.timestamp ? new Date(Number(s.timestamp)).toLocaleDateString() : '';
+              const totalAmount = Number(s.totalAmount || 0);
+              const items = Array.isArray(s.items) ? s.items : [];
+
+              return `
               <div class="sale-box">
                 <div class="sale-header">
-                  <span>#${s.id.slice(-8).toUpperCase()} ${s.isReverted ? '(REVERTED)' : ''}</span>
-                  <span>${new Date(s.timestamp).toLocaleDateString()}</span>
+                  <span>#${saleId} ${s.isReverted ? '(REVERTED)' : ''}</span>
+                  <span>${timestampStr}</span>
                 </div>
                 <div style="font-size: 11px; margin-bottom: 5px;">
-                  Staff: ${s.staffName} (${s.staffRole}) | Payment: ${s.paymentMethod}
+                  Staff: ${s.staffName || 'Staff'} (${s.staffRole || 'SALES'}) | Payment: ${s.paymentMethod || 'CASH'}
                 </div>
 
-                ${s.items.map((i: any) => `
+                ${items.length > 0 ? items.map((i: any) => {
+                  const pName = i.productName || i.productname || 'Item';
+                  const qty = Number(i.quantity || 0);
+                  const price = Number(i.priceAtSale || i.priceatsale || 0);
+                  return `
                   <div class="item-row">
-                    <span>${i.productName} (${i.quantity} x ${currency}${i.priceAtSale.toFixed(2)})</span>
-                    <span style="font-weight: bold;">${currency}${(i.quantity * i.priceAtSale).toFixed(2)}</span>
+                    <span>${pName} (${qty} x ${currency}${price.toFixed(2)})</span>
+                    <span style="font-weight: bold;">${currency}${(qty * price).toFixed(2)}</span>
                   </div>
-                `).join('')}
+                  `;
+                }).join('') : '<div style="font-size:11px; color:#888;">No item details available</div>'}
 
                 <div class="total-row">
                   <span>TOTAL</span>
-                  <span>${currency}${s.totalAmount.toFixed(2)}</span>
+                  <span>${currency}${totalAmount.toFixed(2)}</span>
                 </div>
               </div>
-            `).join('')}
+              `;
+            }).join('')}
 
             <div class="footer">
               Printed on ${new Date().toLocaleString()} | My Shop Management System

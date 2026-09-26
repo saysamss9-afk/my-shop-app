@@ -12,7 +12,7 @@ import {
   Pressable,
   ArrowLeftIcon,
 } from '@gluestack-ui/themed';
-import { Eye, Lock, Database, Globe, UserCheck } from 'lucide-react-native';
+import { Eye, Lock, Database, Globe, UserCheck, ArrowLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
@@ -51,8 +51,8 @@ const PrivacyScreen = () => {
       {/* Modern Header */}
       <Box pt={Math.max(insets.top, 10)} pb="$2" px="$4">
         <HStack space="md" alignItems="center">
-          <Pressable onPress={() => navigation.goBack()} p="$2" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
-            <Icon as={ArrowLeftIcon} color="$text900" />
+          <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+            <ArrowLeft size={22} color="#111827" />
           </Pressable>
           <VStack>
             <Heading size="lg" color="$text900" fontWeight="$black">Privacy Statement</Heading>

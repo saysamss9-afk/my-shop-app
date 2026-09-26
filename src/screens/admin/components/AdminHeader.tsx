@@ -5,8 +5,7 @@ import {
   Pressable,
 } from '@gluestack-ui/themed';
 import { Appbar } from 'react-native-paper';
-import { ArrowLeftIcon } from '@gluestack-ui/themed';
-import { LogOut } from 'lucide-react-native';
+import { LogOut, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
@@ -20,8 +19,8 @@ const AdminHeader: React.FC<Props> = ({ viewMode, onBack, onSignOut }) => {
   return (
     <Box bg="$primary800" pt={insets.top}>
       <Appbar.Header style={{ backgroundColor: 'transparent', elevation: 0 }}>
-        <Pressable onPress={onBack} p="$2">
-          <Icon as={ArrowLeftIcon} color="white" />
+        <Pressable onPress={onBack} p="$2.5" bg="rgba(255,255,255,0.15)" rounded="$full" ml="$2">
+          <ArrowLeft size={22} color="#ffffff" />
         </Pressable>
         <Appbar.Content
           title="Admin Control"

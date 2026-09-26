@@ -136,15 +136,19 @@ const InventoryScreen = ({ route, navigation }: any) => {
     setScanTarget(null);
   };
 
-  const pendingCount = useMemo(() => products.filter(p => p.status === 'DRAFT').length, [products]);
+  const pendingCount = useMemo(
+    () => products.filter(p => p.status?.toUpperCase() === 'DRAFT' || p.status?.toUpperCase() === 'PENDING').length,
+    [products]
+  );
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (p.barcode && p.barcode.includes(searchQuery)) ||
                          (p.id && p.id.includes(searchQuery));
 
-    if (activeTab === 'PENDING') return matchesSearch && p.status === 'DRAFT';
-    return matchesSearch && p.status !== 'ARCHIVED' && p.status !== 'DELETED';
+    const statusUpper = p.status?.toUpperCase() || 'ACTIVE';
+    if (activeTab === 'PENDING') return matchesSearch && (statusUpper === 'DRAFT' || statusUpper === 'PENDING');
+    return matchesSearch && statusUpper !== 'ARCHIVED' && statusUpper !== 'DELETED';
   });
 
   const handleItemPress = (product: Product) => {

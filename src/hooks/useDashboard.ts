@@ -1,9 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ProductRepository } from '../repositories/ProductRepository';
 import { SyncStatus } from '../sync/SyncManager';
 import { getDBConnection } from '../db/database';
-import { SaleRepository } from '../repositories/SaleRepository';
-import { SupplierRepository } from '../repositories/SupplierRepository';
 import { AnalyticsRepository } from '../repositories/AnalyticsRepository';
 import { useSync } from '../sync/SyncContext';
 
@@ -19,6 +17,11 @@ export const useDashboard = (shopId: string) => {
   const [shopPlan, setShopPlan] = useState<'STARTER' | 'BUSINESS' | 'PREMIUM'>('STARTER');
   const [parentShopId, setParentShopId] = useState<string | null>(null);
 
+  const shopIdRef = useRef(shopId);
+  useEffect(() => {
+    shopIdRef.current = shopId;
+  }, [shopId]);
+
   // Sync status effect
   useEffect(() => {
     if (syncManager) {
@@ -29,11 +32,14 @@ export const useDashboard = (shopId: string) => {
 
   const loadStats = useCallback(async () => {
     try {
+      const activeShopId = shopIdRef.current || shopId;
+      if (!activeShopId) return;
+
       const db = await getDBConnection();
       const productRepo = new ProductRepository(db);
       const analyticsRepo = new AnalyticsRepository(db);
 
-      const shopResults = await db.executeSql('SELECT name, currency, [plan], parentShopId, shopCode FROM Shop WHERE id = ?', [shopId]);
+      const shopResults = await db.executeSql('SELECT name, currency, [plan], parentShopId, shopCode FROM Shop WHERE id = ?', [activeShopId]);
       const shopRow = shopResults[0]?.rows?.length ? shopResults[0].rows.item(0) : null;
       if (shopRow) {
         setCurrency(shopRow.currency || '$');
@@ -45,7 +51,7 @@ export const useDashboard = (shopId: string) => {
       }
 
       // Get low stock count
-      const count = await productRepo.getLowStockCount(shopId);
+      const count = await productRepo.getLowStockCount(activeShopId);
       setLowStockCount(count);
 
       // Get revenue for today
@@ -55,7 +61,7 @@ export const useDashboard = (shopId: string) => {
       endOfDay.setHours(23, 59, 59, 999);
 
       const summary = await analyticsRepo.getFinancialSummary(
-        shopId,
+        activeShopId,
         startOfDay.getTime(),
         endOfDay.getTime()
       );
@@ -67,8 +73,8 @@ export const useDashboard = (shopId: string) => {
 
   const triggerSync = useCallback(async () => {
     setSyncStatus(SyncStatus.Syncing);
-    // Manual sync button triggers a deep sync for full reconciliation
-    await triggerGlobalSync(shopId, true);
+    const activeShopId = shopIdRef.current || shopId;
+    await triggerGlobalSync(activeShopId, true);
     await loadStats();
     setLastSynced(Date.now());
     setTimeout(() => setSyncStatus(SyncStatus.Idle), 3000);

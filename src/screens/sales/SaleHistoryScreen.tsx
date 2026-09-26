@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { FlatList, SectionList, StatusBar, Alert } from 'react-native';
+import { SectionList, StatusBar } from 'react-native';
 import {
   Box,
   VStack,
@@ -11,21 +11,20 @@ import {
   Center,
   Spinner,
   Divider,
-  ArrowLeftIcon,
   Input,
   InputField,
   InputSlot,
 } from '@gluestack-ui/themed';
-import { RefreshCw, AlertTriangle, ChevronLeft, ChevronRight, Calendar, ArrowLeft } from 'lucide-react-native';
+import { RefreshCw, ChevronLeft, ChevronRight, Calendar, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSales } from '../../hooks/useSales';
-import type { Sale } from '../../db/types';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getAppShadow, isWeb } from '../../utils/platformStyles';
+import { getAppShadow } from '../../utils/platformStyles';
 import { displayAlert } from '../../utils/alert';
 import { SyncStatus } from '../../sync/SyncManager';
 import { PrintingService } from '../../services/PrintingService';
 import { parseTimestamp } from '../../utils/dateUtils';
+import { useTranslation } from 'react-i18next';
 
 // Sub-components
 import SaleHistoryItem from './components/SaleHistoryItem';
@@ -36,6 +35,10 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
   const { sales, isLoading, syncStatus, currency, revertSale, triggerManualSync, getSaleDetails, getShopInfo, refreshSales, refundSaleItem } = useSales(shopId);
   const insets = useSafeAreaInsets();
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  const flexDir = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -77,9 +80,12 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   };
 
   const handlePrintSelected = async () => {
-    const selectedSales = filteredSales.filter((s: any) => selectedSaleIds.includes(s.id));
+    const selectedSales = selectedSaleIds.length > 0
+      ? filteredSales.filter((s: any) => selectedSaleIds.includes(s.id))
+      : filteredSales;
+
     if (selectedSales.length === 0) {
-      displayAlert('Error', 'Please select at least one sale to print.');
+      displayAlert('No Sales', 'No sales transactions found to print.');
       return;
     }
 
@@ -157,24 +163,27 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   const handlePrint = async (sale: any, items: any[]) => {
     try {
       const shopInfo = await getShopInfo();
+      const detailedItems = items && items.length > 0 ? items : await getSaleDetails(sale.id);
+
       await PrintingService.printReceipt({
-        shopName: shopInfo.name,
+        shopName: shopInfo.name || 'My Shop',
         address: shopInfo.address || '',
-        saleId: sale.id.slice(-8).toUpperCase(),
-        timestamp: new Date(sale.timestamp).toLocaleString(),
-        items: items.map(i => ({
-            name: i.productName || 'Item',
-            quantity: i.quantity,
-            price: i.priceAtSale,
+        saleId: (sale.id || '').slice(-8).toUpperCase(),
+        timestamp: new Date(parseTimestamp(sale.timestamp, Date.now())).toLocaleString(),
+        items: detailedItems.map(i => ({
+            name: i.productName || i.productname || 'Item',
+            quantity: Number(i.quantity || 0),
+            price: Number(i.priceAtSale || i.priceatsale || 0),
         })),
-        total: sale.totalAmount,
+        total: Number(sale.totalAmount || 0),
         employeeName: sale.staffName || 'Staff',
         customerName: sale.customerName || undefined,
-        paymentMethod: sale.paymentMethod,
+        paymentMethod: sale.paymentMethod || 'CASH',
         currency: currency,
       });
     } catch (e) {
       console.error('Print error', e);
+      displayAlert('Print Error', 'Could not generate receipt PDF.');
     }
   };
 
@@ -218,26 +227,44 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
 
       {/* Modern Header */}
       <Box pt={Math.max(insets.top, 10)} pb="$2" px="$4">
-        <HStack justifyContent="space-between" alignItems="center">
-          <HStack space="md" alignItems="center">
-            <Pressable onPress={() => navigation.goBack()} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
-              <ArrowLeft size={22} color="#111827" />
+        <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+          <HStack space="md" alignItems="center" flexDirection={flexDir}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              p="$3"
+              minWidth={44}
+              minHeight={44}
+              justifyContent="center"
+              alignItems="center"
+              bg="$white"
+              rounded="$full"
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+              style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
+            >
+              <ArrowLeft size={22} color="#111827" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
             </Pressable>
             <VStack>
-              <Heading size="lg" color="$text900" fontWeight="$black">Sales History</Heading>
-              <Text size="xs" color="$text500">Monthly Audit Ledger</Text>
+              <Heading size="lg" color="$text900" fontWeight="$black" textAlign={textAlign}>Sales History</Heading>
+              <Text size="xs" color="$text500" textAlign={textAlign}>Monthly Audit Ledger</Text>
             </VStack>
           </HStack>
 
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" alignItems="center" flexDirection={flexDir}>
             {syncStatus === SyncStatus.Syncing ? (
                 <Spinner color="$primary600" size="small" />
             ) : (
                 <Pressable
                     onPress={() => triggerManualSync()}
-                    p="$2"
+                    p="$3"
+                    minWidth={44}
+                    minHeight={44}
+                    justifyContent="center"
+                    alignItems="center"
                     rounded="$full"
                     bg="$white"
+                    accessibilityLabel="Sync Sales"
+                    accessibilityRole="button"
                     style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}
                 >
                     <Icon as={RefreshCw} color="$primary600" size="sm" />
@@ -247,18 +274,36 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         </HStack>
       </Box>
 
-      {/* Month Selection Carousel - Ensuring items start fresh for each month */}
+      {/* Month Selection Carousel */}
       <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2" mb="$2">
-        <HStack justifyContent="space-between" alignItems="center" px="$4">
-          <Pressable p="$2" onPress={handlePrevMonth}>
-            <Icon as={ChevronLeft} color="$primary700" size="sm" />
+        <HStack justifyContent="space-between" alignItems="center" px="$4" flexDirection={flexDir}>
+          <Pressable
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            onPress={handlePrevMonth}
+            accessibilityLabel="Previous month"
+            accessibilityRole="button"
+          >
+            <Icon as={ChevronLeft} color="$primary700" size="sm" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
           </Pressable>
-          <HStack space="xs" alignItems="center">
+          <HStack space="xs" alignItems="center" flexDirection={flexDir}>
             <Icon as={Calendar} size="xs" color="$primary600" />
             <Heading size="sm" color="$text900" fontWeight="$bold">{monthLabel}</Heading>
           </HStack>
-          <Pressable p="$2" onPress={handleNextMonth}>
-            <Icon as={ChevronRight} color="$primary700" size="sm" />
+          <Pressable
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            onPress={handleNextMonth}
+            accessibilityLabel="Next month"
+            accessibilityRole="button"
+          >
+            <Icon as={ChevronRight} color="$primary700" size="sm" style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
           </Pressable>
         </HStack>
       </Box>
@@ -266,7 +311,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
       {/* Date & Keyword Filter Selection Row */}
       <Box px="$4" pb="$3">
         <VStack space="sm">
-          <Input variant="outline" size="sm" borderRadius={12} bg="$white">
+          <Input variant="outline" size="sm" borderRadius={12} bg="$white" style={{ flexDirection: flexDir }}>
             <InputSlot pl="$3">
               <MaterialCommunityIcons name="magnify" size={16} color="#666" />
             </InputSlot>
@@ -275,6 +320,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="$text400"
+              textAlign={textAlign}
             />
             {searchQuery.length > 0 && (
               <InputSlot pr="$3" onPress={() => setSearchQuery('')}>
@@ -283,14 +329,15 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
             )}
           </Input>
 
-          <HStack space="sm" alignItems="center">
+          <HStack space="sm" alignItems="center" flexDirection={flexDir}>
             <Box flex={1}>
-              <Input variant="outline" size="sm" borderRadius={12} bg="$white">
+              <Input variant="outline" size="sm" borderRadius={12} bg="$white" style={{ flexDirection: flexDir }}>
                 <InputField
                   placeholder="Day filter (YYYY-MM-DD)"
                   value={selectedDateFilter}
                   onChangeText={setSelectedDateFilter}
                   placeholderTextColor="$text400"
+                  textAlign={textAlign}
                 />
                 {selectedDateFilter.length > 0 && (
                   <InputSlot pr="$3" onPress={() => setSelectedDateFilter('')}>
@@ -299,11 +346,21 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
                 )}
               </Input>
             </Box>
-            <Pressable onPress={() => {
+            <Pressable
+              onPress={() => {
                 const d = new Date();
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 setSelectedDateFilter(key);
-            }} bg="$primary50" px="$3" py="$2" rounded="$lg">
+              }}
+              bg="$primary50"
+              px="$3"
+              py="$2"
+              minHeight={38}
+              justifyContent="center"
+              rounded="$lg"
+              accessibilityLabel="Filter Today"
+              accessibilityRole="button"
+            >
               <Text size="xs" color="$primary700" fontWeight="$bold">Today</Text>
             </Pressable>
           </HStack>
@@ -312,7 +369,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
 
       {/* Stats Summary Bar for the Month */}
       <Box bg="$white" px="$5" py="$4" borderBottomWidth={1} borderColor="$borderLight">
-        <HStack space="md" alignItems="center">
+        <HStack space="md" alignItems="center" flexDirection={flexDir}>
             <VStack flex={1} alignItems="center" space="xs">
                 <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Month Trans.</Text>
                 <Heading size="md" color="$text900">{filteredSales.length}</Heading>
@@ -335,10 +392,14 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
           borderWidth={1}
           borderColor="$primary600"
           p="$3"
+          minHeight={48}
+          justifyContent="center"
           rounded="$xl"
+          accessibilityLabel="Print sales summary"
+          accessibilityRole="button"
           style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(110,59,230,0.1)' }) }}
         >
-          <HStack space="sm" alignItems="center" justifyContent="center">
+          <HStack space="sm" alignItems="center" justifyContent="center" flexDirection={flexDir}>
             <MaterialCommunityIcons
               name="printer-check"
               size={18}
@@ -366,9 +427,9 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
           removeClippedSubviews={true}
           renderSectionHeader={({ section: { title } }) => (
             <Box bg="$backgroundLight50" px="$5" py="$3" mb="$2">
-              <HStack alignItems="center" space="sm">
+              <HStack alignItems="center" space="sm" flexDirection={flexDir}>
                 <MaterialCommunityIcons name="calendar-range" size={14} color="#666" />
-                <Text size="xs" color="$text600" fontWeight="$bold" textTransform="uppercase">
+                <Text size="xs" color="$text600" fontWeight="$bold" textTransform="uppercase" textAlign={textAlign}>
                   {title}
                 </Text>
               </HStack>

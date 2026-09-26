@@ -31,7 +31,7 @@ import {
   Spinner,
 } from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
-import { ShieldCheck } from 'lucide-react-native';
+import { ShieldCheck, ArrowLeft } from 'lucide-react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
@@ -93,8 +93,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <VStack space="xl" py="$6">
           {/* Top Bar */}
           <HStack alignItems="center">
-            <Pressable onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Landing')} p="$2" bg="$white" rounded="$full">
-              <Icon as={ArrowLeftIcon} size="md" color="$primary600" />
+            <Pressable onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Landing')} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <ArrowLeft size={22} color="#111827" />
             </Pressable>
           </HStack>
 

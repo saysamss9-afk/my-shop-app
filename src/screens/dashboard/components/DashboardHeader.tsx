@@ -9,14 +9,12 @@ import {
   Pressable,
   Spinner,
 } from '@gluestack-ui/themed';
-import { RefreshCw, User, AlertTriangle, LogOut } from 'lucide-react-native';
+import { RefreshCw, AlertTriangle, LogOut } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SyncStatus } from '../../../sync/SyncManager';
 import { getAppShadow } from '../../../utils/platformStyles';
 import BranchSwitcher from './BranchSwitcher';
-import { handleSwitchAccount } from '../switchAccount';
-
-import firebase from '../../../firebase-config';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   userRole: string;
@@ -42,11 +40,16 @@ const DashboardHeader: React.FC<Props> = ({
   onLogout
 }) => {
   const insets = useSafeAreaInsets();
+  const { i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
+  const flexDir = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
+
   return (
     <Box px="$2" pt={Math.max(insets.top, 10)} pb="$6">
-      <HStack justifyContent="space-between" alignItems="center">
+      <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
         <VStack>
-          <HStack space="xs" alignItems="center">
+          <HStack space="xs" alignItems="center" flexDirection={flexDir}>
             <Text size="sm" color="$text500" fontWeight="$medium">Welcome,</Text>
             {shopPlan === 'PREMIUM' && (
                 <Box bg="$amber100" px="$2" py="$0.5" rounded="$md">
@@ -64,11 +67,11 @@ const DashboardHeader: React.FC<Props> = ({
                 </Box>
             )}
           </HStack>
-          <Heading size="xl" color="$text900" fontWeight="$black">
+          <Heading size="xl" color="$text900" fontWeight="$black" textAlign={textAlign}>
             {shopName}
           </Heading>
-          <HStack space="md" alignItems="center" mt="$1">
-            <Text size="xs" color="$text500" fontWeight="$medium">
+          <HStack space="md" alignItems="center" mt="$1" flexDirection={flexDir}>
+            <Text size="xs" color="$text500" fontWeight="$medium" textAlign={textAlign}>
                 {userRole === 'OWNER' ? 'Shop Owner' : 'Staff Member'}
             </Text>
             {userRole === 'OWNER' && (
@@ -76,24 +79,30 @@ const DashboardHeader: React.FC<Props> = ({
             )}
           </HStack>
         </VStack>
-        <HStack space="sm" alignItems="center">
+        <HStack space="sm" alignItems="center" flexDirection={flexDir}>
           {syncStatus === SyncStatus.Syncing ? (
-            <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full">
+            <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full" minHeight={44} flexDirection={flexDir}>
                 <Spinner color="$primary600" size="small" />
                 <Text size="xs" color="$primary600" fontWeight="$bold">Syncing...</Text>
             </HStack>
           ) : (
             <Pressable
                 onPress={onTriggerSync}
+                accessibilityLabel="Sync Dashboard"
+                accessibilityRole="button"
             >
                 <Box
                     bg={syncStatus === SyncStatus.Error ? "$error50" : "$primary600"}
                     px="$4"
-                    py="$2"
+                    py="$2.5"
+                    minHeight={44}
+                    minWidth={44}
+                    justifyContent="center"
+                    alignItems="center"
                     rounded="$full"
                     style={{ ...getAppShadow({ offsetY: 4, radius: 8, color: 'rgba(110,59,230,0.15)' }) }}
                 >
-                    <HStack space="xs" alignItems="center">
+                    <HStack space="xs" alignItems="center" flexDirection={flexDir}>
                         <Icon
                             as={syncStatus === SyncStatus.Error ? AlertTriangle : RefreshCw}
                             color="$white"
@@ -106,10 +115,20 @@ const DashboardHeader: React.FC<Props> = ({
                 </Box>
             </Pressable>
           )}
-          <Pressable onPress={onLogout}>
-            <Box p="$2" bg="$white" rounded="$full">
-              <Icon as={LogOut} color="$error600" size="md" />
-            </Box>
+          <Pressable
+            onPress={onLogout}
+            p="$3"
+            minWidth={44}
+            minHeight={44}
+            justifyContent="center"
+            alignItems="center"
+            bg="$white"
+            rounded="$full"
+            accessibilityLabel="Logout account"
+            accessibilityRole="button"
+            style={{ ...getAppShadow({ offsetY: 2, radius: 6, color: 'rgba(0,0,0,0.05)' }) }}
+          >
+            <Icon as={LogOut} color="$error600" size="md" />
           </Pressable>
         </HStack>
       </HStack>

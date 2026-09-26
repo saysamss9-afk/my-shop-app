@@ -29,7 +29,7 @@ import {
   CheckCircleIcon,
 } from '@gluestack-ui/themed';
 import { useAuth } from '../../hooks/useAuth';
-import { Scan, User, Phone, AlertTriangle } from 'lucide-react-native';
+import { Scan, User, Phone, AlertTriangle, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -160,8 +160,8 @@ const JoinShopScreen: React.FC<Props> = ({ navigation }) => {
 
       <VStack space="xl" py="$4" pt={Math.max(insets.top, 10)}>
           <HStack alignItems="center">
-            <Pressable onPress={() => navigation.replace('Landing')} p="$2" bg="$white" rounded="$full">
-              <Icon as={ArrowLeftIcon} size="md" color="$primary600" />
+            <Pressable onPress={() => navigation.replace('Landing')} p="$2.5" bg="$white" rounded="$full" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.05)' }) }}>
+              <ArrowLeft size={22} color="#111827" />
             </Pressable>
           </HStack>
 

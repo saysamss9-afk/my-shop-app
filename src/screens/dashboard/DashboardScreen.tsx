@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { StatusBar } from 'react-native';
 import {
   Box,
@@ -56,14 +56,21 @@ const DashboardScreen: React.FC<Props> = ({ route, navigation }) => {
     triggerSync
   } = useDashboard(shopId);
 
+  // Store triggerSync in a ref to break effect dependency cycles
+  const triggerSyncRef = useRef(triggerSync);
   useEffect(() => {
-    // When switching branches or first loading the dashboard, auto-trigger a background sync
-    // for the incoming branch to ensure local data is fresh.
-    triggerSync();
+    triggerSyncRef.current = triggerSync;
+  }, [triggerSync]);
+
+  useEffect(() => {
+    // Trigger background sync once when entering dashboard or switching branch
+    if (triggerSyncRef.current) {
+      triggerSyncRef.current();
+    }
 
     startRealtimeSync(shopId);
     return () => stopRealtimeSync();
-  }, [shopId, startRealtimeSync, stopRealtimeSync, triggerSync]);
+  }, [shopId, startRealtimeSync, stopRealtimeSync]);
 
   const handleSwitchBranch = (newShopId: string, newShopName: string) => {
     navigation.setParams({ shopId: newShopId, shopName: newShopName });
