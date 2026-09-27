@@ -10,6 +10,17 @@ import { SystemRepository } from '../repositories/SystemRepository';
 import { generateUUID } from '../utils/uuid';
 import { parseTimestamp } from '../utils/dateUtils';
 
+const sanitizeShopId = (id: any): string => {
+  if (!id) return '';
+  if (typeof id === 'object') {
+    const extracted = id.shopId || id.id || id.uid || '';
+    return typeof extracted === 'string' ? extracted.trim() : String(extracted).trim();
+  }
+  const str = String(id).trim();
+  if (str === 'undefined' || str === '[object Object]' || str === 'null') return '';
+  return str;
+};
+
 export enum SyncStatus {
   Idle,
   Syncing,
@@ -86,9 +97,9 @@ export class SyncManager {
     }
 
     // Support object input if passed by accident
-    const shopId = typeof shopIdInput === 'object' ? (shopIdInput as any).shopId : shopIdInput;
+    const shopId = sanitizeShopId(shopIdInput);
 
-    if (!shopId || shopId === 'undefined' || shopId === '[object Object]') {
+    if (!shopId) {
         console.log('SyncManager (Native): No active shopId, skipping sync-up. Input was:', shopIdInput);
         return;
     }
@@ -116,9 +127,10 @@ export class SyncManager {
       // Fetch persistent lastSynced timestamp for Delta Pull
       let lastSyncedTime = 0;
       try {
-        const shopResult = await this.productRepo.db.executeSql('SELECT lastSynced FROM Shop WHERE id = ?', [shopId]);
+        const shopResult = await this.productRepo.db.executeSql('SELECT lastSynced FROM Shop WHERE TRIM(LOWER(id)) = TRIM(LOWER(?)) OR id = ?', [shopId, shopId]);
         if (shopResult && shopResult[0] && shopResult[0].rows && shopResult[0].rows.length > 0) {
-          lastSyncedTime = shopResult[0].rows.item(0).lastSynced || 0;
+          const row = typeof shopResult[0].rows.item === 'function' ? shopResult[0].rows.item(0) : shopResult[0].rows[0];
+          lastSyncedTime = row?.lastSynced || 0;
         }
       } catch (err) {
         console.error('Error fetching lastSynced from Shop:', err);
@@ -134,9 +146,19 @@ export class SyncManager {
           const auth = require('@react-native-firebase/auth').default();
           const currentUser = auth.currentUser;
           if (currentUser) {
-              const empResult = await this.productRepo.db.executeSql('SELECT role FROM Employee WHERE id = ?', [currentUser.uid]);
-              if (empResult[0]?.rows?.length > 0) {
-                  userRole = empResult[0].rows.item(0).role;
+              const shopRes = await this.productRepo.db.executeSql(
+                'SELECT ownerId FROM Shop WHERE TRIM(LOWER(id)) = TRIM(LOWER(?)) OR id = ?',
+                [shopId, shopId]
+              );
+              const shopRow = shopRes[0]?.rows?.length ? (typeof shopRes[0].rows.item === 'function' ? shopRes[0].rows.item(0) : shopRes[0].rows[0]) : null;
+              if (shopRow && (shopRow.ownerId === currentUser.uid || shopRow.ownerid === currentUser.uid)) {
+                userRole = 'OWNER';
+              } else {
+                const empResult = await this.productRepo.db.executeSql('SELECT role FROM Employee WHERE id = ?', [currentUser.uid]);
+                if (empResult[0]?.rows?.length > 0) {
+                  const item = typeof empResult[0].rows.item === 'function' ? empResult[0].rows.item(0) : empResult[0].rows[0];
+                  userRole = item?.role || 'SALES';
+                }
               }
           }
       } catch (e) {}
@@ -146,23 +168,23 @@ export class SyncManager {
       if (isManager) {
         await this.safeSync('PullEmployees', () => this.pullEmployees(shopId, effectiveLastSynced));
       }
-      await this.safeSync('PullProducts', () => this.pullProducts(shopId, effectiveLastSynced));
-      await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced));
-      await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced));
-      await this.safeSync('PullSupplierPayments', () => this.pullSupplierPayments(shopId, effectiveLastSynced));
-      await this.safeSync('PullPurchases', () => this.pullPurchases(shopId, effectiveLastSynced));
-      await this.safeSync('PullPurchaseReturns', () => this.pullPurchaseReturns(shopId, effectiveLastSynced));
-      await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced));
-      await this.safeSync('PullPayments', () => this.pullPayments(shopId, effectiveLastSynced));
+      await this.safeSync('PullProducts', () => this.pullProducts(shopId, effectiveLastSynced, force));
+      await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced, force));
+      await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced, force));
+      await this.safeSync('PullSupplierPayments', () => this.pullSupplierPayments(shopId, effectiveLastSynced, force));
+      await this.safeSync('PullPurchases', () => this.pullPurchases(shopId, effectiveLastSynced, force));
+      await this.safeSync('PullPurchaseReturns', () => this.pullPurchaseReturns(shopId, effectiveLastSynced, force));
+      await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced, force));
+      await this.safeSync('PullPayments', () => this.pullPayments(shopId, effectiveLastSynced, force));
       await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullAdjustments', () => this.pullAdjustments(shopId, effectiveLastSynced));
+      await this.safeSync('PullAdjustments', () => this.pullAdjustments(shopId, effectiveLastSynced, force));
       if (isManager) {
-        await this.safeSync('PullExpenses', () => this.pullExpenses(shopId, effectiveLastSynced));
+        await this.safeSync('PullExpenses', () => this.pullExpenses(shopId, effectiveLastSynced, force));
       }
 
       const syncCompletionTime = Date.now();
       try {
-        await this.productRepo.db.executeSql('UPDATE Shop SET lastSynced = ? WHERE id = ?', [syncCompletionTime, shopId]);
+        await this.productRepo.db.executeSql('UPDATE Shop SET lastSynced = ? WHERE TRIM(LOWER(id)) = TRIM(LOWER(?)) OR id = ?', [syncCompletionTime, shopId, shopId]);
       } catch (err) {
         console.error('Error updating lastSynced in Shop:', err);
       }
@@ -191,11 +213,37 @@ export class SyncManager {
     }
   }
 
-  private async pullProducts(shopId: string, lastSyncedTime: number) {
+  private async getEffectiveLastSynced(tableName: string, shopId: string, lastSyncedTime: number, isForceSync: boolean = false): Promise<number> {
+    if (isForceSync) return 0;
+    if (lastSyncedTime <= 0) return 0;
     try {
-      let queryRef: any = firestore().collection('shops').doc(shopId).collection('products');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return 0;
+      const countRes = await this.productRepo.db.executeSql(
+        `SELECT COUNT(*) as count FROM ${tableName} WHERE TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?`,
+        [safeShopId, safeShopId, safeShopId]
+      );
+      const row = countRes[0]?.rows?.length > 0 ? (typeof countRes[0].rows.item === 'function' ? countRes[0].rows.item(0) : countRes[0].rows[0]) : {};
+      const count = Number(row?.count ?? row?.['COUNT(*)'] ?? row?.['count(*)'] ?? 0);
+      if (count === 0) {
+        console.log(`SyncManager: Local ${tableName} count is 0 for ${safeShopId}, doing full pull...`);
+        return 0;
+      }
+    } catch (e) {
+      return 0;
+    }
+    return lastSyncedTime;
+  }
+
+  private async pullProducts(shopId: string, lastSyncedTime: number, isForceSync = false) {
+    try {
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('Product', safeShopId, lastSyncedTime, isForceSync);
+
+      let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('products');
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -209,34 +257,34 @@ export class SyncManager {
             continue;
         }
 
-                const productToInsert = {
-                  id: data.id,
-                  shopId: data.shopId,
-                  categoryId: data.categoryId ?? (local ? local.categoryId : null),
-                  name: data.name ?? (local ? local.name : 'Unknown Product'),
-                  description: data.description ?? (local ? local.description : null),
-                  barcode: data.barcode ?? (local ? local.barcode : null),
-                  bulkBarcode: data.bulkBarcode ?? (local ? local.bulkBarcode : null),
-                  bulkQuantity: data.bulkQuantity ?? (local ? local.bulkQuantity : 1),
-                  bulkPrice: data.bulkPrice ?? (local ? local.bulkPrice : 0),
-                  bulkStockQuantity: data.bulkStockQuantity ?? (local ? local.bulkStockQuantity : 0),
-                  bulkUnit: data.bulkUnit ?? (local ? local.bulkUnit : 'Carton'),
-                  price: data.price ?? (local ? local.price : 0),
-                  costPrice: data.costPrice ?? (local ? local.costPrice : 0),
-                  stockQuantity: data.stockQuantity ?? (local ? local.stockQuantity : 0),
-                  minStockLevel: data.minStockLevel ?? (local ? local.minStockLevel : 0),
-                  unit: data.unit ?? (local ? local.unit : 'pcs'),
-                  supplierId: data.supplierId ?? (local ? local.supplierId : null),
-                  status: data.status ?? (local ? local.status : 'ACTIVE'),
-                  syncStatus: 1
-                };
+        const productToInsert = {
+          id: data.id,
+          shopId: safeShopId,
+          categoryId: data.categoryId ?? (local ? local.categoryId : null),
+          name: data.name ?? (local ? local.name : 'Unknown Product'),
+          description: data.description ?? (local ? local.description : null),
+          barcode: data.barcode ?? (local ? local.barcode : null),
+          bulkBarcode: data.bulkBarcode ?? (local ? local.bulkBarcode : null),
+          bulkQuantity: data.bulkQuantity ?? (local ? local.bulkQuantity : 1),
+          bulkPrice: data.bulkPrice ?? (local ? local.bulkPrice : 0),
+          bulkStockQuantity: data.bulkStockQuantity ?? (local ? local.bulkStockQuantity : 0),
+          bulkUnit: data.bulkUnit ?? (local ? local.bulkUnit : 'Carton'),
+          price: data.price ?? (local ? local.price : 0),
+          costPrice: data.costPrice ?? (local ? local.costPrice : 0),
+          stockQuantity: data.stockQuantity ?? (local ? local.stockQuantity : 0),
+          minStockLevel: data.minStockLevel ?? (local ? local.minStockLevel : 0),
+          unit: data.unit ?? (local ? local.unit : 'pcs'),
+          supplierId: data.supplierId ?? (local ? local.supplierId : null),
+          status: data.status ?? (local ? local.status : 'ACTIVE'),
+          syncStatus: 1
+        };
 
-                if (local) {
-                    if (data.stockQuantity === 0 && local.stockQuantity > 0) productToInsert.stockQuantity = local.stockQuantity;
-                    if (data.price === 0 && local.price > 0) productToInsert.price = local.price;
-                    if (data.costPrice === 0 && local.costPrice > 0) productToInsert.costPrice = local.costPrice;
-                    if (data.bulkStockQuantity === 0 && local.bulkStockQuantity > 0) productToInsert.bulkStockQuantity = local.bulkStockQuantity;
-                }
+        if (local) {
+            if (data.stockQuantity === 0 && local.stockQuantity > 0) productToInsert.stockQuantity = local.stockQuantity;
+            if (data.price === 0 && local.price > 0) productToInsert.price = local.price;
+            if (data.costPrice === 0 && local.costPrice > 0) productToInsert.costPrice = local.costPrice;
+            if (data.bulkStockQuantity === 0 && local.bulkStockQuantity > 0) productToInsert.bulkStockQuantity = local.bulkStockQuantity;
+        }
 
         await this.productRepo.insertProduct(productToInsert);
       }
@@ -245,11 +293,15 @@ export class SyncManager {
     }
   }
 
-  private async pullCategories(shopId: string, lastSyncedTime: number) {
+  private async pullCategories(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
-      let queryRef: any = firestore().collection('shops').doc(shopId).collection('categories');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('Category', safeShopId, lastSyncedTime, isForceSync);
+
+      let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('categories');
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -257,7 +309,7 @@ export class SyncManager {
         const data = doc.data();
         await this.categoryRepo.db.executeSql(
           'INSERT OR REPLACE INTO Category(id, shopId, name, syncStatus) VALUES (?, ?, ?, 1)',
-          [data.id, data.shopId, data.name]
+          [data.id, safeShopId, data.name]
         );
       }
     } catch (e) {
@@ -265,11 +317,15 @@ export class SyncManager {
     }
   }
 
-  private async pullSuppliers(shopId: string, lastSyncedTime: number) {
+  private async pullSuppliers(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
-      let queryRef: any = firestore().collection('shops').doc(shopId).collection('suppliers');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('Supplier', safeShopId, lastSyncedTime, isForceSync);
+
+      let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('suppliers');
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -280,7 +336,7 @@ export class SyncManager {
 
         await this.supplierRepo.insertSupplier({
           id: data.id,
-          shopId: data.shopId || shopId,
+          shopId: safeShopId,
           name: data.name ?? (local ? local.name : 'Unknown Supplier'),
           contactPerson: data.contactPerson ?? (local ? local.contactPerson : null),
           email: data.email ?? (local ? local.email : null),
@@ -296,27 +352,21 @@ export class SyncManager {
     }
   }
 
-  private async pullSupplierPayments(shopId: string, lastSyncedTime: number) {
+  private async pullSupplierPayments(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('SupplierPayment', safeShopId, lastSyncedTime, isForceSync);
+
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('supplier_payments');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        let timestamp = Number(data.timestamp);
-        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-          if (data.timestamp?.toMillis) {
-            timestamp = data.timestamp.toMillis();
-          } else if (data.timestamp?.seconds) {
-            timestamp = data.timestamp.seconds * 1000;
-          } else {
-            timestamp = Date.now();
-          }
-        }
+        const timestamp = parseTimestamp(data.timestamp, parseTimestamp(data.lastUpdated, Date.now()));
 
         const localRes = await this.productRepo.db.executeSql(
           'SELECT syncStatus FROM SupplierPayment WHERE id = ?',
@@ -336,12 +386,15 @@ export class SyncManager {
     }
   }
 
-  private async pullPurchases(shopId: string, lastSyncedTime: number) {
+  private async pullPurchases(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('PurchaseOrder', safeShopId, lastSyncedTime, isForceSync);
+
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('purchases');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -355,22 +408,13 @@ export class SyncManager {
           continue;
         }
 
-        let timestamp = Number(data.timestamp);
-        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-          if (data.timestamp?.toMillis) {
-            timestamp = data.timestamp.toMillis();
-          } else if (data.timestamp?.seconds) {
-            timestamp = data.timestamp.seconds * 1000;
-          } else {
-            timestamp = Date.now();
-          }
-        }
+        const timestamp = parseTimestamp(data.timestamp, parseTimestamp(data.lastUpdated, Date.now()));
 
         await this.purchaseRepo.db.executeSql(
           'INSERT OR REPLACE INTO PurchaseOrder(id, shopId, supplierId, invoiceNumber, timestamp, totalCost, amountPaid, balance, paymentStatus, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)',
           [
             data.id,
-            data.shopId || safeShopId,
+            safeShopId,
             data.supplierId || null,
             data.invoiceNumber || null,
             timestamp,
@@ -403,12 +447,15 @@ export class SyncManager {
     }
   }
 
-  private async pullPurchaseReturns(shopId: string, lastSyncedTime: number) {
+  private async pullPurchaseReturns(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('PurchaseReturn', safeShopId, lastSyncedTime, isForceSync);
+
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('purchase_returns');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -422,23 +469,14 @@ export class SyncManager {
           continue;
         }
 
-        let timestamp = Number(data.timestamp);
-        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-          if (data.timestamp?.toMillis) {
-            timestamp = data.timestamp.toMillis();
-          } else if (data.timestamp?.seconds) {
-            timestamp = data.timestamp.seconds * 1000;
-          } else {
-            timestamp = Date.now();
-          }
-        }
+        const timestamp = parseTimestamp(data.timestamp, parseTimestamp(data.lastUpdated, Date.now()));
 
         await this.purchaseRepo.db.executeSql(
           'INSERT OR REPLACE INTO PurchaseReturn(id, purchaseOrderId, shopId, supplierId, productId, quantity, returnValue, reason, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)',
           [
             data.id,
             data.purchaseOrderId || null,
-            data.shopId || safeShopId,
+            safeShopId,
             data.supplierId || null,
             data.productId || null,
             Number(data.quantity || 0),
@@ -453,11 +491,15 @@ export class SyncManager {
     }
   }
 
-  private async pullCustomers(shopId: string, lastSyncedTime: number) {
+  private async pullCustomers(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
-      let queryRef: any = firestore().collection('shops').doc(shopId).collection('customers');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('Customer', safeShopId, lastSyncedTime, isForceSync);
+
+      let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('customers');
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -468,7 +510,7 @@ export class SyncManager {
 
         await this.customerRepo.insertCustomer({
           id: data.id,
-          shopId: data.shopId || shopId,
+          shopId: safeShopId,
           name: data.name ?? (local ? local.name : 'Unknown Customer'),
           phone: data.phone ?? (local ? local.phone : null),
           email: data.email ?? (local ? local.email : null),
@@ -481,12 +523,15 @@ export class SyncManager {
     }
   }
 
-  private async pullPayments(shopId: string, lastSyncedTime: number) {
+  private async pullPayments(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('DebtPayment', safeShopId, lastSyncedTime, isForceSync);
+
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('payments');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -500,23 +545,14 @@ export class SyncManager {
           continue;
         }
 
-        let timestamp = Number(data.timestamp);
-        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-          if (data.timestamp?.toMillis) {
-            timestamp = data.timestamp.toMillis();
-          } else if (data.timestamp?.seconds) {
-            timestamp = data.timestamp.seconds * 1000;
-          } else {
-            timestamp = Date.now();
-          }
-        }
+        const timestamp = parseTimestamp(data.timestamp, parseTimestamp(data.lastUpdated, Date.now()));
 
         await this.customerRepo.db.executeSql(
           'INSERT OR REPLACE INTO DebtPayment(id, customerId, shopId, amount, paymentMethod, timestamp, note, syncStatus) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
           [
             data.id,
             data.customerId || null,
-            data.shopId || safeShopId,
+            safeShopId,
             Number(data.amount || 0),
             data.paymentMethod || 'CASH',
             timestamp,
@@ -529,12 +565,15 @@ export class SyncManager {
     }
   }
 
-  private async pullAdjustments(shopId: string, lastSyncedTime: number) {
+  private async pullAdjustments(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+      const effectiveLastSynced = await this.getEffectiveLastSynced('InventoryAdjustment', safeShopId, lastSyncedTime, isForceSync);
+
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('inventory_adjustments');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
@@ -548,23 +587,14 @@ export class SyncManager {
           continue;
         }
 
-        let timestamp = Number(data.timestamp);
-        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-          if (data.timestamp?.toMillis) {
-            timestamp = data.timestamp.toMillis();
-          } else if (data.timestamp?.seconds) {
-            timestamp = data.timestamp.seconds * 1000;
-          } else {
-            timestamp = Date.now();
-          }
-        }
+        const timestamp = parseTimestamp(data.timestamp, parseTimestamp(data.lastUpdated, Date.now()));
 
         await this.systemRepo.db.executeSql(
           'INSERT OR REPLACE INTO InventoryAdjustment(id, productId, shopId, quantity, reason, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
           [
             data.id,
             data.productId || null,
-            data.shopId || safeShopId,
+            safeShopId,
             Number(data.quantity || 0),
             data.reason || 'Manual Adjustment',
             timestamp
@@ -578,16 +608,17 @@ export class SyncManager {
 
   private async pullEmployees(shopId: string, lastSyncedTime: number) {
     try {
-      // Scoped down to the branch directly. We fetch all employees of the branch to avoid
-      // requiring any Firestore composite index configurations on root-level collections.
-      const queryRef = firestore().collection('employees').where('shopId', '==', shopId);
+      const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+
+      const queryRef = firestore().collection('employees').where('shopId', '==', safeShopId);
       const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
         await this.productRepo.db.executeSql(
           'INSERT OR REPLACE INTO Employee(id, shopId, name, role, email) VALUES (?, ?, ?, ?, ?)',
-          [data.uid || doc.id, data.shopId, data.name || 'Unknown Staff', data.role || 'SALES', data.email || '']
+          [data.uid || doc.id, safeShopId, data.name || 'Unknown Staff', data.role || 'SALES', data.email || '']
         );
       }
     } catch (e) {
@@ -600,19 +631,7 @@ export class SyncManager {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
       if (!safeShopId) return;
 
-      let effectiveLastSynced = isForceSync ? 0 : lastSyncedTime;
-      if (effectiveLastSynced > 0) {
-        const countRes = await this.saleRepo.db.executeSql(
-          'SELECT COUNT(*) as count FROM Sale WHERE TRIM(LOWER(shopId)) = TRIM(LOWER(?)) AND isReverted = 0',
-          [safeShopId]
-        );
-        const row = countRes[0]?.rows?.length > 0 ? (typeof countRes[0].rows.item === 'function' ? countRes[0].rows.item(0) : countRes[0].rows[0]) : {};
-        const count = Number(row?.count ?? row?.['COUNT(*)'] ?? row?.['count(*)'] ?? 0);
-        if (count === 0) {
-          console.log(`SyncManager (Native): Local Sale count is 0 for ${safeShopId}, doing full pull...`);
-          effectiveLastSynced = 0;
-        }
-      }
+      const effectiveLastSynced = await this.getEffectiveLastSynced('Sale', safeShopId, lastSyncedTime, isForceSync);
 
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('sales');
       if (effectiveLastSynced > 0) {
@@ -630,27 +649,22 @@ export class SyncManager {
     }
   }
 
-  private async pullExpenses(shopId: string, lastSyncedTime: number) {
+  private async pullExpenses(shopId: string, lastSyncedTime: number, isForceSync = false) {
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+      if (!safeShopId) return;
+
+      const effectiveLastSynced = await this.getEffectiveLastSynced('Expense', safeShopId, lastSyncedTime, isForceSync);
+
       let queryRef: any = firestore().collection('shops').doc(safeShopId).collection('expenses');
-      if (lastSyncedTime > 0) {
-        queryRef = queryRef.where('lastUpdated', '>', lastSyncedTime);
+      if (effectiveLastSynced > 0) {
+        queryRef = queryRef.where('lastUpdated', '>', effectiveLastSynced);
       }
       const snapshot = await queryRef.get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        let timestamp = Number(data.timestamp);
-        if (isNaN(timestamp) || !timestamp || timestamp <= 0) {
-          if (data.timestamp?.toMillis) {
-            timestamp = data.timestamp.toMillis();
-          } else if (data.timestamp?.seconds) {
-            timestamp = data.timestamp.seconds * 1000;
-          } else {
-            timestamp = Date.now();
-          }
-        }
+        const timestamp = parseTimestamp(data.timestamp, parseTimestamp(data.lastUpdated, Date.now()));
 
         await this.productRepo.db.executeSql(
           'INSERT OR REPLACE INTO Expense(id, shopId, category, amount, description, timestamp, syncStatus) VALUES (?, ?, ?, ?, ?, ?, 1)',
@@ -722,7 +736,8 @@ export class SyncManager {
   }
 
   private async syncSales(shopId?: string) {
-    const unsynced = await this.saleRepo.getUnsyncedSales(shopId);
+    const sanitizedShopId = sanitizeShopId(shopId);
+    const unsynced = await this.saleRepo.getUnsyncedSales(sanitizedShopId || shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -730,16 +745,16 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const sale of unsynced) {
-      let targetShopId = sale.shopId;
+      let targetShopId = sanitizeShopId(sale.shopId);
 
       // Self-healing: repair orphaned sales
-      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
-          console.warn(`SyncManager: Repairing orphaned sale ${sale.id} with current shopId ${shopId}`);
-          targetShopId = shopId;
-          await this.saleRepo.db.executeSql('UPDATE Sale SET shopId = ? WHERE id = ?', [shopId, sale.id]);
+      if ((!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') && sanitizedShopId) {
+          console.warn(`SyncManager: Repairing orphaned sale ${sale.id} with current shopId ${sanitizedShopId}`);
+          targetShopId = sanitizedShopId;
+          await this.saleRepo.db.executeSql('UPDATE Sale SET shopId = ? WHERE id = ?', [sanitizedShopId, sale.id]);
       }
 
-      if (!targetShopId || targetShopId === 'undefined') {
+      if (!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') {
         console.warn('Sync Sanitizer (Native): Skipping sale with invalid shopId', sale.id);
         continue;
       }
@@ -791,7 +806,8 @@ export class SyncManager {
   }
 
   private async syncProducts(shopId?: string) {
-    const unsynced = await this.productRepo.getUnsyncedProducts(shopId);
+    const sanitizedShopId = sanitizeShopId(shopId);
+    const unsynced = await this.productRepo.getUnsyncedProducts(sanitizedShopId || shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -799,17 +815,17 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const product of unsynced) {
-      let targetShopId = product.shopId;
+      let targetShopId = sanitizeShopId(product.shopId);
 
       // Self-healing: if product has invalid shopId, try to use the one passed to triggerSync
-      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
-        console.warn(`SyncManager: Repairing orphaned product ${product.id} with current shopId ${shopId}`);
-        targetShopId = shopId;
+      if ((!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') && sanitizedShopId) {
+        console.warn(`SyncManager: Repairing orphaned product ${product.id} with current shopId ${sanitizedShopId}`);
+        targetShopId = sanitizedShopId;
         // Also update local DB
-        await this.productRepo.db.executeSql('UPDATE Product SET shopId = ? WHERE id = ?', [shopId, product.id]);
+        await this.productRepo.db.executeSql('UPDATE Product SET shopId = ? WHERE id = ?', [sanitizedShopId, product.id]);
       }
 
-      if (!targetShopId || targetShopId === 'undefined') {
+      if (!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') {
         console.warn('Sync Sanitizer (Native): Skipping product with invalid shopId', product.id);
         // DO NOT mark as synced if it didn't actually sync!
         continue;
@@ -864,7 +880,8 @@ export class SyncManager {
   }
 
   private async syncCategories(shopId?: string) {
-    const unsynced = await this.categoryRepo.getUnsyncedCategories(shopId);
+    const sanitizedShopId = sanitizeShopId(shopId);
+    const unsynced = await this.categoryRepo.getUnsyncedCategories(sanitizedShopId || shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -872,13 +889,13 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const cat of unsynced) {
-      let targetShopId = cat.shopId;
-      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
-          targetShopId = shopId;
-          await this.categoryRepo.db.executeSql('UPDATE Category SET shopId = ? WHERE id = ?', [shopId, cat.id]);
+      let targetShopId = sanitizeShopId(cat.shopId);
+      if ((!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') && sanitizedShopId) {
+          targetShopId = sanitizedShopId;
+          await this.categoryRepo.db.executeSql('UPDATE Category SET shopId = ? WHERE id = ?', [sanitizedShopId, cat.id]);
       }
 
-      if (!targetShopId || targetShopId === 'undefined') continue;
+      if (!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') continue;
 
       const ref = firestore().collection('shops').doc(targetShopId).collection('categories').doc(cat.id);
       const data = {
@@ -907,7 +924,8 @@ export class SyncManager {
   }
 
   private async syncSuppliers(shopId?: string) {
-    const unsynced = await this.supplierRepo.getUnsyncedSuppliers(shopId);
+    const sanitizedShopId = sanitizeShopId(shopId);
+    const unsynced = await this.supplierRepo.getUnsyncedSuppliers(sanitizedShopId || shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -915,16 +933,16 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const supplier of unsynced) {
-      let targetShopId = supplier.shopId;
+      let targetShopId = sanitizeShopId(supplier.shopId);
 
       // Self-healing: repair orphaned suppliers
-      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
-          console.warn(`SyncManager: Repairing orphaned supplier ${supplier.id} with current shopId ${shopId}`);
-          targetShopId = shopId;
-          await this.supplierRepo.db.executeSql('UPDATE Supplier SET shopId = ? WHERE id = ?', [shopId, supplier.id]);
+      if ((!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') && sanitizedShopId) {
+          console.warn(`SyncManager: Repairing orphaned supplier ${supplier.id} with current shopId ${sanitizedShopId}`);
+          targetShopId = sanitizedShopId;
+          await this.supplierRepo.db.executeSql('UPDATE Supplier SET shopId = ? WHERE id = ?', [sanitizedShopId, supplier.id]);
       }
 
-      if (!targetShopId || targetShopId === 'undefined') {
+      if (!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') {
         console.warn('Sync Sanitizer (Native): Skipping supplier with invalid shopId', supplier.id);
         continue;
       }
@@ -963,7 +981,8 @@ export class SyncManager {
   }
 
   private async syncCustomers(shopId?: string) {
-    const unsynced = await this.customerRepo.getUnsyncedCustomers(shopId);
+    const sanitizedShopId = sanitizeShopId(shopId);
+    const unsynced = await this.customerRepo.getUnsyncedCustomers(sanitizedShopId || shopId);
     if (unsynced.length === 0) return;
 
     let batch = firestore().batch();
@@ -971,16 +990,16 @@ export class SyncManager {
     const syncedIds: string[] = [];
 
     for (const customer of unsynced) {
-      let targetShopId = customer.shopId;
+      let targetShopId = sanitizeShopId(customer.shopId);
 
       // Self-healing: repair orphaned customers
-      if ((!targetShopId || targetShopId === 'undefined') && shopId && shopId !== 'undefined') {
-          console.warn(`SyncManager: Repairing orphaned customer ${customer.id} with current shopId ${shopId}`);
-          targetShopId = shopId;
-          await this.customerRepo.db.executeSql('UPDATE Customer SET shopId = ? WHERE id = ?', [shopId, customer.id]);
+      if ((!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') && sanitizedShopId) {
+          console.warn(`SyncManager: Repairing orphaned customer ${customer.id} with current shopId ${sanitizedShopId}`);
+          targetShopId = sanitizedShopId;
+          await this.customerRepo.db.executeSql('UPDATE Customer SET shopId = ? WHERE id = ?', [sanitizedShopId, customer.id]);
       }
 
-      if (!targetShopId || targetShopId === 'undefined') {
+      if (!targetShopId || targetShopId === 'undefined' || targetShopId === '[object Object]') {
         console.warn('Sync Sanitizer (Native): Skipping customer with invalid shopId', customer.id);
         continue;
       }
@@ -1105,9 +1124,11 @@ export class SyncManager {
 
   private async syncExpenses(shopId: string) {
     try {
+      const safeShopId = sanitizeShopId(shopId);
+      if (!safeShopId || safeShopId === '[object Object]') return;
       const results = await this.productRepo.db.executeSql(
-        'SELECT * FROM Expense WHERE syncStatus = 0 AND shopId = ?',
-        [shopId]
+        'SELECT * FROM Expense WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)',
+        [safeShopId, safeShopId, safeShopId]
       );
       const expenses: any[] = [];
       for (let i = 0; i < results[0].rows.length; i++) {
@@ -1121,10 +1142,12 @@ export class SyncManager {
       const syncedIds: string[] = [];
 
       for (const exp of expenses) {
-        const ref = firestore().collection('shops').doc(shopId).collection('expenses').doc(exp.id);
+        let targetShopId = sanitizeShopId(exp.shopId) || safeShopId;
+        if (!targetShopId || targetShopId === '[object Object]') targetShopId = safeShopId;
+        const ref = firestore().collection('shops').doc(targetShopId).collection('expenses').doc(exp.id);
         batch.set(ref, {
           id: exp.id,
-          shopId: shopId,
+          shopId: targetShopId,
           category: exp.category,
           amount: exp.amount,
           description: exp.description || null,

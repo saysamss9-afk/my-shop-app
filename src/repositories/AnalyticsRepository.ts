@@ -67,7 +67,7 @@ export class AnalyticsRepository {
         (
           SELECT TOTAL(si.quantity * COALESCE(p.costPrice, 0))
           FROM SaleItem si
-          JOIN Product p ON si.productId = p.id
+          LEFT JOIN Product p ON si.productId = p.id
           WHERE si.saleId = s.id
         ) as totalCost
       FROM Sale s
@@ -192,10 +192,10 @@ export class AnalyticsRepository {
     const { startMs, endMs } = this.getRangeBounds(start, end);
 
     const query = `
-      SELECT p.name, si.quantity, si.priceAtSale, s.timestamp
+      SELECT COALESCE(p.name, 'Unknown Product') as name, si.quantity, si.priceAtSale, s.timestamp
       FROM SaleItem si
       JOIN Sale s ON si.saleId = s.id
-      JOIN Product p ON si.productId = p.id
+      LEFT JOIN Product p ON si.productId = p.id
       WHERE (TRIM(LOWER(s.shopId)) = TRIM(LOWER(?)) OR s.shopId = ? OR TRIM(s.shopId) = ?)
         AND COALESCE(s.isReverted, 0) = 0
     `;
@@ -265,8 +265,8 @@ export class AnalyticsRepository {
 
     const query = `
       SELECT
-        p.id as productId,
-        p.name as productName,
+        COALESCE(p.id, si.productId) as productId,
+        COALESCE(p.name, 'Unknown Product') as productName,
         CASE WHEN (si.isBulk = 1 OR si.isBulk = 'true' OR si.isBulk = TRUE) THEN 1 ELSE 0 END as isBulk,
         si.quantity,
         si.priceAtSale,
@@ -278,7 +278,7 @@ export class AnalyticsRepository {
         s.timestamp
       FROM SaleItem si
       JOIN Sale s ON si.saleId = s.id
-      JOIN Product p ON si.productId = p.id
+      LEFT JOIN Product p ON si.productId = p.id
       WHERE (TRIM(LOWER(s.shopId)) = TRIM(LOWER(?)) OR s.shopId = ? OR TRIM(s.shopId) = ?)
         AND COALESCE(s.isReverted, 0) = 0
     `;

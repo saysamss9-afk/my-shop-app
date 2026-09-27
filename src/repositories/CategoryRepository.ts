@@ -29,14 +29,19 @@ export class CategoryRepository {
   }
 
   async getUnsyncedCategories(shopId?: string): Promise<Category[]> {
-    const query = shopId
-      ? 'SELECT * FROM Category WHERE syncStatus = 0 AND shopId = ?'
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM Category WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
       : 'SELECT * FROM Category WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const categories: Category[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      categories.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        categories.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return categories;
   }

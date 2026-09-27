@@ -5,12 +5,19 @@ export class SystemRepository {
   constructor(public db: SQLiteDatabase) {}
 
   async getUnsyncedAuditLogs(shopId?: string): Promise<AuditLog[]> {
-    const query = shopId ? 'SELECT * FROM AuditLog WHERE shopId = ? AND syncStatus = 0' : 'SELECT * FROM AuditLog WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM AuditLog WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
+      : 'SELECT * FROM AuditLog WHERE syncStatus = 0';
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const logs: AuditLog[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      logs.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        logs.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return logs;
   }
@@ -20,12 +27,19 @@ export class SystemRepository {
   }
 
   async getUnsyncedAdjustments(shopId?: string): Promise<InventoryAdjustment[]> {
-    const query = shopId ? 'SELECT * FROM InventoryAdjustment WHERE shopId = ? AND syncStatus = 0' : 'SELECT * FROM InventoryAdjustment WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM InventoryAdjustment WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
+      : 'SELECT * FROM InventoryAdjustment WHERE syncStatus = 0';
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const adjustments: InventoryAdjustment[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      adjustments.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        adjustments.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return adjustments;
   }

@@ -237,7 +237,7 @@ export class PrintingService {
                   <span>${timestampStr}</span>
                 </div>
                 <div style="font-size: 11px; margin-bottom: 5px;">
-                  Staff: ${s.staffName || 'Staff'} (${s.staffRole || 'SALES'}) | Payment: ${s.paymentMethod || 'CASH'}
+                  Staff: ${s.staffName || 'Staff'} | Payment: ${s.paymentMethod || 'CASH'}
                 </div>
 
                 ${items.length > 0 ? items.map((i: any) => {

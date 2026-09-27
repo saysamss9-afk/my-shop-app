@@ -2,27 +2,46 @@ import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Sale, SaleItem } from '../db/types';
 import { parseTimestamp } from '../utils/dateUtils';
 
+const sanitizeShopId = (id: any): string => {
+  if (!id) return '';
+  if (typeof id === 'object') {
+    const extracted = id.shopId || id.id || id.uid || '';
+    return typeof extracted === 'string' ? extracted.trim() : String(extracted).trim();
+  }
+  const str = String(id).trim();
+  if (str === 'undefined' || str === '[object Object]' || str === 'null') return '';
+  return str;
+};
+
 export class SaleRepository {
   constructor(public db: SQLiteDatabase) {}
 
   async insertSale(sale: Sale, items: SaleItem[]) {
     await this.db.transaction(async (tx: any) => {
-      const safeShopId = sale.shopId?.toString().trim();
+      const safeShopId = sanitizeShopId(sale.shopId);
+      if (!safeShopId) {
+        throw new Error('Invalid Shop ID: Sale must be linked to a shop.');
+      }
       const timestamp = parseTimestamp(sale.timestamp, Date.now());
+      const totalAmount = Number(sale.totalAmount || 0);
+      const amountPaid = sale.amountPaid !== undefined && sale.amountPaid !== null ? Number(sale.amountPaid) : (sale.paymentStatus === 'DEBT' ? 0 : totalAmount);
+      const balance = sale.balance !== undefined && sale.balance !== null ? Number(sale.balance) : Math.max(0, totalAmount - amountPaid);
+      const paymentStatus = sale.paymentStatus || (balance <= 0 ? 'PAID' : (amountPaid > 0 ? 'PARTIAL' : 'DEBT'));
+
       const saleQuery = `
-        INSERT INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+        INSERT INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, amountPaid, balance, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
       `;
       const saleParams = [
         sale.id, safeShopId, sale.employeeId, sale.customerId, timestamp,
-        sale.totalAmount, sale.paymentMethod, sale.paymentStatus, sale.dueDate
+        totalAmount, amountPaid, balance, sale.paymentMethod, paymentStatus, sale.dueDate
       ];
       await tx.executeSql(saleQuery, saleParams);
 
-      // If it's a debt sale, update customer balance
-      if (sale.customerId && sale.paymentStatus === 'DEBT') {
+      // If there is an unpaid balance on credit and a customer is attached, update customer debt balance
+      if (sale.customerId && balance > 0) {
         const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance + ?, syncStatus = 0 WHERE id = ?';
-        await tx.executeSql(updateBalanceQuery, [sale.totalAmount, sale.customerId]);
+        await tx.executeSql(updateBalanceQuery, [balance, sale.customerId]);
       }
 
       for (const item of items) {
@@ -49,7 +68,7 @@ export class SaleRepository {
   }
 
   async getSalesByShop(shopId: string): Promise<any[]> {
-    const safeShopId = (shopId || '').toString().trim();
+    const safeShopId = sanitizeShopId(shopId);
     const query = `
       SELECT
         s.*,
@@ -63,7 +82,7 @@ export class SaleRepository {
       WHERE (TRIM(LOWER(s.shopId)) = TRIM(LOWER(?)) OR s.shopId = ?)
       ORDER BY CAST(s.timestamp AS INTEGER) DESC
     `;
-    const results = await this.db.executeSql(query, [safeShopId, shopId]);
+    const results = await this.db.executeSql(query, [safeShopId, safeShopId]);
     const sales: any[] = [];
     const rows = results[0]?.rows;
     if (rows) {
@@ -80,7 +99,7 @@ export class SaleRepository {
   }
 
   async getSalesByShopAndRange(shopId: string, start: number, end: number): Promise<any[]> {
-    const safeShopId = (shopId || '').toString().trim();
+    const safeShopId = sanitizeShopId(shopId);
     const startMs = start < 1e11 ? start * 1000 : Math.floor(start);
     const endMs = end < 1e11 ? end * 1000 : Math.floor(end);
     const startSec = Math.floor(startMs / 1000);
@@ -103,7 +122,7 @@ export class SaleRepository {
         )
       ORDER BY CAST(s.timestamp AS INTEGER) DESC
     `;
-    const results = await this.db.executeSql(query, [safeShopId, shopId, startMs, endMs, startSec, endSec]);
+    const results = await this.db.executeSql(query, [safeShopId, safeShopId, startMs, endMs, startSec, endSec]);
     const sales: any[] = [];
     const rows = results[0]?.rows;
     if (rows) {
@@ -148,14 +167,19 @@ export class SaleRepository {
   }
 
   async getUnsyncedSales(shopId?: string): Promise<Sale[]> {
-    const query = shopId
-      ? 'SELECT * FROM Sale WHERE syncStatus = 0 AND shopId = ?'
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM Sale WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
       : 'SELECT * FROM Sale WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const sales: Sale[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      sales.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        sales.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return sales;
   }
@@ -169,15 +193,19 @@ export class SaleRepository {
     await this.db.transaction(async (tx: any) => {
       const safeShopId = (sale.shopId || '').toString().trim();
       const timestamp = parseTimestamp(sale.timestamp, parseTimestamp(sale.lastUpdated, Date.now()));
+      const totalAmount = Number(sale.totalAmount || 0);
+      const amountPaid = sale.amountPaid !== undefined && sale.amountPaid !== null ? Number(sale.amountPaid) : (sale.paymentStatus === 'DEBT' ? 0 : totalAmount);
+      const balance = sale.balance !== undefined && sale.balance !== null ? Number(sale.balance) : Math.max(0, totalAmount - amountPaid);
+      const paymentStatus = sale.paymentStatus || (balance <= 0 ? 'PAID' : (amountPaid > 0 ? 'PARTIAL' : 'DEBT'));
 
       // 1. Insert or Replace the Sale record
       const saleQuery = `
-        INSERT OR REPLACE INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+        INSERT OR REPLACE INTO Sale(id, shopId, employeeId, customerId, timestamp, totalAmount, amountPaid, balance, paymentMethod, paymentStatus, dueDate, syncStatus, isReverted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
       `;
       const saleParams = [
         sale.id, safeShopId, sale.employeeId || null, sale.customerId || null, timestamp,
-        Number(sale.totalAmount || 0), sale.paymentMethod || 'CASH', sale.paymentStatus || 'PAID',
+        totalAmount, amountPaid, balance, sale.paymentMethod || 'CASH', paymentStatus,
         sale.dueDate || null, sale.isReverted ? 1 : 0
       ];
       await tx.executeSql(saleQuery, saleParams);
@@ -201,17 +229,20 @@ export class SaleRepository {
   async revertSale(saleId: string) {
     await this.db.transaction(async (tx: any) => {
       // Get sale info first to know if we need to update customer balance
-      const saleInfoQuery = 'SELECT customerId, totalAmount, paymentStatus FROM Sale WHERE id = ?';
+      const saleInfoQuery = 'SELECT customerId, totalAmount, amountPaid, balance, paymentStatus FROM Sale WHERE id = ?';
       const [saleInfoResult] = await tx.executeSql(saleInfoQuery, [saleId]);
-      const sale = saleInfoResult.rows.item(0);
+      const sale = saleInfoResult?.rows?.length ? (typeof saleInfoResult.rows.item === 'function' ? saleInfoResult.rows.item(0) : saleInfoResult.rows[0]) : null;
 
       const revertQuery = 'UPDATE Sale SET isReverted = 1, syncStatus = 0 WHERE id = ?';
       await tx.executeSql(revertQuery, [saleId]);
 
-      // If it was a debt sale, reduce customer balance
-      if (sale && sale.customerId && sale.paymentStatus === 'DEBT') {
-        const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
-        await tx.executeSql(updateBalanceQuery, [sale.totalAmount, sale.customerId]);
+      // If it had an unpaid debt balance, reduce customer debt balance accordingly
+      if (sale && sale.customerId) {
+        const debtValue = sale.balance !== undefined && sale.balance !== null ? Number(sale.balance) : (sale.paymentStatus === 'DEBT' ? Number(sale.totalAmount) : 0);
+        if (debtValue > 0) {
+          const updateBalanceQuery = 'UPDATE Customer SET currentBalance = MAX(0, currentBalance - ?), syncStatus = 0 WHERE id = ?';
+          await tx.executeSql(updateBalanceQuery, [debtValue, sale.customerId]);
+        }
       }
 
       // Restore stock
@@ -241,9 +272,9 @@ export class SaleRepository {
       }
 
       // 2. Fetch parent sale info
-      const saleQuery = 'SELECT id, totalAmount, customerId, paymentStatus FROM Sale WHERE id = ?';
+      const saleQuery = 'SELECT id, totalAmount, amountPaid, balance, customerId, paymentStatus FROM Sale WHERE id = ?';
       const [saleResult] = await tx.executeSql(saleQuery, [item.saleId]);
-      const sale = saleResult.rows.item(0);
+      const sale = saleResult?.rows?.length ? (typeof saleResult.rows.item === 'function' ? saleResult.rows.item(0) : saleResult.rows[0]) : null;
 
       const refundValue = item.priceAtSale * refundQuantity;
 
@@ -254,12 +285,26 @@ export class SaleRepository {
         await tx.executeSql('UPDATE SaleItem SET quantity = quantity - ?, syncStatus = 0 WHERE id = ?', [refundQuantity, saleItemId]);
       }
 
-      // 4. Update the parent sale total amount
-      await tx.executeSql('UPDATE Sale SET totalAmount = totalAmount - ?, syncStatus = 0 WHERE id = ?', [refundValue, item.saleId]);
+      // 4. Update the parent sale total amount & balance
+      const oldTotal = Number(sale?.totalAmount || 0);
+      const oldAmountPaid = Number(sale?.amountPaid || 0);
+      const oldBalance = sale?.balance !== undefined && sale?.balance !== null ? Number(sale.balance) : Math.max(0, oldTotal - oldAmountPaid);
+
+      const newTotal = Math.max(0, oldTotal - refundValue);
+      const newBalance = Math.max(0, oldBalance - refundValue);
+      const newPaymentStatus = newBalance <= 0 ? 'PAID' : (oldAmountPaid > 0 ? 'PARTIAL' : 'DEBT');
+
+      await tx.executeSql(
+        'UPDATE Sale SET totalAmount = ?, balance = ?, paymentStatus = ?, syncStatus = 0 WHERE id = ?',
+        [newTotal, newBalance, newPaymentStatus, item.saleId]
+      );
 
       // 5. Adjust customer debt if applicable
-      if (sale.customerId && sale.paymentStatus === 'DEBT') {
-        await tx.executeSql('UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?', [refundValue, sale.customerId]);
+      if (sale && sale.customerId && refundValue > 0) {
+        const reduceDebt = Math.min(refundValue, oldBalance);
+        if (reduceDebt > 0) {
+          await tx.executeSql('UPDATE Customer SET currentBalance = MAX(0, currentBalance - ?), syncStatus = 0 WHERE id = ?', [reduceDebt, sale.customerId]);
+        }
       }
 
       // 6. Return stock back to inventory

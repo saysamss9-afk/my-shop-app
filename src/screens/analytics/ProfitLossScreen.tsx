@@ -217,7 +217,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={0.55}
-                  style={{ alignSelf: 'center', width: '100%' }}
+                  style={{ alignSelf: 'center' }}
                 >
                   {isPositive ? '' : '-'}{currency}{Math.abs(netPerformance).toFixed(2)}
                 </Heading>
@@ -246,12 +246,10 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                     size="sm"
                     fontWeight="$bold"
                     color="$text900"
-                    textAlign="center"
-                    flexShrink={1}
+                    textAlign={isRTL ? 'left' : 'right'}
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    style={{ width: '100%' }}
+                    minimumFontScale={0.6}
                   >
                     {currency}{(snapshot?.totalStockCostValue || 0).toFixed(2)}
                   </Text>
@@ -269,30 +267,28 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                     size="sm"
                     fontWeight="$bold"
                     color="$success700"
-                    textAlign="center"
-                    flexShrink={1}
+                    textAlign={isRTL ? 'left' : 'right'}
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    style={{ width: '100%' }}
+                    minimumFontScale={0.6}
                   >
                     {currency}{(snapshot?.totalStockSellingValue || 0).toFixed(2)}
                   </Text>
                 </HStack>
                 <Divider />
 
-                {/* Sub-breakdown for Units and Bulk - Centered Amounts */}
+                {/* Sub-breakdown for Units and Bulk */}
                 <HStack p="$4" bg="$backgroundLight50" space="md" flexDirection={flexDir}>
                   <VStack flex={1} space="xs" alignItems="center">
                     <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase" textAlign="center">Unit Items Only</Text>
                     <VStack w="100%" space="xs">
-                      <HStack justifyContent="space-between" alignItems="center">
-                        <Text size="xs" color="$text600">Cost:</Text>
-                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.unitStockCostValue || 0).toFixed(2)}</Text>
+                      <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+                        <Text size="xs" color="$text600" textAlign={textAlign}>Cost:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign={isRTL ? 'left' : 'right'}>{currency}{(snapshot?.unitStockCostValue || 0).toFixed(2)}</Text>
                       </HStack>
-                      <HStack justifyContent="space-between" alignItems="center">
-                        <Text size="xs" color="$text600">Expected:</Text>
-                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.unitStockSellingValue || 0).toFixed(2)}</Text>
+                      <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+                        <Text size="xs" color="$text600" textAlign={textAlign}>Expected:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign={isRTL ? 'left' : 'right'}>{currency}{(snapshot?.unitStockSellingValue || 0).toFixed(2)}</Text>
                       </HStack>
                     </VStack>
                   </VStack>
@@ -300,13 +296,13 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                   <VStack flex={1} space="xs" alignItems="center">
                     <Text size="xs" fontWeight="$bold" color="$text500" textTransform="uppercase" textAlign="center">Bulk Items Only</Text>
                     <VStack w="100%" space="xs">
-                      <HStack justifyContent="space-between" alignItems="center">
-                        <Text size="xs" color="$text600">Cost:</Text>
-                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.bulkStockCostValue || 0).toFixed(2)}</Text>
+                      <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+                        <Text size="xs" color="$text600" textAlign={textAlign}>Cost:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign={isRTL ? 'left' : 'right'}>{currency}{(snapshot?.bulkStockCostValue || 0).toFixed(2)}</Text>
                       </HStack>
-                      <HStack justifyContent="space-between" alignItems="center">
-                        <Text size="xs" color="$text600">Expected:</Text>
-                        <Text size="xs" fontWeight="$bold" textAlign="right">{currency}{(snapshot?.bulkStockSellingValue || 0).toFixed(2)}</Text>
+                      <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+                        <Text size="xs" color="$text600" textAlign={textAlign}>Expected:</Text>
+                        <Text size="xs" fontWeight="$bold" textAlign={isRTL ? 'left' : 'right'}>{currency}{(snapshot?.bulkStockSellingValue || 0).toFixed(2)}</Text>
                       </HStack>
                     </VStack>
                   </VStack>
@@ -332,12 +328,10 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                     size="sm"
                     fontWeight="$bold"
                     color="$error700"
-                    textAlign="center"
-                    flexShrink={1}
+                    textAlign={isRTL ? 'left' : 'right'}
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    style={{ width: '100%' }}
+                    minimumFontScale={0.6}
                   >
                     {currency}{(snapshot?.totalSupplierDebt || 0).toFixed(2)}
                   </Text>
@@ -355,12 +349,10 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                     size="sm"
                     fontWeight="$bold"
                     color="$info700"
-                    textAlign="center"
-                    flexShrink={1}
+                    textAlign={isRTL ? 'left' : 'right'}
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    style={{ width: '100%' }}
+                    minimumFontScale={0.6}
                   >
                     {currency}{(snapshot?.totalCustomerDebt || 0).toFixed(2)}
                   </Text>
@@ -383,12 +375,10 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                     size="sm"
                     fontWeight="$bold"
                     color="$text900"
-                    textAlign="center"
-                    flexShrink={1}
+                    textAlign={isRTL ? 'left' : 'right'}
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    style={{ width: '100%' }}
+                    minimumFontScale={0.6}
                   >
                     {currency}{totalRevenue.toFixed(2)}
                   </Text>
@@ -406,12 +396,10 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                     size="sm"
                     fontWeight="$bold"
                     color="$error700"
-                    textAlign="center"
-                    flexShrink={1}
+                    textAlign={isRTL ? 'left' : 'right'}
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    style={{ width: '100%' }}
+                    minimumFontScale={0.6}
                   >
                     -{currency}{totalExpenses.toFixed(2)}
                   </Text>
@@ -425,12 +413,10 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
                     size="md"
                     fontWeight="$black"
                     color={isPositive ? '$success700' : '$error700'}
-                    textAlign="center"
-                    flexShrink={1}
+                    textAlign={isRTL ? 'left' : 'right'}
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    style={{ width: '100%' }}
+                    minimumFontScale={0.6}
                   >
                     {isPositive ? '+' : '-'}{currency}{Math.abs(netPerformance).toFixed(2)}
                   </Text>

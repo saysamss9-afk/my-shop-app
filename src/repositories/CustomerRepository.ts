@@ -68,14 +68,19 @@ export class CustomerRepository {
   }
 
   async getUnsyncedPayments(shopId?: string): Promise<DebtPayment[]> {
-    const query = shopId
-      ? 'SELECT * FROM DebtPayment WHERE syncStatus = 0 AND shopId = ?'
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM DebtPayment WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
       : 'SELECT * FROM DebtPayment WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const payments: DebtPayment[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      payments.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        payments.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return payments;
   }
@@ -137,14 +142,19 @@ export class CustomerRepository {
   }
 
   async getUnsyncedCustomers(shopId?: string): Promise<Customer[]> {
-    const query = shopId
-      ? 'SELECT * FROM Customer WHERE syncStatus = 0 AND shopId = ?'
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM Customer WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
       : 'SELECT * FROM Customer WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const customers: Customer[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      customers.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        customers.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return customers;
   }
@@ -155,15 +165,15 @@ export class CustomerRepository {
         s.id as saleId,
         s.timestamp,
         si.productId,
-        p.name as productName,
+        COALESCE(p.name, 'Item ' || si.productId) as productName,
         si.quantity,
         si.priceAtSale,
         si.isBulk,
-        p.unit,
-        p.bulkUnit
+        COALESCE(p.unit, 'pcs') as unit,
+        COALESCE(p.bulkUnit, 'Carton') as bulkUnit
       FROM Sale s
       JOIN SaleItem si ON s.id = si.saleId
-      JOIN Product p ON si.productId = p.id
+      LEFT JOIN Product p ON si.productId = p.id
       WHERE s.customerId = ? AND s.isReverted = 0
       ORDER BY s.timestamp DESC
     `;
@@ -178,18 +188,18 @@ export class CustomerRepository {
   async getItemsTakenOnCredit(customerId: string): Promise<any[]> {
     const query = `
       SELECT
-        p.id,
-        p.name,
+        COALESCE(p.id, si.productId) as id,
+        COALESCE(p.name, 'Item ' || si.productId) as name,
         SUM(si.quantity) as totalTaken,
         si.isBulk,
         si.priceAtSale,
-        p.unit,
-        p.bulkUnit
+        COALESCE(p.unit, 'pcs') as unit,
+        COALESCE(p.bulkUnit, 'Carton') as bulkUnit
       FROM Sale s
       JOIN SaleItem si ON s.id = si.saleId
-      JOIN Product p ON si.productId = p.id
-      WHERE s.customerId = ? AND s.paymentStatus = 'DEBT' AND s.isReverted = 0
-      GROUP BY p.id, si.isBulk
+      LEFT JOIN Product p ON si.productId = p.id
+      WHERE s.customerId = ? AND (s.paymentStatus = 'DEBT' OR s.paymentStatus = 'PARTIAL' OR s.balance > 0) AND s.isReverted = 0
+      GROUP BY si.productId, si.isBulk, si.priceAtSale
     `;
     const results = await this.db.executeSql(query, [customerId]);
     const items: any[] = [];

@@ -4,12 +4,9 @@ import {
   HStack,
   VStack,
   Text,
-  Icon,
   Pressable,
-  RemoveIcon,
-  AddIcon,
-  TrashIcon,
 } from '@gluestack-ui/themed';
+import { Plus, Minus, Trash2 } from 'lucide-react-native';
 import type { CartItem } from '../../../hooks/useCheckout';
 import { useTranslation } from 'react-i18next';
 
@@ -54,7 +51,7 @@ const CartItemRow: React.FC<Props> = ({ item, currency, onUpdateQuantity, onRemo
                     accessibilityLabel="Decrease quantity"
                     accessibilityRole="button"
                 >
-                    <Icon as={RemoveIcon} size="xs" color="$text700" />
+                    <Minus size={16} color="#374151" />
                 </Pressable>
                 <Text fontWeight="$bold" minWidth={24} textAlign="center" color="$text900">{item.quantity}</Text>
                 <Pressable
@@ -67,7 +64,7 @@ const CartItemRow: React.FC<Props> = ({ item, currency, onUpdateQuantity, onRemo
                     accessibilityLabel="Increase quantity"
                     accessibilityRole="button"
                 >
-                    <Icon as={AddIcon} size="xs" color="$text700" />
+                    <Plus size={16} color="#374151" />
                 </Pressable>
             </HStack>
             <VStack alignItems={isRTL ? "flex-start" : "flex-end"} minWidth={70}>
@@ -83,7 +80,7 @@ const CartItemRow: React.FC<Props> = ({ item, currency, onUpdateQuantity, onRemo
                     accessibilityLabel="Remove item"
                     accessibilityRole="button"
                 >
-                    <Icon as={TrashIcon} size="sm" color="$error600" />
+                    <Trash2 size={18} color="#E53935" />
                 </Pressable>
             </VStack>
         </HStack>

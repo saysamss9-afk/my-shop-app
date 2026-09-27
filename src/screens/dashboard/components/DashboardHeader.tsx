@@ -46,9 +46,9 @@ const DashboardHeader: React.FC<Props> = ({
   const textAlign = isRTL ? 'right' : 'left';
 
   return (
-    <Box px="$2" pt={Math.max(insets.top, 10)} pb="$6">
+    <Box px="$4" pt={Math.max(insets.top, 10)} pb="$6">
       <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
-        <VStack>
+        <VStack flex={1} flexShrink={1} mr={isRTL ? "$0" : "$3"} ml={isRTL ? "$3" : "$0"}>
           <HStack space="xs" alignItems="center" flexDirection={flexDir}>
             <Text size="sm" color="$text500" fontWeight="$medium">Welcome,</Text>
             {shopPlan === 'PREMIUM' && (
@@ -67,7 +67,7 @@ const DashboardHeader: React.FC<Props> = ({
                 </Box>
             )}
           </HStack>
-          <Heading size="xl" color="$text900" fontWeight="$black" textAlign={textAlign}>
+          <Heading size="xl" color="$text900" fontWeight="$black" textAlign={textAlign} numberOfLines={1}>
             {shopName}
           </Heading>
           <HStack space="md" alignItems="center" mt="$1" flexDirection={flexDir}>
@@ -79,7 +79,7 @@ const DashboardHeader: React.FC<Props> = ({
             )}
           </HStack>
         </VStack>
-        <HStack space="sm" alignItems="center" flexDirection={flexDir}>
+        <HStack space="sm" alignItems="center" flexDirection={flexDir} flexShrink={0}>
           {syncStatus === SyncStatus.Syncing ? (
             <HStack space="xs" alignItems="center" bg="$primary50" px="$3" py="$1.5" rounded="$full" minHeight={44} flexDirection={flexDir}>
                 <Spinner color="$primary600" size="small" />

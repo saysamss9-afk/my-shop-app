@@ -117,14 +117,19 @@ export class SupplierRepository {
   }
 
   async getUnsyncedSuppliers(shopId?: string): Promise<Supplier[]> {
-    const query = shopId
-      ? 'SELECT * FROM Supplier WHERE syncStatus = 0 AND shopId = ?'
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM Supplier WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
       : 'SELECT * FROM Supplier WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const suppliers: Supplier[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      suppliers.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        suppliers.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return suppliers;
   }
@@ -135,14 +140,19 @@ export class SupplierRepository {
   }
 
   async getUnsyncedSupplierPayments(shopId?: string): Promise<SupplierPayment[]> {
-    const query = shopId
-      ? 'SELECT * FROM SupplierPayment WHERE syncStatus = 0 AND shopId = ?'
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM SupplierPayment WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
       : 'SELECT * FROM SupplierPayment WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const payments: SupplierPayment[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      payments.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        payments.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return payments;
   }

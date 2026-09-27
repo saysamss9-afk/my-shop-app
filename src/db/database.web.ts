@@ -205,6 +205,8 @@ export const createTables = async (db: any) => {
         customerId STRING,
         timestamp INT,
         totalAmount REAL,
+        amountPaid REAL,
+        balance REAL,
         paymentMethod STRING,
         paymentStatus STRING,
         dueDate INT,

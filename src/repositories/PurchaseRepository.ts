@@ -91,23 +91,37 @@ export class PurchaseRepository {
   }
 
   async getUnsyncedPurchases(shopId?: string): Promise<PurchaseOrder[]> {
-    const query = shopId ? 'SELECT * FROM PurchaseOrder WHERE shopId = ? AND syncStatus = 0' : 'SELECT * FROM PurchaseOrder WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM PurchaseOrder WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
+      : 'SELECT * FROM PurchaseOrder WHERE syncStatus = 0';
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const purchases: PurchaseOrder[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      purchases.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        purchases.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return purchases;
   }
 
   async getUnsyncedReturns(shopId?: string): Promise<PurchaseReturn[]> {
-    const query = shopId ? 'SELECT * FROM PurchaseReturn WHERE shopId = ? AND syncStatus = 0' : 'SELECT * FROM PurchaseReturn WHERE syncStatus = 0';
-    const params = shopId ? [shopId] : [];
+    const safeShopId = shopId ? shopId.toString().trim() : undefined;
+    const query = safeShopId
+      ? 'SELECT * FROM PurchaseReturn WHERE syncStatus = 0 AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)'
+      : 'SELECT * FROM PurchaseReturn WHERE syncStatus = 0';
+    const params = safeShopId ? [safeShopId, safeShopId, safeShopId] : [];
     const results = await this.db.executeSql(query, params);
     const returns: PurchaseReturn[] = [];
-    for (let i = 0; i < results[0].rows.length; i++) {
-      returns.push(results[0].rows.item(i));
+    const rows = results[0]?.rows;
+    if (rows) {
+      const len = rows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        returns.push(rows.item ? rows.item(i) : rows[i]);
+      }
     }
     return returns;
   }

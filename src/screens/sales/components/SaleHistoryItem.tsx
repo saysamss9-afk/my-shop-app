@@ -75,7 +75,7 @@ const SaleHistoryItem: React.FC<Props> = ({ item, currency, onRevert, onPress, i
           <HStack space="xs" alignItems="center" mt="$1" flexDirection={flexDir}>
             <MaterialCommunityIcons name="account-tie" size={12} color="#666" />
             <Text size="xs" color="$text600">
-                {item.staffName} ({item.staffRole})
+                {item.staffName}
             </Text>
           </HStack>
         </VStack>

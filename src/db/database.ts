@@ -111,6 +111,8 @@ export const createTables = async (db: SQLiteDatabase) => {
         customerId TEXT,
         timestamp INTEGER NOT NULL,
         totalAmount REAL NOT NULL,
+        amountPaid REAL DEFAULT 0.0,
+        balance REAL DEFAULT 0.0,
         paymentMethod TEXT NOT NULL DEFAULT 'CASH',
         paymentStatus TEXT NOT NULL DEFAULT 'PAID',
         dueDate INTEGER,
@@ -231,6 +233,8 @@ export const createTables = async (db: SQLiteDatabase) => {
     'ALTER TABLE Shop ADD COLUMN [plan] TEXT DEFAULT \'STARTER\'',
     'ALTER TABLE Shop ADD COLUMN parentShopId TEXT',
     'ALTER TABLE Shop ADD COLUMN shopCode TEXT',
+    'ALTER TABLE Sale ADD COLUMN amountPaid REAL DEFAULT 0.0',
+    'ALTER TABLE Sale ADD COLUMN balance REAL DEFAULT 0.0',
   ];
 
   for (const migration of migrations) {

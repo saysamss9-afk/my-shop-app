@@ -81,7 +81,7 @@ const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, curren
                   <Text size="xs" color="$text500">INITIATED BY</Text>
                   <HStack space="xs" alignItems="center">
                     <MaterialCommunityIcons name="account-tie" size={14} color="#666" />
-                    <Text size="sm" fontWeight="$bold" color="$text900">{sale.staffName} ({sale.staffRole})</Text>
+                    <Text size="sm" fontWeight="$bold" color="$text900">{sale.staffName}</Text>
                   </HStack>
                 </VStack>
                 {sale.customerName && (
@@ -140,10 +140,26 @@ const SaleDetailModal: React.FC<Props> = ({ isOpen, onClose, sale, items, curren
 
           {/* Footer */}
           <Box p="$6" borderTopWidth={1} borderColor="$borderLight">
-            <HStack justifyContent="space-between" alignItems="center">
-              <Heading size="md" color="$text900">Total Amount</Heading>
-              <Heading size="xl" color="$primary800">{currency}{sale.totalAmount.toFixed(2)}</Heading>
-            </HStack>
+            <VStack space="xs" mb="$4">
+              <HStack justifyContent="space-between" alignItems="center">
+                <Text size="sm" color="$text600">Total Payable:</Text>
+                <Text size="sm" fontWeight="$bold" color="$text900">{currency}{sale.totalAmount.toFixed(2)}</Text>
+              </HStack>
+              <HStack justifyContent="space-between" alignItems="center">
+                <Text size="sm" color="$text600">Amount Paid:</Text>
+                <Text size="sm" fontWeight="$bold" color="$success700">
+                  {currency}{(sale.amountPaid !== undefined && sale.amountPaid !== null ? Number(sale.amountPaid) : (sale.paymentStatus === 'DEBT' ? 0 : sale.totalAmount)).toFixed(2)}
+                </Text>
+              </HStack>
+              {(sale.balance > 0 || sale.paymentStatus === 'DEBT' || sale.paymentStatus === 'PARTIAL') && (
+                <HStack justifyContent="space-between" alignItems="center">
+                  <Text size="sm" color="$error700" fontWeight="$bold">Unpaid Debt Balance:</Text>
+                  <Text size="sm" fontWeight="$bold" color="$error700">
+                    {currency}{(sale.balance !== undefined && sale.balance !== null ? Number(sale.balance) : (sale.paymentStatus === 'DEBT' ? sale.totalAmount : 0)).toFixed(2)}
+                  </Text>
+                </HStack>
+              )}
+            </VStack>
 
             <HStack space="md" mt="$6">
                 <Button

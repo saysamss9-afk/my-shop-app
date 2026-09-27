@@ -23,17 +23,18 @@ import {
   Input,
   InputField,
 } from '@gluestack-ui/themed';
-import { Wallet, CreditCard, User, Smartphone, ShoppingBag } from 'lucide-react-native';
+import { Wallet, CreditCard, User, Smartphone, ShoppingBag, AlertCircle } from 'lucide-react-native';
 import type { Customer } from '../../../db/types';
 import type { CartItem } from '../../../hooks/useCheckout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { displayAlert } from '../../../utils/alert';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   total: number;
   currency: string;
-  onConfirm: (method: string) => void;
+  onConfirm: (method: string, amountPaid?: number) => void;
   selectedCustomer: Customer | null;
   cart: CartItem[];
 }
@@ -53,14 +54,25 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
     }
   }, [isOpen]);
 
-  const cashAmount = parseFloat(cashReceived) || 0;
-  const change = cashAmount > total ? cashAmount - total : 0;
+  const rawAmountPaid = cashReceived.trim() === '' ? total : (parseFloat(cashReceived) || 0);
+  const amountPaidVal = method === 'DEBT' ? 0 : Math.max(0, rawAmountPaid);
+  const change = amountPaidVal > total ? amountPaidVal - total : 0;
+  const remainingDebt = method === 'DEBT' ? total : (amountPaidVal < total ? total - amountPaidVal : 0);
 
   const handleConfirm = async () => {
     if (isSubmitting) return;
+
+    if (remainingDebt > 0 && !selectedCustomer) {
+      displayAlert(
+        "Customer Required for Debt Balance",
+        `There is an unpaid balance of ${currency}${remainingDebt.toFixed(2)}. Please assign or select a customer to attach this remaining debt balance to.`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await onConfirm(method);
+      await onConfirm(method, amountPaidVal);
     } catch (e) {
       setIsSubmitting(false);
     }
@@ -130,43 +142,9 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
 
                 <Divider />
 
-                {/* Cash Calculation */}
-                {method === 'CASH' && (
-                  <VStack space="md" p="$4" bg="$primary50" rounded="$2xl">
-                    <HStack justifyContent="space-between" alignItems="center">
-                      <Text size="sm" fontWeight="$bold" color="$primary700">Cash Received</Text>
-                      <Input variant="outline" size="md" w={150} bg="$white" borderRadius={12}>
-                        <InputField
-                          placeholder="0.00"
-                          keyboardType="numeric"
-                          value={cashReceived}
-                          onChangeText={setCashReceived}
-                        />
-                      </Input>
-                    </HStack>
-                    <HStack justifyContent="space-between" alignItems="center">
-                      <Text size="sm" fontWeight="$bold" color="$primary700">Change to Return</Text>
-                      <Heading size="md" color="$success700">{currency}{change.toFixed(2)}</Heading>
-                    </HStack>
-                  </VStack>
-                )}
-
                 {/* Payment Selection */}
                 <VStack space="md">
                   <Text size="sm" fontWeight="$black" color="$text800">Select Payment Method</Text>
-
-                  {(method === 'MOMO' || method === 'CARD') && (
-                    <VStack space="xs" mb="$2">
-                      <Text size="xs" fontWeight="$bold" color="$text600">Transaction Reference / Receipt #</Text>
-                      <Input variant="outline" size="md" bg="$white" borderRadius={12}>
-                        <InputField
-                          placeholder="Optional code..."
-                          value={reference}
-                          onChangeText={setReference}
-                        />
-                      </Input>
-                    </VStack>
-                  )}
 
                   <HStack space="sm" flexWrap="wrap">
                     {PAYMENT_METHODS.map((m) => (
@@ -193,9 +171,70 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
                     ))}
                   </HStack>
 
+                  {(method === 'MOMO' || method === 'CARD') && (
+                    <VStack space="xs" mt="$2">
+                      <Text size="xs" fontWeight="$bold" color="$text600">Transaction Reference / Receipt #</Text>
+                      <Input variant="outline" size="md" bg="$white" borderRadius={12}>
+                        <InputField
+                          placeholder="Optional code..."
+                          value={reference}
+                          onChangeText={setReference}
+                        />
+                      </Input>
+                    </VStack>
+                  )}
+
+                  {/* Amount Paid Field for Cash/MOMO/Card */}
+                  {method !== 'DEBT' && (
+                    <VStack space="md" p="$4" bg="$primary50" rounded="$2xl" mt="$2">
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <VStack flex={1} mr="$2">
+                          <Text size="sm" fontWeight="$bold" color="$primary700">Amount Paid Now ({currency})</Text>
+                          <Text size="2xs" color="$text500">Enter partial or full amount received</Text>
+                        </VStack>
+                        <Input variant="outline" size="md" w={150} bg="$white" borderRadius={12}>
+                          <InputField
+                            placeholder={total.toFixed(2)}
+                            keyboardType="numeric"
+                            value={cashReceived}
+                            onChangeText={setCashReceived}
+                          />
+                        </Input>
+                      </HStack>
+
+                      {change > 0 && (
+                        <HStack justifyContent="space-between" alignItems="center" pt="$2" borderTopWidth={1} borderTopColor="$borderLight">
+                          <Text size="sm" fontWeight="$bold" color="$success700">Change to Return</Text>
+                          <Heading size="md" color="$success700">{currency}{change.toFixed(2)}</Heading>
+                        </HStack>
+                      )}
+
+                      {remainingDebt > 0 && (
+                        <VStack space="xs" pt="$2" borderTopWidth={1} borderTopColor="$borderLight">
+                          <HStack justifyContent="space-between" alignItems="center">
+                            <Text size="sm" fontWeight="$bold" color="$error700">Unpaid Balance (Debt)</Text>
+                            <Heading size="md" color="$error700">{currency}{remainingDebt.toFixed(2)}</Heading>
+                          </HStack>
+                          {!selectedCustomer ? (
+                            <HStack space="xs" alignItems="center" mt="$1">
+                              <Icon as={AlertCircle} size="2xs" color="$error600" />
+                              <Text size="2xs" color="$error700" fontWeight="$bold">
+                                Select a customer to attach this {currency}{remainingDebt.toFixed(2)} debt to.
+                              </Text>
+                            </HStack>
+                          ) : (
+                            <Text size="2xs" color="$text600">
+                              This {currency}{remainingDebt.toFixed(2)} will be billed to {selectedCustomer.name}'s balance.
+                            </Text>
+                          )}
+                        </VStack>
+                      )}
+                    </VStack>
+                  )}
+
                   <Divider my="$2" />
 
-                  {/* Debt Option */}
+                  {/* Debt Option (100% Credit) */}
                   {selectedCustomer ? (
                     <Pressable onPress={() => !isSubmitting && setMethod('DEBT')}>
                       <HStack
@@ -211,8 +250,8 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
                           <Icon as={User} color="$error600" />
                         </Center>
                         <VStack flex={1}>
-                          <Text fontWeight="$bold" color={method === 'DEBT' ? '$error700' : '$text900'}>Sell on Credit (Debt)</Text>
-                          <Text size="xs" color="$text500">Record this balance to {selectedCustomer.name}'s profile</Text>
+                          <Text fontWeight="$bold" color={method === 'DEBT' ? '$error700' : '$text900'}>Sell 100% on Credit (Full Debt)</Text>
+                          <Text size="xs" color="$text500">Record full {currency}{total.toFixed(2)} balance to {selectedCustomer.name}'s profile</Text>
                         </VStack>
                         <Box w={20} h={20} rounded="$full" borderWidth={2} borderColor={method === 'DEBT' ? '$error600' : '$text200'} alignItems="center" justifyContent="center">
                           {method === 'DEBT' && <Box w={10} h={10} rounded="$full" bg="$error600" />}
@@ -223,9 +262,9 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
                     <Box bg="$backgroundLight100" p="$4" rounded="$2xl" opacity={0.6} borderWidth={1} borderStyle="dashed" borderColor="$text300">
                       <HStack space="md" alignItems="center">
                         <Icon as={User} color="$text400" />
-                        <VStack>
-                          <Text color="$text400" fontWeight="$bold">Credit Option Unavailable</Text>
-                          <Text size="xs" color="$text400">Select a customer first to enable debt selling.</Text>
+                        <VStack flex={1}>
+                          <Text color="$text400" fontWeight="$bold">100% Credit Option Unavailable</Text>
+                          <Text size="xs" color="$text400">Assign a customer to enable full credit selling.</Text>
                         </VStack>
                       </HStack>
                     </Box>
@@ -243,7 +282,7 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, total, currency, onCon
             action="primary"
             onPress={handleConfirm}
             borderRadius="$xl"
-            bg={method === 'DEBT' ? '$error600' : '$primary600'}
+            bg={method === 'DEBT' || remainingDebt > 0 ? '$error600' : '$primary600'}
             flex={2}
             isDisabled={isSubmitting}
           >

@@ -100,9 +100,9 @@ const CheckoutScreen = ({ route, navigation }: any) => {
     setIsScannerVisible(false);
   };
 
-  const handleCompleteSale = async (method: string) => {
+  const handleCompleteSale = async (method: string, amountPaid?: number) => {
     try {
-      await processSale(method);
+      await processSale(method, selectedCustomerId, amountPaid);
       setShowPaymentModal(false);
       displayAlert(
         "Success",

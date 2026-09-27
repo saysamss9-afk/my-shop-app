@@ -110,7 +110,11 @@ export const useCheckout = (shopId: string, employeeId: string) => {
 
   const total = calculateCartTotal(cart);
 
-  const processSale = useCallback(async (paymentMethod: string = 'CASH', customerId: string | null = null) => {
+  const processSale = useCallback(async (
+    paymentMethod: string = 'CASH',
+    customerId: string | null = null,
+    amountPaidParam?: number
+  ) => {
     if (cart.length === 0) {
       setError('Cart is empty.');
       return;
@@ -131,6 +135,22 @@ export const useCheckout = (shopId: string, employeeId: string) => {
       const saleId = generateUUID();
       const saleTotal = calculateCartTotal(cart);
       const targetCustomerId = customerId || selectedCustomerId;
+
+      let amountPaid = amountPaidParam !== undefined && amountPaidParam !== null ? Math.max(0, Number(amountPaidParam)) : saleTotal;
+      if (paymentMethod === 'DEBT') {
+        amountPaid = 0;
+      }
+      const balance = Math.max(0, roundCurrency(saleTotal - amountPaid));
+
+      let paymentStatus = 'PAID';
+      if (balance > 0) {
+        paymentStatus = amountPaid > 0 ? 'PARTIAL' : 'DEBT';
+      }
+
+      if (balance > 0 && !targetCustomerId) {
+        throw new Error(`A customer must be assigned to record the remaining debt balance of ${currency}${balance.toFixed(2)}.`);
+      }
+
       const sale: Sale = {
         id: saleId,
         shopId,
@@ -138,8 +158,10 @@ export const useCheckout = (shopId: string, employeeId: string) => {
         customerId: targetCustomerId,
         timestamp: Date.now(),
         totalAmount: saleTotal,
+        amountPaid,
+        balance,
         paymentMethod,
-        paymentStatus: paymentMethod === 'DEBT' ? 'DEBT' : 'PAID',
+        paymentStatus,
         dueDate: null,
         syncStatus: 0,
         isReverted: 0,
@@ -160,10 +182,11 @@ export const useCheckout = (shopId: string, employeeId: string) => {
       return saleId;
     } catch (e: any) {
       setError(e.message || 'Unable to process sale.');
+      throw e;
     } finally {
       setIsLoading(false);
     }
-  }, [cart, shopId, employeeId, clearCart, selectedCustomerId, triggerSync]);
+  }, [cart, shopId, employeeId, clearCart, selectedCustomerId, currency, triggerSync]);
 
   const searchProductByBarcode = useCallback(async (barcode: string) => {
     try {
