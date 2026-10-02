@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ScrollView } from 'react-native';
 import {
   Heading,
   Icon,
@@ -19,7 +20,6 @@ import {
   CloseIcon,
   Pressable,
   Center,
-  FlatList,
   Box,
   Button,
   ButtonText,
@@ -90,39 +90,8 @@ const SelectCustomerModal: React.FC<Props> = ({ isOpen, onClose, customers, onSe
                   </HStack>
                 </Box>
 
-                <FlatList
-                  data={filtered}
-                  keyExtractor={(item: any) => item.id}
-                  contentContainerStyle={{ padding: 16 }}
-                  renderItem={({ item }: any) => (
-                    <Pressable
-                      onPress={() => onSelect(item.id)}
-                      mb="$3"
-                      bg={selectedCustomerId === item.id ? "$primary50" : "$white"}
-                      p="$4"
-                      rounded="$2xl"
-                      borderWidth={1}
-                      borderColor={selectedCustomerId === item.id ? "$primary600" : "$borderLight"}
-                    >
-                      <HStack space="md" alignItems="center">
-                        <Center w={40} h={40} rounded="$full" bg={selectedCustomerId === item.id ? "$primary200" : "$backgroundLight100"}>
-                          <Icon as={User} color={selectedCustomerId === item.id ? "$primary700" : "$text400"} />
-                        </Center>
-                        <VStack flex={1}>
-                          <Text fontWeight="$bold" color="$text900">{item.name}</Text>
-                          <Text size="xs" color="$text500">{item.phone || 'No phone'}</Text>
-                        </VStack>
-                        <VStack alignItems="flex-end">
-                            <Text size="xs" color="$text400">Debt</Text>
-                            <Text size="sm" color="$error600" fontWeight="$bold">{(Number(item.currentBalance) || 0).toFixed(2)}</Text>
-                        </VStack>
-                        {selectedCustomerId === item.id && (
-                            <Icon as={CheckCircle2} color="$primary600" size="sm" />
-                        )}
-                      </HStack>
-                    </Pressable>
-                  )}
-                  ListEmptyComponent={
+                <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+                  {filtered.length === 0 ? (
                     <Center mt="$10">
                       <VStack space="md" alignItems="center">
                         <Text color="$text400">No customers found.</Text>
@@ -131,8 +100,38 @@ const SelectCustomerModal: React.FC<Props> = ({ isOpen, onClose, customers, onSe
                         </Button>
                       </VStack>
                     </Center>
-                  }
-                />
+                  ) : (
+                    filtered.map((item: any) => (
+                      <Pressable
+                        key={item.id}
+                        onPress={() => onSelect(item.id)}
+                        mb="$3"
+                        bg={selectedCustomerId === item.id ? "$primary50" : "$white"}
+                        p="$4"
+                        rounded="$2xl"
+                        borderWidth={1}
+                        borderColor={selectedCustomerId === item.id ? "$primary600" : "$borderLight"}
+                      >
+                        <HStack space="md" alignItems="center">
+                          <Center w={40} h={40} rounded="$full" bg={selectedCustomerId === item.id ? "$primary200" : "$backgroundLight100"}>
+                            <Icon as={User} color={selectedCustomerId === item.id ? "$primary700" : "$text400"} />
+                          </Center>
+                          <VStack flex={1}>
+                            <Text fontWeight="$bold" color="$text900">{item.name}</Text>
+                            <Text size="xs" color="$text500">{item.phone || 'No phone'}</Text>
+                          </VStack>
+                          <VStack alignItems="flex-end">
+                              <Text size="xs" color="$text400">Debt</Text>
+                              <Text size="sm" color="$error600" fontWeight="$bold">{(Number(item.currentBalance) || 0).toFixed(2)}</Text>
+                          </VStack>
+                          {selectedCustomerId === item.id && (
+                              <Icon as={CheckCircle2} color="$primary600" size="sm" />
+                          )}
+                        </HStack>
+                      </Pressable>
+                    ))
+                  )}
+                </ScrollView>
               </>
             ) : (
               <VStack space="xl" p="$6">
@@ -154,7 +153,7 @@ const SelectCustomerModal: React.FC<Props> = ({ isOpen, onClose, customers, onSe
                     <Input variant="outline" size="md" borderRadius={12}>
                       <InputField
                         placeholder="054..."
-                        value={newPhone}
+                        value= {newPhone}
                         onChangeText={setNewPhone}
                         keyboardType="phone-pad"
                       />

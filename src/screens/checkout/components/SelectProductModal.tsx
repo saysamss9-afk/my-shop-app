@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FlatList } from 'react-native';
+import { ScrollView } from 'react-native';
 import {
   Box,
   VStack,
@@ -69,8 +69,9 @@ const SelectProductModal: React.FC<Props> = ({
     });
   }, [products, categories, searchQuery]);
 
-  const renderItem = ({ item }: { item: Product }) => (
+  const renderItem = (item: Product) => (
     <Box
+      key={item.id}
       mb="$3"
       p="$4"
       bg="$backgroundLight0"
@@ -173,17 +174,15 @@ const SelectProductModal: React.FC<Props> = ({
             </Input>
           </Box>
 
-          <FlatList
-            data={filteredProducts}
-            keyExtractor={item => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={{ padding: 16 }}
-            ListEmptyComponent={
+          <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+            {filteredProducts.length === 0 ? (
               <Center mt="$20">
                 <Text color="$text400">No matching products in stock.</Text>
               </Center>
-            }
-          />
+            ) : (
+              filteredProducts.map(item => renderItem(item))
+            )}
+          </ScrollView>
         </ModalBody>
       </ModalContent>
     </Modal>

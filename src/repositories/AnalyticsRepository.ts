@@ -1,6 +1,8 @@
 import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { parseTimestamp } from '../utils/dateUtils';
 
+const getRow = (rows: any, index: number) => (typeof rows?.item === 'function' ? rows.item(index) : rows?.[index]);
+
 export interface FinancialSummary {
   totalRevenue: number;
   totalProfit: number;
@@ -60,31 +62,50 @@ export class AnalyticsRepository {
 
     // 1. Fetch sales for the shop
     const salesQuery = `
-      SELECT
-        s.id,
-        s.totalAmount,
-        s.timestamp,
-        (
-          SELECT TOTAL(si.quantity * COALESCE(p.costPrice, 0))
-          FROM SaleItem si
-          LEFT JOIN Product p ON si.productId = p.id
-          WHERE si.saleId = s.id
-        ) as totalCost
-      FROM Sale s
-      WHERE (TRIM(LOWER(s.shopId)) = TRIM(LOWER(?)) OR s.shopId = ? OR TRIM(s.shopId) = ?)
-        AND COALESCE(s.isReverted, 0) = 0
+      SELECT id, totalAmount, timestamp
+      FROM Sale
+      WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)
+        AND COALESCE(isReverted, 0) = 0
     `;
 
-    // 2. Fetch expenses for the shop
+    // 2. Fetch sale item costs grouped by saleId
+    const costsQuery = `
+      SELECT si.saleId, SUM(si.quantity * COALESCE(p.costPrice, 0)) as totalCost
+      FROM SaleItem si
+      LEFT JOIN Product p ON si.productId = p.id
+      GROUP BY si.saleId
+    `;
+
+    // 3. Fetch expenses for the shop
     const expenseQuery = `
       SELECT amount, timestamp FROM Expense
       WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)
     `;
 
-    const [salesResults, expResults] = await Promise.all([
+    // 4. Fetch debt payments for the shop
+    const debtQuery = `
+      SELECT amount, timestamp FROM DebtPayment
+      WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?)
+    `;
+
+    const [salesResults, costsResults, expResults, debtResults] = await Promise.all([
       this.db.executeSql(salesQuery, [safeShopId, safeShopId, safeShopId]),
-      this.db.executeSql(expenseQuery, [safeShopId, safeShopId, safeShopId])
+      this.db.executeSql(costsQuery, []),
+      this.db.executeSql(expenseQuery, [safeShopId, safeShopId, safeShopId]),
+      this.db.executeSql(debtQuery, [safeShopId, safeShopId, safeShopId])
     ]);
+
+    const costMap = new Map<string, number>();
+    const costRows = costsResults[0]?.rows;
+    if (costRows) {
+      const len = costRows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        const item = getRow(costRows, i);
+        if (item && item.saleId) {
+          costMap.set(item.saleId, Number(item.totalCost || item.totalcost || 0));
+        }
+      }
+    }
 
     let totalRevenue = 0;
     let totalProfit = 0;
@@ -92,14 +113,30 @@ export class AnalyticsRepository {
     if (salesRows) {
       const len = salesRows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        const sale = salesRows.item ? salesRows.item(i) : salesRows[i];
+        const sale = getRow(salesRows, i);
         if (!sale) continue;
         const ts = parseTimestamp(sale.timestamp);
         if (ts >= startMs && ts <= endMs) {
           const rev = Number(sale.totalAmount || 0);
-          const cost = Number(sale.totalCost || 0);
+          const cost = Number(costMap.get(sale.id) || 0);
           totalRevenue += rev;
           totalProfit += (rev - cost);
+        }
+      }
+    }
+
+    // Add debt payments collected during this time frame to revenue and profit
+    const debtRows = debtResults[0]?.rows;
+    if (debtRows) {
+      const len = debtRows.length ?? 0;
+      for (let i = 0; i < len; i++) {
+        const dp = getRow(debtRows, i);
+        if (!dp) continue;
+        const ts = parseTimestamp(dp.timestamp);
+        if (ts >= startMs && ts <= endMs) {
+          const amt = Number(dp.amount || 0);
+          totalRevenue += amt;
+          totalProfit += amt;
         }
       }
     }
@@ -109,7 +146,7 @@ export class AnalyticsRepository {
     if (expRows) {
       const len = expRows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        const exp = expRows.item ? expRows.item(i) : expRows[i];
+        const exp = getRow(expRows, i);
         if (!exp) continue;
         const ts = parseTimestamp(exp.timestamp);
         if (ts >= startMs && ts <= endMs) {
@@ -164,9 +201,9 @@ export class AnalyticsRepository {
       this.db.executeSql(customerDebtQuery, [safeShopId, safeShopId, safeShopId])
     ]);
 
-    const stock = stockRes[0]?.rows?.length ? (stockRes[0].rows.item ? stockRes[0].rows.item(0) : stockRes[0].rows[0]) : null;
-    const supplier = supplierRes[0]?.rows?.length ? (supplierRes[0].rows.item ? supplierRes[0].rows.item(0) : supplierRes[0].rows[0]) : null;
-    const customer = customerRes[0]?.rows?.length ? (customerRes[0].rows.item ? customerRes[0].rows.item(0) : customerRes[0].rows[0]) : null;
+    const stock = stockRes[0]?.rows?.length ? getRow(stockRes[0].rows, 0) : null;
+    const supplier = supplierRes[0]?.rows?.length ? getRow(supplierRes[0].rows, 0) : null;
+    const customer = customerRes[0]?.rows?.length ? getRow(customerRes[0].rows, 0) : null;
 
     return {
       totalStockCostValue: Number(stock?.totalCostValue || 0),
@@ -205,7 +242,7 @@ export class AnalyticsRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        const item = rows.item ? rows.item(i) : rows[i];
+        const item = getRow(rows, i);
         if (!item) continue;
         const ts = parseTimestamp(item.timestamp);
         if (ts >= startMs && ts <= endMs) {
@@ -242,12 +279,12 @@ export class AnalyticsRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        const item = rows.item ? rows.item(i) : rows[i];
+        const item = getRow(rows, i);
         if (!item) continue;
         const ts = parseTimestamp(item.timestamp);
         if (ts >= startMs && ts <= endMs) {
-          const emp = item.employeeName || 'Owner / Staff';
-          const amt = Number(item.totalAmount || 0);
+          const emp = item.employeeName || item.employeename || 'Owner / Staff';
+          const amt = Number(item.totalAmount || item.totalamount || 0);
           const existing = perfMap.get(emp) || { employeeName: emp, saleCount: 0, totalRevenue: 0 };
           existing.saleCount += 1;
           existing.totalRevenue += amt;
@@ -289,7 +326,7 @@ export class AnalyticsRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        const row = rows.item ? rows.item(i) : rows[i];
+        const row = getRow(rows, i);
         if (!row) continue;
         const ts = parseTimestamp(row.timestamp);
         if (ts >= startMs && ts <= endMs) {
@@ -333,7 +370,7 @@ export class AnalyticsRepository {
     if (debtRows) {
       const len = debtRows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        const row = debtRows.item ? debtRows.item(i) : debtRows[i];
+        const row = getRow(debtRows, i);
         if (!row) continue;
         const ts = parseTimestamp(row.timestamp);
         if (ts >= startMs && ts <= endMs) {

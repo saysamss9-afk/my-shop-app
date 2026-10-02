@@ -16,6 +16,7 @@ export const useDashboard = (shopId: string) => {
   const [shopCode, setShopCode] = useState<string | null>(null);
   const [shopPlan, setShopPlan] = useState<'STARTER' | 'BUSINESS' | 'PREMIUM'>('STARTER');
   const [parentShopId, setParentShopId] = useState<string | null>(null);
+  const [planExpiresAt, setPlanExpiresAt] = useState<string | null>(null);
 
   const shopIdRef = useRef(shopId);
   useEffect(() => {
@@ -39,7 +40,7 @@ export const useDashboard = (shopId: string) => {
       const productRepo = new ProductRepository(db);
       const analyticsRepo = new AnalyticsRepository(db);
 
-      const shopResults = await db.executeSql('SELECT name, currency, [plan], parentShopId, shopCode FROM Shop WHERE id = ?', [activeShopId]);
+      const shopResults = await db.executeSql('SELECT name, currency, [plan], parentShopId, shopCode, planExpiresAt FROM Shop WHERE id = ?', [activeShopId]);
       const shopRow = shopResults[0]?.rows?.length ? shopResults[0].rows.item(0) : null;
       if (shopRow) {
         setCurrency(shopRow.currency || '$');
@@ -48,6 +49,15 @@ export const useDashboard = (shopId: string) => {
         const normalizedPlan = (shopRow.plan || 'STARTER').toUpperCase();
         setShopPlan(normalizedPlan as any);
         setParentShopId(shopRow.parentShopId || null);
+
+        let expiry = shopRow.planExpiresAt || null;
+        if (!expiry) {
+          const trialExpiry = new Date();
+          trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+          expiry = trialExpiry.toISOString().split('T')[0];
+          db.executeSql('UPDATE Shop SET planExpiresAt = ? WHERE id = ?', [expiry, activeShopId]).catch(() => {});
+        }
+        setPlanExpiresAt(expiry);
       }
 
       // Get low stock count
@@ -71,10 +81,10 @@ export const useDashboard = (shopId: string) => {
     }
   }, [shopId]);
 
-  const triggerSync = useCallback(async () => {
+  const triggerSync = useCallback(async (force = false) => {
     setSyncStatus(SyncStatus.Syncing);
     const activeShopId = shopIdRef.current || shopId;
-    await triggerGlobalSync(activeShopId, true);
+    await triggerGlobalSync(activeShopId, force, 'ALL');
     await loadStats();
     setLastSynced(Date.now());
     setTimeout(() => setSyncStatus(SyncStatus.Idle), 3000);
@@ -93,6 +103,7 @@ export const useDashboard = (shopId: string) => {
     shopCode,
     shopPlan,
     parentShopId,
+    planExpiresAt,
     lastSynced,
     triggerSync,
     refreshDashboard: loadStats

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { FlatList, SectionList, Linking, Clipboard, StatusBar, Platform } from 'react-native';
+import { FlatList, SectionList, ScrollView, Linking, Clipboard, StatusBar } from 'react-native';
 import { displayAlert } from '../../utils/alert';
 import {
   Box,
@@ -8,28 +8,25 @@ import {
   Text,
   Heading,
   Center,
-  Spinner,
   Input,
   InputField,
   InputSlot,
   InputIcon,
   SearchIcon,
   Pressable,
-  Badge,
-  BadgeText,
-  Button,
-  ButtonText,
 } from '@gluestack-ui/themed';
 import firebase from '../../firebase-config';
 import type { User } from 'firebase/auth';
-import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import { getAppShadow } from '../../utils/platformStyles';
 
 // Sub-components
 import AdminHeader from './components/AdminHeader';
 import ShopRequestItem from './components/ShopRequestItem';
 import RegisteredShopItem from './components/RegisteredShopItem';
+import UpgradeRequestItem from './components/UpgradeRequestItem';
 import EditRequestModal from './components/EditRequestModal';
+import ManageShopPlanModal from './components/ManageShopPlanModal';
 
 const AdminDashboardScreen = ({ navigation }: any) => {
   const [requests, setRequests] = useState<any[]>([]);
@@ -39,6 +36,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('requests');
+  const [shopPlanFilter, setShopPlanFilter] = useState<'ALL' | 'PREMIUM' | 'BUSINESS' | 'STARTER' | 'BRANCHES'>('ALL');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
@@ -50,6 +48,78 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     country: '',
     currency: ''
   });
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [selectedShopForPlan, setSelectedShopForPlan] = useState<any | null>(null);
+  const [planForm, setPlanForm] = useState({
+    plan: 'STARTER',
+    planExpiresAt: '',
+    paymentMethod: 'MANUAL',
+    notes: ''
+  });
+
+  const handleOpenPlanModal = (shop: any) => {
+    setSelectedShopForPlan(shop);
+    const defaultExpiry = shop.planExpiresAt || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    setPlanForm({
+      plan: shop.plan || 'STARTER',
+      planExpiresAt: defaultExpiry,
+      paymentMethod: 'MANUAL',
+      notes: shop.renewalNotes || ''
+    });
+    setIsPlanModalOpen(true);
+  };
+
+  const updateShopAndBranches = async (shopId: string, updateData: any) => {
+    const db = firebase.firestore();
+
+    // 1. Update main shop
+    await db.collection('registered_shops').doc(shopId).update(updateData);
+
+    // 2. Query and update all child branches
+    const branchesQuery1 = await db.collection('registered_shops').where('parentShopId', '==', shopId).get();
+    const branchesQuery2 = await db.collection('registered_shops').where('parentshopid', '==', shopId).get();
+
+    const batch = db.batch();
+    const branchIds = new Set();
+
+    branchesQuery1.docs.forEach((doc: any) => {
+      branchIds.add(doc.id);
+      batch.update(doc.ref, updateData);
+    });
+    branchesQuery2.docs.forEach((doc: any) => {
+      if (!branchIds.has(doc.id)) {
+        branchIds.add(doc.id);
+        batch.update(doc.ref, updateData);
+      }
+    });
+
+    if (branchIds.size > 0) {
+      await batch.commit();
+    }
+  };
+
+  const handleSaveShopPlan = async () => {
+    if (!selectedShopForPlan) return;
+    setProcessing(selectedShopForPlan.id);
+    try {
+      const updateData = {
+        plan: planForm.plan,
+        planExpiresAt: planForm.planExpiresAt,
+        manualPayment: true,
+        lastManualPaymentAt: firebase.firestore.FieldValue.serverTimestamp(),
+        paymentMethod: planForm.paymentMethod,
+        renewalNotes: planForm.notes
+      };
+      await updateShopAndBranches(selectedShopForPlan.id, updateData);
+      setIsPlanModalOpen(false);
+      setSelectedShopForPlan(null);
+      displayAlert("Success", "Shop plan and expiry date updated for main shop and all its branches!");
+    } catch (e: any) {
+      displayAlert("Error", "Failed to update plan expiry: " + e.message);
+    } finally {
+      setProcessing(null);
+    }
+  };
 
   const handleDeleteRequest = (id: string) => {
     const deleteFn = async () => {
@@ -96,7 +166,6 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     let unsubNotify: any;
 
     const unsubscribeAuth = firebase.auth().onAuthStateChanged((user: User | null) => {
-      // Clean up previous listeners if auth changes
       if (unsubReq) unsubReq();
       if (unsubShops) unsubShops();
       if (unsubUpgrades) unsubUpgrades();
@@ -107,7 +176,6 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         return;
       }
 
-      // Admin authenticated. Start listeners.
       unsubReq = firebase.firestore().collection('shop_requests')
         .where('status', 'in', ['PENDING', 'REVIEWING'])
         .onSnapshot((snapshot: any) => {
@@ -122,7 +190,34 @@ const AdminDashboardScreen = ({ navigation }: any) => {
 
       unsubShops = firebase.firestore().collection('registered_shops')
         .onSnapshot((snapshot: any) => {
-          const data = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+          const data = snapshot.docs.map((doc: any) => {
+            const shopData = { id: doc.id, ...doc.data() } as any;
+            if (!shopData.planExpiresAt) {
+              let baseDate = new Date();
+              if (shopData.createdAt?.seconds) {
+                baseDate = new Date(shopData.createdAt.seconds * 1000);
+              } else if (shopData.createdAt?.toDate) {
+                baseDate = shopData.createdAt.toDate();
+              } else if (shopData.createdAt && typeof shopData.createdAt === 'string') {
+                baseDate = new Date(shopData.createdAt);
+              }
+              const trialExpiry = new Date(baseDate);
+              trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+
+              const now = new Date();
+              if (trialExpiry < now) {
+                trialExpiry.setTime(now.getTime());
+                trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+              }
+              const computedExpiry = trialExpiry.toISOString().split('T')[0];
+              shopData.planExpiresAt = computedExpiry;
+
+              doc.ref.update({ planExpiresAt: computedExpiry }).catch((err: any) => {
+                console.warn("AdminDashboard: Error backfilling planExpiresAt:", err);
+              });
+            }
+            return shopData;
+          });
           setShops(data);
         }, (error: any) => {
           console.error("AdminDashboard: Error fetching registered_shops:", error);
@@ -137,7 +232,6 @@ const AdminDashboardScreen = ({ navigation }: any) => {
           console.error("AdminDashboard: Error fetching upgrade requests:", error);
         });
 
-      // Notification listener for new shop requests
       unsubNotify = firebase.firestore().collection('shop_requests')
         .where('status', '==', 'PENDING')
         .where('notified', '==', false)
@@ -150,7 +244,6 @@ const AdminDashboardScreen = ({ navigation }: any) => {
                   `A new request for "${req.shopName}" has been submitted by ${req.ownerName}.`,
                   [{ text: "View", onPress: () => setViewMode('requests') }]
                 );
-                // Mark as notified so it doesn't alert again
                 doc.ref.update({ notified: true });
               });
            }
@@ -173,10 +266,15 @@ const AdminDashboardScreen = ({ navigation }: any) => {
       const random = Math.floor(1000 + Math.random() * 9000);
       const shopId = `MS-${year}-${random}`;
 
+      const plan = (request.shopCategory || 'STARTER').toUpperCase();
+      const trialDate = new Date();
+      trialDate.setMonth(trialDate.getMonth() + 1);
+      const planExpiresAt = trialDate.toISOString().split('T')[0];
+
       await firebase.firestore().collection('registered_shops').doc(shopId).set({
         id: shopId,
-        shopCode: shopId, // Store shopId as shopCode for HQs to maintain consistency
-        ownerId: request.userId, // Link the ownerId from the request
+        shopCode: shopId,
+        ownerId: request.userId,
         name: request.shopName,
         type: request.shopType,
         location: request.location,
@@ -184,7 +282,8 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         whatsappNumber: request.whatsappNumber,
         country: request.country || 'Ghana',
         currency: request.currency || 'GH₵',
-        plan: request.shopCategory || 'STARTER',
+        plan: plan,
+        planExpiresAt: planExpiresAt,
         staffCount: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -282,13 +381,13 @@ const AdminDashboardScreen = ({ navigation }: any) => {
     const branches = filteredShops.filter(s => s.parentShopId || s.parentshopid);
 
     const sections: { title: string; data: any[] }[] = [];
-    if (premium.length > 0) sections.push({ title: 'Premium Plan', data: premium });
-    if (business.length > 0) sections.push({ title: 'Business Plan', data: business });
-    if (starters.length > 0) sections.push({ title: 'Starter Plan', data: starters });
-    if (branches.length > 0) sections.push({ title: 'Branch Locations', data: branches });
+    if ((shopPlanFilter === 'ALL' || shopPlanFilter === 'PREMIUM') && premium.length > 0) sections.push({ title: 'Premium Plan', data: premium });
+    if ((shopPlanFilter === 'ALL' || shopPlanFilter === 'BUSINESS') && business.length > 0) sections.push({ title: 'Business Plan', data: business });
+    if ((shopPlanFilter === 'ALL' || shopPlanFilter === 'STARTER') && starters.length > 0) sections.push({ title: 'Starter Plan', data: starters });
+    if ((shopPlanFilter === 'ALL' || shopPlanFilter === 'BRANCHES') && branches.length > 0) sections.push({ title: 'Branch Locations', data: branches });
 
     return sections;
-  }, [filteredShops]);
+  }, [filteredShops, shopPlanFilter]);
 
   const renderReqItem = useCallback(({ item }: any) => (
     <ShopRequestItem
@@ -307,61 +406,86 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         onCopy={copyToClipboard}
         onWhatsApp={openWhatsApp}
         onDelete={handleDeleteShop}
+        onManagePlan={handleOpenPlanModal}
     />
   ), []);
 
   const renderUpgradeItem = useCallback(({ item }: any) => (
-    <Box bg="$white" p="$4" rounded="$2xl" mb="$4" borderWidth={1} borderColor="$borderLight">
-      <VStack space="sm">
-        <Heading size="sm">{item.shopName}</Heading>
-        <HStack space="md" alignItems="center">
-          <Badge action="muted" variant="outline"><BadgeText>{item.currentPlan}</BadgeText></Badge>
-          <Text size="xs">→</Text>
-          <Badge action="success" variant="solid"><BadgeText>{item.requestedPlan}</BadgeText></Badge>
-        </HStack>
-        <Text size="xs">ID: {item.shopId}</Text>
-        <HStack space="md" mt="$2">
-          <Button size="xs" flex={1} action="primary" bg="$primary800" onPress={async () => {
-             try {
-                await firebase.firestore().collection('registered_shops').doc(item.shopId).update({ plan: item.requestedPlan });
-                await firebase.firestore().collection('plan_upgrade_requests').doc(item.id).update({ status: 'APPROVED' });
-                displayAlert("Success", "Plan upgraded successfully!");
-             } catch(e: any) { displayAlert("Error", e.message); }
-          }}>
-            <ButtonText>Approve</ButtonText>
-          </Button>
-          <Button size="xs" flex={1} variant="outline" action="negative" onPress={async () => {
-             try {
-                await firebase.firestore().collection('plan_upgrade_requests').doc(item.id).update({ status: 'REJECTED' });
-                displayAlert("Success", "Plan upgrade request rejected.");
-             } catch(e: any) { displayAlert("Error", e.message); }
-          }}>
-            <ButtonText>Reject</ButtonText>
-          </Button>
-        </HStack>
-      </VStack>
-    </Box>
-  ), []);
+    <UpgradeRequestItem
+      item={item}
+      processing={processing}
+      onApprove={async (req) => {
+        setProcessing(req.id);
+        try {
+          const trialDate = new Date();
+          trialDate.setMonth(trialDate.getMonth() + 1);
+          const planExpiresAt = trialDate.toISOString().split('T')[0];
+          const updateData = { plan: req.requestedPlan, planExpiresAt };
+          await updateShopAndBranches(req.shopId, updateData);
+          await firebase.firestore().collection('plan_upgrade_requests').doc(req.id).update({ status: 'APPROVED' });
+          displayAlert("Success", "Plan upgraded successfully for main shop and all branches!");
+        } catch (e: any) {
+          displayAlert("Error", e.message);
+        } finally {
+          setProcessing(null);
+        }
+      }}
+      onReject={async (req) => {
+        setProcessing(req.id);
+        try {
+          await firebase.firestore().collection('plan_upgrade_requests').doc(req.id).update({ status: 'REJECTED' });
+          displayAlert("Success", "Plan upgrade request rejected.");
+        } catch (e: any) {
+          displayAlert("Error", e.message);
+        } finally {
+          setProcessing(null);
+        }
+      }}
+    />
+  ), [processing]);
 
-  return (
-    <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-
+  const renderHeader = () => (
+    <VStack bg="#F2EFE9" pb="$2">
       <AdminHeader
         viewMode={viewMode}
         onBack={() => navigation.replace('Login')}
         onSignOut={() => firebase.auth().signOut()}
       />
+      {/* Summary Stats Cards */}
+      <HStack px="$5" pt="$4" space="md">
+        <Box flex={1} bg="$white" p="$3.5" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.03)' }) }}>
+          <Text size="2xs" color="$text500" fontWeight="$bold">PENDING</Text>
+          <Heading size="md" color="$primary800" fontWeight="$black" mt="$1">{requests.length}</Heading>
+        </Box>
+        <Box flex={1} bg="$white" p="$3.5" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.03)' }) }}>
+          <Text size="2xs" color="$text500" fontWeight="$bold">SHOPS</Text>
+          <Heading size="md" color="$success700" fontWeight="$black" mt="$1">{shops.length}</Heading>
+        </Box>
+        <Box flex={1} bg="$white" p="$3.5" rounded="$2xl" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(0,0,0,0.03)' }) }}>
+          <Text size="2xs" color="$text500" fontWeight="$bold">UPGRADES</Text>
+          <Heading size="md" color="$amber600" fontWeight="$black" mt="$1">{upgrades.length}</Heading>
+        </Box>
+      </HStack>
 
-      <VStack space="md" p="$5" bg="$white" borderBottomWidth={1} borderColor="$borderLight">
-        <HStack space="md" bg="$backgroundLight50" p="$1" rounded="$xl">
+      <VStack
+        space="md"
+        p="$5"
+        bg="$white"
+        mx="$5"
+        mt="$4"
+        rounded="$3xl"
+        borderWidth={1}
+        borderColor="$borderLight"
+        style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)', opacity: 0.03 }) }}
+      >
+        <HStack space="md" bg="$backgroundLight50" p="$1.5" rounded="$2xl">
           <Pressable
             flex={1}
             onPress={() => setViewMode('requests')}
             bg={viewMode === 'requests' ? '$white' : 'transparent'}
-            p="$2"
-            rounded="$lg"
-            style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
+            py="$2.5"
+            rounded="$xl"
+            style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(110,59,230,0.06)' }) }}
           >
             <Center>
               <Text size="sm" fontWeight="$bold" color={viewMode === 'requests' ? '$primary800' : '$text500'}>
@@ -373,9 +497,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
             flex={1}
             onPress={() => setViewMode('shops')}
             bg={viewMode === 'shops' ? '$white' : 'transparent'}
-            p="$2"
-            rounded="$lg"
-            style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
+            py="$2.5"
+            rounded="$xl"
+            style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(110,59,230,0.06)' }) }}
           >
             <Center>
               <Text size="sm" fontWeight="$bold" color={viewMode === 'shops' ? '$primary800' : '$text500'}>
@@ -387,9 +511,9 @@ const AdminDashboardScreen = ({ navigation }: any) => {
             flex={1}
             onPress={() => setViewMode('upgrades')}
             bg={viewMode === 'upgrades' ? '$white' : 'transparent'}
-            p="$2"
-            rounded="$lg"
-            style={{ ...getAppShadow({ offsetY: 2, radius: 10, color: 'rgba(110,59,230,0.06)' }) }}
+            py="$2.5"
+            rounded="$xl"
+            style={{ ...getAppShadow({ offsetY: 2, radius: 8, color: 'rgba(110,59,230,0.06)' }) }}
           >
             <Center>
               <Text size="sm" fontWeight="$bold" color={viewMode === 'upgrades' ? '$primary800' : '$text500'}>
@@ -399,7 +523,7 @@ const AdminDashboardScreen = ({ navigation }: any) => {
           </Pressable>
         </HStack>
 
-        <Input variant="outline" size="md" borderRadius={12}>
+        <Input variant="outline" size="md" borderRadius={14} borderWidth={1} borderColor="$borderLight">
           <InputSlot pl="$3">
             <InputIcon as={SearchIcon} color="$primary800" />
           </InputSlot>
@@ -409,21 +533,53 @@ const AdminDashboardScreen = ({ navigation }: any) => {
             onChangeText={setSearchQuery}
           />
         </Input>
+
+        {viewMode === 'shops' && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 2 }}>
+            <HStack space="xs">
+              {[
+                { id: 'ALL', label: 'All Shops' },
+                { id: 'PREMIUM', label: 'Premium' },
+                { id: 'BUSINESS', label: 'Business' },
+                { id: 'STARTER', label: 'Starter' },
+                { id: 'BRANCHES', label: 'Branches' },
+              ].map(f => (
+                <Pressable
+                  key={f.id}
+                  onPress={() => setShopPlanFilter(f.id as any)}
+                  bg={shopPlanFilter === f.id ? '$primary800' : '$backgroundLight100'}
+                  px="$3.5"
+                  py="$1.5"
+                  rounded="$full"
+                >
+                  <Text size="xs" color={shopPlanFilter === f.id ? '$white' : '$text700'} fontWeight="$bold">
+                    {f.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </HStack>
+          </ScrollView>
+        )}
       </VStack>
+    </VStack>
+  );
+
+  return (
+    <Box flex={1} bg="#F2EFE9">
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       {loading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary800" />
-        </Center>
+        <ModernLoader label="Loading Dashboard..." subLabel="Fetching system data" icon="store" />
       ) : viewMode === 'shops' ? (
         <SectionList
           sections={shopSections}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={renderActiveShopItem}
           renderSectionHeader={({ section: { title } }) => (
-            <Box bg="$white" py="$3" borderBottomWidth={1} borderColor="$borderLight200" mb="$3" mt="$4">
-              <Heading size="xs" color="$primary800" textTransform="uppercase" fontWeight="$bold">{title}</Heading>
+            <Box bg="#F2EFE9" px="$5" py="$3" mb="$2" mt="$3">
+              <Heading size="xs" color="$primary800" textTransform="uppercase" fontWeight="$bold" letterSpacing={1}>{title}</Heading>
             </Box>
           )}
           ListEmptyComponent={
@@ -436,7 +592,8 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         <FlatList
           data={viewMode === 'requests' ? filteredRequests : upgrades}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={viewMode === 'requests' ? renderReqItem : renderUpgradeItem}
           ListEmptyComponent={
             <Center mt="$20">
@@ -454,7 +611,17 @@ const AdminDashboardScreen = ({ navigation }: any) => {
         onSave={saveEdit}
         processing={processing === editingRequest?.id}
       />
-    </ScreenWrapper>
+
+      <ManageShopPlanModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        shop={selectedShopForPlan}
+        planForm={planForm}
+        setPlanForm={setPlanForm}
+        onSave={handleSaveShopPlan}
+        processing={processing === selectedShopForPlan?.id}
+      />
+    </Box>
   );
 };
 

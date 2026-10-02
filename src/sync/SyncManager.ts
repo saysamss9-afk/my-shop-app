@@ -21,6 +21,8 @@ const sanitizeShopId = (id: any): string => {
   return str;
 };
 
+export type SyncTarget = 'ALL' | 'PRODUCTS' | 'SALES' | 'SUPPLIERS' | 'CUSTOMERS' | 'EXPENSES' | 'PURCHASES' | 'STAFF';
+
 export enum SyncStatus {
   Idle,
   Syncing,
@@ -84,60 +86,71 @@ export class SyncManager {
     console.log('Auto-network sync listener disabled for offline-first design.');
   }
 
-  async triggerSync(shopIdInput?: string, force = false) {
+  async triggerSync(shopIdInput?: string, force = false, target: SyncTarget = 'ALL') {
     if (this.status === SyncStatus.Syncing) return;
 
     // Prevent redundant syncs within the cooldown period unless explicitly forced
     const now = Date.now();
     if (!force && this.lastSynced > 0 && (now - this.lastSynced) < this.SYNC_COOLDOWN_MS) {
         console.log('SyncManager: Skipping Firestore hit, last sync was less than 60s ago.');
-        // We still trigger a local UI refresh via the callback to ensure data consistency
         this.onDataChangedCallback?.();
         return;
     }
 
-    // Support object input if passed by accident
     const shopId = sanitizeShopId(shopIdInput);
-
     if (!shopId) {
         console.log('SyncManager (Native): No active shopId, skipping sync-up. Input was:', shopIdInput);
         return;
     }
 
+    const shouldSync = (moduleName: SyncTarget) => {
+      if (!target || target === 'ALL') return true;
+      return target === moduleName;
+    };
+
     this.status = SyncStatus.Syncing;
     try {
       // 0. Pull Shop Details first to establish metadata and fix permissions (self-healing)
-      // This ensures subsequent pushes/pulls have correct permissions if ownerId was missing.
       await this.safeSync('PullShopDetails', () => this.pullShopDetails(shopId));
 
-      // 1. First Push Local Changes (Sync Up)
-      await this.safeSync('Sales', () => this.syncSales(shopId));
-      await this.safeSync('Products', () => this.syncProducts(shopId));
-      await this.safeSync('Categories', () => this.syncCategories(shopId));
-      await this.safeSync('Suppliers', () => this.syncSuppliers(shopId));
-      await this.safeSync('Customers', () => this.syncCustomers(shopId));
-      await this.safeSync('Payments', () => this.syncPayments(shopId));
-      await this.safeSync('SupplierPayments', () => this.syncSupplierPayments(shopId));
-      await this.safeSync('ExpensesPush', () => this.syncExpenses(shopId));
-      await this.safeSync('Purchases', () => this.syncPurchases(shopId));
-      await this.safeSync('PurchaseReturns', () => this.syncPurchaseReturns(shopId));
-      await this.safeSync('AuditLogs', () => this.syncAuditLogs(shopId));
-      await this.safeSync('Adjustments', () => this.syncAdjustments(shopId));
+      // 1. Target Push Local Changes (Sync Up)
+      if (shouldSync('SALES')) await this.safeSync('Sales', () => this.syncSales(shopId));
+      if (shouldSync('PRODUCTS')) {
+        await this.safeSync('Products', () => this.syncProducts(shopId));
+        await this.safeSync('Categories', () => this.syncCategories(shopId));
+      }
+      if (shouldSync('SUPPLIERS')) {
+        await this.safeSync('Suppliers', () => this.syncSuppliers(shopId));
+        await this.safeSync('SupplierPayments', () => this.syncSupplierPayments(shopId));
+      }
+      if (shouldSync('CUSTOMERS')) {
+        await this.safeSync('Customers', () => this.syncCustomers(shopId));
+        await this.safeSync('Payments', () => this.syncPayments(shopId));
+      }
+      if (shouldSync('EXPENSES')) await this.safeSync('ExpensesPush', () => this.syncExpenses(shopId));
+      if (shouldSync('PURCHASES')) {
+        await this.safeSync('Purchases', () => this.syncPurchases(shopId));
+        await this.safeSync('PurchaseReturns', () => this.syncPurchaseReturns(shopId));
+      }
+      if (shouldSync('ALL')) {
+        await this.safeSync('AuditLogs', () => this.syncAuditLogs(shopId));
+        await this.safeSync('Adjustments', () => this.syncAdjustments(shopId));
+      }
 
       // Fetch persistent lastSynced timestamp for Delta Pull
       let lastSyncedTime = 0;
       try {
         const shopResult = await this.productRepo.db.executeSql('SELECT lastSynced FROM Shop WHERE TRIM(LOWER(id)) = TRIM(LOWER(?)) OR id = ?', [shopId, shopId]);
         if (shopResult && shopResult[0] && shopResult[0].rows && shopResult[0].rows.length > 0) {
-          const row = typeof shopResult[0].rows.item === 'function' ? shopResult[0].rows.item(0) : shopResult[0].rows[0];
+          const rows = shopResult[0].rows;
+          const row = typeof (rows as any).item === 'function' ? rows.item(0) : (rows as any)[0];
           lastSyncedTime = row?.lastSynced || 0;
         }
       } catch (err) {
         console.error('Error fetching lastSynced from Shop:', err);
       }
 
-      // 2. Then Pull Remote Changes (Delta Sync Down)
-      // Use a small overlap buffer to ensure no items are missed due to clock skew between devices.
+      // 2. Then Target Pull Remote Changes (Delta Sync Down)
       const effectiveLastSynced = Math.max(0, lastSyncedTime - this.SYNC_BUFFER_MS);
 
       // Fetch local user role to determine pull permissions
@@ -150,14 +163,30 @@ export class SyncManager {
                 'SELECT ownerId FROM Shop WHERE TRIM(LOWER(id)) = TRIM(LOWER(?)) OR id = ?',
                 [shopId, shopId]
               );
-              const shopRow = shopRes[0]?.rows?.length ? (typeof shopRes[0].rows.item === 'function' ? shopRes[0].rows.item(0) : shopRes[0].rows[0]) : null;
+              const sRows = shopRes[0]?.rows;
+              const shopRow = sRows?.length ? (typeof (sRows as any).item === 'function' ? sRows.item(0) : (sRows as any)[0]) : null;
               if (shopRow && (shopRow.ownerId === currentUser.uid || shopRow.ownerid === currentUser.uid)) {
                 userRole = 'OWNER';
               } else {
                 const empResult = await this.productRepo.db.executeSql('SELECT role FROM Employee WHERE id = ?', [currentUser.uid]);
                 if (empResult[0]?.rows?.length > 0) {
-                  const item = typeof empResult[0].rows.item === 'function' ? empResult[0].rows.item(0) : empResult[0].rows[0];
+                  const eRows = empResult[0].rows;
+                  const item = typeof (eRows as any).item === 'function' ? eRows.item(0) : (eRows as any)[0];
                   userRole = item?.role || 'SALES';
+                } else {
+                  try {
+                    const empDoc = await firestore().collection('employees').doc(currentUser.uid).get();
+                    if (empDoc.exists) {
+                      const empData = empDoc.data();
+                      userRole = empData?.role || 'SALES';
+                      await this.productRepo.db.executeSql(
+                        'INSERT OR REPLACE INTO Employee(id, shopId, name, role, email) VALUES (?, ?, ?, ?, ?)',
+                        [currentUser.uid, shopId, empData?.name || 'Staff', userRole, empData?.email || '']
+                      );
+                    }
+                  } catch (err) {
+                    console.warn('Fallback employee role fetch error:', err);
+                  }
                 }
               }
           }
@@ -165,20 +194,32 @@ export class SyncManager {
 
       const isManager = userRole === 'OWNER' || userRole === 'MANAGER';
 
-      if (isManager) {
+      if (isManager && (shouldSync('STAFF') || shouldSync('ALL'))) {
         await this.safeSync('PullEmployees', () => this.pullEmployees(shopId, effectiveLastSynced));
       }
-      await this.safeSync('PullProducts', () => this.pullProducts(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullSupplierPayments', () => this.pullSupplierPayments(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullPurchases', () => this.pullPurchases(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullPurchaseReturns', () => this.pullPurchaseReturns(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullPayments', () => this.pullPayments(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced, force));
-      await this.safeSync('PullAdjustments', () => this.pullAdjustments(shopId, effectiveLastSynced, force));
-      if (isManager) {
+      if (shouldSync('PRODUCTS')) {
+        await this.safeSync('PullProducts', () => this.pullProducts(shopId, effectiveLastSynced, force));
+        await this.safeSync('PullCategories', () => this.pullCategories(shopId, effectiveLastSynced, force));
+      }
+      if (shouldSync('SUPPLIERS')) {
+        await this.safeSync('PullSuppliers', () => this.pullSuppliers(shopId, effectiveLastSynced, force));
+        await this.safeSync('PullSupplierPayments', () => this.pullSupplierPayments(shopId, effectiveLastSynced, force));
+      }
+      if (shouldSync('PURCHASES')) {
+        await this.safeSync('PullPurchases', () => this.pullPurchases(shopId, effectiveLastSynced, force));
+        await this.safeSync('PullPurchaseReturns', () => this.pullPurchaseReturns(shopId, effectiveLastSynced, force));
+      }
+      if (shouldSync('CUSTOMERS')) {
+        await this.safeSync('PullCustomers', () => this.pullCustomers(shopId, effectiveLastSynced, force));
+        await this.safeSync('PullPayments', () => this.pullPayments(shopId, effectiveLastSynced, force));
+      }
+      if (shouldSync('SALES')) {
+        await this.safeSync('PullSales', () => this.pullSales(shopId, effectiveLastSynced, force));
+      }
+      if (shouldSync('ALL')) {
+        await this.safeSync('PullAdjustments', () => this.pullAdjustments(shopId, effectiveLastSynced, force));
+      }
+      if (isManager && (shouldSync('EXPENSES') || shouldSync('ALL'))) {
         await this.safeSync('PullExpenses', () => this.pullExpenses(shopId, effectiveLastSynced, force));
       }
 
@@ -223,7 +264,8 @@ export class SyncManager {
         `SELECT COUNT(*) as count FROM ${tableName} WHERE TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?`,
         [safeShopId, safeShopId, safeShopId]
       );
-      const row = countRes[0]?.rows?.length > 0 ? (typeof countRes[0].rows.item === 'function' ? countRes[0].rows.item(0) : countRes[0].rows[0]) : {};
+      const cRows = countRes[0]?.rows;
+      const row = cRows?.length > 0 ? (typeof (cRows as any).item === 'function' ? cRows.item(0) : (cRows as any)[0]) : {};
       const count = Number(row?.count ?? row?.['COUNT(*)'] ?? row?.['count(*)'] ?? 0);
       if (count === 0) {
         console.log(`SyncManager: Local ${tableName} count is 0 for ${safeShopId}, doing full pull...`);
@@ -683,6 +725,31 @@ export class SyncManager {
         const data = doc.data();
         if (data) {
           const plan = (data.plan || 'STARTER').toUpperCase();
+          let planExpiresAt = data.planExpiresAt || null;
+
+          if (!planExpiresAt) {
+            let baseDate = new Date();
+            if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+              baseDate = data.createdAt.toDate();
+            } else if (data.createdAt && typeof data.createdAt.seconds === 'number') {
+              baseDate = new Date(data.createdAt.seconds * 1000);
+            } else if (data.createdAt && typeof data.createdAt === 'string') {
+              baseDate = new Date(data.createdAt);
+            }
+            const trialExpiry = new Date(baseDate);
+            trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+
+            const now = new Date();
+            if (trialExpiry < now) {
+              trialExpiry.setTime(now.getTime());
+              trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+            }
+            planExpiresAt = trialExpiry.toISOString().split('T')[0];
+
+            firestore().collection('registered_shops').doc(shopId).update({ planExpiresAt }).catch(err => {
+              console.warn('SyncManager: Failed to backfill planExpiresAt in Firestore:', err);
+            });
+          }
 
           // Self-healing: if ownerId is missing in Firestore, try to repair it if current user is OWNER
           const auth = require('@react-native-firebase/auth').default();
@@ -700,7 +767,7 @@ export class SyncManager {
 
           if (exists) {
             await this.productRepo.db.executeSql(
-              'UPDATE Shop SET name = ?, currency = ?, [plan] = ?, country = ?, ownerId = ?, parentShopId = ?, shopCode = ? WHERE id = ?',
+              'UPDATE Shop SET name = ?, currency = ?, [plan] = ?, country = ?, ownerId = ?, parentShopId = ?, shopCode = ?, planExpiresAt = ? WHERE id = ?',
               [
                 data.name || '',
                 data.currency || '$',
@@ -709,12 +776,13 @@ export class SyncManager {
                 data.ownerId || '',
                 data.parentShopId || null,
                 data.shopCode || null,
+                planExpiresAt,
                 shopId
               ]
             );
           } else {
             await this.productRepo.db.executeSql(
-              'INSERT INTO Shop (id, name, currency, [plan], country, ownerId, parentShopId, shopCode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+              'INSERT INTO Shop (id, name, currency, [plan], country, ownerId, parentShopId, shopCode, planExpiresAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
               [
                 shopId,
                 data.name || '',
@@ -723,7 +791,8 @@ export class SyncManager {
                 data.country || '',
                 data.ownerId || '',
                 data.parentShopId || null,
-                data.shopCode || null
+                data.shopCode || null,
+                planExpiresAt
               ]
             );
           }

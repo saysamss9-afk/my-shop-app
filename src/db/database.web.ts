@@ -14,9 +14,15 @@ const initDB = async () => {
         alasql.options.casesensitive = false;
         (alasql as any).options.performance = false; // Disable performance tracing to prevent 'startTime' errors
 
-        // Register null-safe TRIM helper functions for AlaSQL
+        // Register null-safe TRIM, LOWER, UPPER, COALESCE helper functions for AlaSQL
         alasql.fn.TRIM = (val: any) => (val != null ? String(val).trim() : null);
         alasql.fn.trim = (val: any) => (val != null ? String(val).trim() : null);
+        alasql.fn.LOWER = (val: any) => (val != null ? String(val).toLowerCase() : null);
+        alasql.fn.lower = (val: any) => (val != null ? String(val).toLowerCase() : null);
+        alasql.fn.UPPER = (val: any) => (val != null ? String(val).toUpperCase() : null);
+        alasql.fn.upper = (val: any) => (val != null ? String(val).toUpperCase() : null);
+        alasql.fn.COALESCE = (...args: any[]) => args.find(a => a !== null && a !== undefined) ?? null;
+        alasql.fn.coalesce = (...args: any[]) => args.find(a => a !== null && a !== undefined) ?? null;
 
         console.log('AlaSQL initialized with localStorage persistence');
     } catch (e) {
@@ -410,10 +416,10 @@ export const createTables = async (db: any) => {
     id STRING PRIMARY KEY, shopId STRING, name STRING, role STRING, email STRING
   )`;
 
-  const SHOP_COLUMNS = ['id', 'name', 'companyName', 'address', 'ownerId', 'country', 'currency', 'plan', 'parentShopId', 'shopCode', 'lastSynced'];
+  const SHOP_COLUMNS = ['id', 'name', 'companyName', 'address', 'ownerId', 'country', 'currency', 'plan', 'parentShopId', 'shopCode', 'lastSynced', 'planExpiresAt'];
   const SHOP_CREATE = `CREATE TABLE IF NOT EXISTS Shop (
     id STRING PRIMARY KEY, name STRING, companyName STRING, address STRING, ownerId STRING,
-    country STRING, currency STRING, [plan] STRING, parentShopId STRING, shopCode STRING, lastSynced INT
+    country STRING, currency STRING, [plan] STRING, parentShopId STRING, shopCode STRING, lastSynced INT, planExpiresAt STRING
   )`;
 
   await rebuildTableIfMisaligned('Shop', SHOP_COLUMNS, SHOP_CREATE);

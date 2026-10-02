@@ -17,6 +17,7 @@ import {
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Scale, Package, Users, Wallet, RefreshCw, AlertCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { getAppShadow } from '../../utils/platformStyles';
 import { useTranslation } from 'react-i18next';
@@ -170,9 +171,7 @@ const ProfitLossScreen = ({ route, navigation }: any) => {
       </Box>
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary800" />
-        </Center>
+        <ModernLoader label="Calculating Profit & Loss..." subLabel="Processing financial summary" icon="sparkles" />
       ) : error ? (
         <Center flex={1} p="$10">
             <Icon as={AlertCircle} size="xl" color="$error600" mb="$4" />

@@ -3,6 +3,7 @@ import { getDBConnection } from '../db/database';
 import { generateUUID } from '../utils/uuid';
 import type { Expense } from '../db/types';
 import { useSync } from '../sync/SyncContext';
+import { parseTimestamp } from '../utils/dateUtils';
 
 export const useExpenses = (shopId: string) => {
   const { triggerSync, dataChangeTick } = useSync();
@@ -17,23 +18,38 @@ export const useExpenses = (shopId: string) => {
       const db = await getDBConnection();
 
       // Load currency
-      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ? OR TRIM(id) = ?', [safeShopId, safeShopId]);
+      const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE (TRIM(LOWER(id)) = TRIM(LOWER(?)) OR id = ? OR TRIM(id) = ?)', [safeShopId, safeShopId, safeShopId]);
       if (shopResults[0]?.rows?.length > 0) {
-        setCurrency(shopResults[0].rows.item(0).currency || '$');
+        const sRows = shopResults[0].rows;
+        const row = typeof (sRows as any).item === 'function' ? sRows.item(0) : (sRows as any)[0];
+        setCurrency(row?.currency || '$');
       }
 
-      // Load expenses ordered by timestamp descending
-      const results = await db.executeSql(
-        'SELECT * FROM Expense WHERE shopId = ? OR TRIM(shopId) = ? ORDER BY timestamp DESC',
-        [safeShopId, safeShopId]
-      );
+      // Load expenses ordered by timestamp descending with fallback query
+      let results;
+      try {
+        results = await db.executeSql(
+          'SELECT * FROM Expense WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ? OR TRIM(shopId) = ?) ORDER BY timestamp DESC',
+          [safeShopId, safeShopId, safeShopId]
+        );
+      } catch (err) {
+        results = await db.executeSql(
+          'SELECT * FROM Expense WHERE shopId = ? OR TRIM(shopId) = ? ORDER BY timestamp DESC',
+          [safeShopId, safeShopId]
+        );
+      }
 
       const loadedExpenses: Expense[] = [];
-      for (let i = 0; i < results[0].rows.length; i++) {
-        const item = results[0].rows.item(i);
-        let ts = Number(item.timestamp);
-        if (isNaN(ts) || !ts) ts = Date.now();
-        loadedExpenses.push({ ...item, timestamp: ts });
+      const rows = results[0]?.rows;
+      if (rows) {
+        const len = rows.length ?? 0;
+        for (let i = 0; i < len; i++) {
+          const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+          if (item) {
+            const ts = parseTimestamp(item.timestamp, Date.now());
+            loadedExpenses.push({ ...item, timestamp: ts, amount: Number(item.amount || 0) });
+          }
+        }
       }
       setExpenses(loadedExpenses);
     } catch (e) {
@@ -83,12 +99,18 @@ export const useExpenses = (shopId: string) => {
     loadExpenses();
   }, [loadExpenses, dataChangeTick]);
 
+  const triggerManualSync = () => {
+    const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
+    triggerSync(safeShopId, true, 'EXPENSES');
+  };
+
   return {
     expenses,
     isLoading,
     currency,
     addExpense,
     deleteExpense,
+    triggerManualSync,
     refreshExpenses: loadExpenses
   };
 };

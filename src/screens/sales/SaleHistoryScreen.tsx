@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { SectionList, StatusBar } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Box,
   VStack,
@@ -23,13 +24,14 @@ import { getAppShadow } from '../../utils/platformStyles';
 import { displayAlert } from '../../utils/alert';
 import { SyncStatus } from '../../sync/SyncManager';
 import { PrintingService } from '../../services/PrintingService';
-import { parseTimestamp } from '../../utils/dateUtils';
+import { parseTimestamp, groupSalesByDate } from '../../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
 
 // Sub-components
 import SaleHistoryItem from './components/SaleHistoryItem';
 import SaleDetailModal from './components/SaleDetailModal';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 
 const SaleHistoryScreen = ({ route, navigation }: any) => {
   const { shopId } = route.params;
@@ -42,12 +44,12 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  useEffect(() => {
-    // Group items fresh for each month by calculating range
-    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1, 0, 0, 0, 0).getTime();
-    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
-    refreshSales(startOfMonth, endOfMonth);
-  }, [currentDate, refreshSales]);
+  useFocusEffect(
+    useCallback(() => {
+      refreshSales();
+      return () => undefined;
+    }, [refreshSales])
+  );
 
   useEffect(() => {
     // Trigger sync once when the screen loads to ensure we have the latest items
@@ -72,12 +74,13 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   const [selectedDateFilter, setSelectedDateFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSaleIds, setSelectedSaleIds] = useState<string[]>([]);
+  const [showAllSales, setShowAllSales] = useState(false);
 
-  const toggleSelectSale = (id: string) => {
+  const toggleSelectSale = useCallback((id: string) => {
     setSelectedSaleIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
-  };
+  }, []);
 
   const handlePrintSelected = async () => {
     const selectedSales = selectedSaleIds.length > 0
@@ -112,7 +115,8 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
   }, [sales, currentDate]);
 
   const filteredSales = React.useMemo(() => {
-    return monthSales.filter((sale: any) => {
+    const targetSales = showAllSales ? sales : monthSales;
+    return targetSales.filter((sale: any) => {
       const query = searchQuery.trim().toLowerCase();
       const ts = parseTimestamp(sale.timestamp, 0);
       const dateStr = ts > 0 ? new Date(ts).toLocaleDateString().toLowerCase() : '';
@@ -130,35 +134,11 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
       const dd = String(date.getDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}` === selectedDateFilter && matchesSearch;
     });
-  }, [monthSales, searchQuery, selectedDateFilter]);
+  }, [monthSales, sales, showAllSales, searchQuery, selectedDateFilter]);
 
   const monthLabel = currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
-  const groupedSales = React.useMemo(() => {
-    const groups: { [key: string]: any[] } = {};
-
-    filteredSales.forEach(sale => {
-      const ts = Number(sale.timestamp);
-      const d = new Date(ts);
-      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey].push(sale);
-    });
-
-    return Object.keys(groups)
-      .sort((a, b) => b.localeCompare(a))
-      .map(dateKey => ({
-        title: new Date(dateKey).toLocaleDateString(undefined, {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric'
-        }),
-        data: groups[dateKey]
-      }));
-  }, [filteredSales]);
+  const groupedSales = React.useMemo(() => groupSalesByDate(filteredSales), [filteredSales]);
 
   const handlePrint = async (sale: any, items: any[]) => {
     try {
@@ -167,7 +147,11 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
 
       await PrintingService.printReceipt({
         shopName: shopInfo.name || 'My Shop',
-        address: shopInfo.address || '',
+        companyName: shopInfo.companyName || undefined,
+        address: shopInfo.location || shopInfo.address || '',
+        phone: shopInfo.phone || undefined,
+        email: shopInfo.email || undefined,
+        workingHours: shopInfo.workingHours || undefined,
         saleId: (sale.id || '').slice(-8).toUpperCase(),
         timestamp: new Date(parseTimestamp(sale.timestamp, Date.now())).toLocaleString(),
         items: detailedItems.map(i => ({
@@ -187,12 +171,12 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const handleSelectSale = async (sale: any) => {
+  const handleSelectSale = useCallback(async (sale: any) => {
     setSelectedSale(sale);
     const items = await getSaleDetails(sale.id);
     setSaleItems(items);
     setShowDetailModal(true);
-  };
+  }, [getSaleDetails]);
 
   const handleRefundItem = async (saleItemId: string, qty: number) => {
     const success = await refundSaleItem(saleItemId, qty);
@@ -212,21 +196,19 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
 
   const renderItem = useCallback(({ item }: { item: any }) => (
     <SaleHistoryItem
-        item={item}
-        currency={currency}
-        onRevert={revertSale}
-        onPress={handleSelectSale}
-        isSelected={selectedSaleIds.includes(item.id)}
-        onToggleSelect={() => toggleSelectSale(item.id)}
+      item={item}
+      currency={currency}
+      onRevert={revertSale}
+      onPress={handleSelectSale}
+      isSelected={selectedSaleIds.includes(item.id)}
+      onToggleSelect={toggleSelectSale}
     />
-  ), [currency, revertSale, getSaleDetails, selectedSaleIds]);
+  ), [currency, revertSale, handleSelectSale, selectedSaleIds, toggleSelectSale]);
 
-  return (
-    <ScreenWrapper withHeader>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
+  const renderHeader = useCallback(() => (
+    <VStack space="xs" pb="$3">
       {/* Modern Header */}
-      <Box pt={Math.max(insets.top, 10)} pb="$2" px="$4">
+      <Box pt={Math.max(insets.top, 10)} pb="$2">
         <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
           <HStack space="md" alignItems="center" flexDirection={flexDir}>
             <Pressable
@@ -275,7 +257,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
       </Box>
 
       {/* Month Selection Carousel */}
-      <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2" mb="$2">
+      <Box bg="$white" borderBottomWidth={1} borderColor="$borderLight" py="$2" mb="$3" rounded="$2xl">
         <HStack justifyContent="space-between" alignItems="center" px="$4" flexDirection={flexDir}>
           <Pressable
             p="$3"
@@ -308,8 +290,40 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         </HStack>
       </Box>
 
+      {/* View Mode Toggle: Month vs All Sales */}
+      <Box pb="$3">
+        <HStack bg="$backgroundLight100" p="$1" rounded="$xl" justifyContent="space-between" flexDirection={flexDir}>
+          <Pressable
+            flex={1}
+            py="$2"
+            rounded="$lg"
+            bg={!showAllSales ? "$white" : "transparent"}
+            alignItems="center"
+            onPress={() => setShowAllSales(false)}
+            style={!showAllSales ? getAppShadow({ offsetY: 1, radius: 4, color: 'rgba(0,0,0,0.05)' }) : {}}
+          >
+            <Text size="xs" fontWeight="$bold" color={!showAllSales ? "$primary600" : "$text600"}>
+              This Month ({monthSales.length})
+            </Text>
+          </Pressable>
+          <Pressable
+            flex={1}
+            py="$2"
+            rounded="$lg"
+            bg={showAllSales ? "$white" : "transparent"}
+            alignItems="center"
+            onPress={() => setShowAllSales(true)}
+            style={showAllSales ? getAppShadow({ offsetY: 1, radius: 4, color: 'rgba(0,0,0,0.05)' }) : {}}
+          >
+            <Text size="xs" fontWeight="$bold" color={showAllSales ? "$primary600" : "$text600"}>
+              All Sales ({sales.length})
+            </Text>
+          </Pressable>
+        </HStack>
+      </Box>
+
       {/* Date & Keyword Filter Selection Row */}
-      <Box px="$4" pb="$3">
+      <Box pb="$3">
         <VStack space="sm">
           <Input variant="outline" size="sm" borderRadius={12} bg="$white" style={{ flexDirection: flexDir }}>
             <InputSlot pl="$3">
@@ -368,7 +382,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
       </Box>
 
       {/* Stats Summary Bar for the Month */}
-      <Box bg="$white" px="$5" py="$4" borderBottomWidth={1} borderColor="$borderLight">
+      <Box bg="$white" px="$5" py="$4" borderBottomWidth={1} borderColor="$borderLight" rounded="$2xl" mb="$3">
         <HStack space="md" alignItems="center" flexDirection={flexDir}>
             <VStack flex={1} alignItems="center" space="xs">
                 <Text size="xs" color="$text500" fontWeight="$bold" textTransform="uppercase">Month Trans.</Text>
@@ -385,7 +399,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
       </Box>
 
       {/* Batch Actions Row */}
-      <Box px="$4" py="$3">
+      <Box pb="$2">
         <Pressable
           onPress={handlePrintSelected}
           bg={selectedSaleIds.length > 0 ? "$primary600" : "$white"}
@@ -401,7 +415,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         >
           <HStack space="sm" alignItems="center" justifyContent="center" flexDirection={flexDir}>
             <MaterialCommunityIcons
-              name="printer-check"
+              name="printer"
               size={18}
               color={selectedSaleIds.length > 0 ? "#fff" : "#E65100"}
             />
@@ -411,16 +425,21 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
           </HStack>
         </Pressable>
       </Box>
+    </VStack>
+  ), [insets.top, flexDir, isRTL, navigation, textAlign, syncStatus, triggerManualSync, handlePrevMonth, monthLabel, handleNextMonth, showAllSales, monthSales.length, sales.length, searchQuery, selectedDateFilter, filteredSales, currency, handlePrintSelected, selectedSaleIds.length]);
+
+  return (
+    <ScreenWrapper withHeader>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary800" />
-        </Center>
+        <ModernLoader label="Loading Sales History..." subLabel="Fetching transaction records" icon="shopping-bag" />
       ) : (
         <SectionList
           sections={groupedSales}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          ListHeaderComponent={renderHeader}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
@@ -438,7 +457,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           stickySectionHeadersEnabled={true}
           ListEmptyComponent={
-            <Center mt="$20">
+            <Center mt="$10">
               <VStack space="md" alignItems="center">
                 <MaterialCommunityIcons name="history" size={64} color="#ccc" />
                 <Text color="$text400">No sales for {monthLabel}.</Text>

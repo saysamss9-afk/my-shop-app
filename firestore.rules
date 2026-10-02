@@ -132,7 +132,8 @@ service cloud.firestore {
 
     // Employee Records
     match /employees/{uid} {
-      allow read: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.get('shopId', '')));
+      allow get: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.get('shopId', '')));
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == uid && canJoinShop(request.resource.data.get('shopId', ''));
       allow update, delete: if isAuthenticated() && (request.auth.uid == uid || isManager(resource.data.get('shopId', '')));
     }

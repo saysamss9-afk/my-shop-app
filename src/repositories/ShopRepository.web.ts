@@ -35,7 +35,24 @@ export class ShopRepository {
 
   async getShopDetails(shopId: string) {
     const doc = await firebase.firestore().collection('registered_shops').doc(shopId).get();
-    return doc.exists ? doc.data() : null;
+    if (!doc.exists) return null;
+    const data = { id: doc.id, ...doc.data() } as any;
+    if (!data.planExpiresAt) {
+      let baseDate = new Date();
+      if (data.createdAt?.toDate) baseDate = data.createdAt.toDate();
+      else if (data.createdAt?.seconds) baseDate = new Date(data.createdAt.seconds * 1000);
+      else if (data.createdAt) baseDate = new Date(data.createdAt);
+      const trialExpiry = new Date(baseDate);
+      trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+      const now = new Date();
+      if (trialExpiry < now) {
+        trialExpiry.setTime(now.getTime());
+        trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+      }
+      data.planExpiresAt = trialExpiry.toISOString().split('T')[0];
+      doc.ref.update({ planExpiresAt: data.planExpiresAt }).catch(() => {});
+    }
+    return data;
   }
 
   async getOwnerShops(ownerId: string) {
@@ -43,7 +60,25 @@ export class ShopRepository {
       .collection('registered_shops')
       .where('ownerId', '==', ownerId)
       .get();
-    return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map((doc: any) => {
+      const data = { id: doc.id, ...doc.data() } as any;
+      if (!data.planExpiresAt) {
+        let baseDate = new Date();
+        if (data.createdAt?.toDate) baseDate = data.createdAt.toDate();
+        else if (data.createdAt?.seconds) baseDate = new Date(data.createdAt.seconds * 1000);
+        else if (data.createdAt) baseDate = new Date(data.createdAt);
+        const trialExpiry = new Date(baseDate);
+        trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+        const now = new Date();
+        if (trialExpiry < now) {
+          trialExpiry.setTime(now.getTime());
+          trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+        }
+        data.planExpiresAt = trialExpiry.toISOString().split('T')[0];
+        doc.ref.update({ planExpiresAt: data.planExpiresAt }).catch(() => {});
+      }
+      return data;
+    });
   }
 
   async createBranch(shopId: string, branchData: any) {
@@ -81,6 +116,7 @@ export class ShopRepository {
       parentShopId: rootParentId,
       ownerId,
       plan: 'PREMIUM',
+      planExpiresAt: rootData?.planExpiresAt || null,
       staffCount: 0,
       shopCode,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),

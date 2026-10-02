@@ -13,7 +13,7 @@ interface SyncContextType {
   syncManager: SyncManager | null;
   syncStatus: SyncStatus;
   dataChangeTick: number;
-  triggerSync: (shopId?: string, deepSync?: boolean) => Promise<void>;
+  triggerSync: (shopId?: string, deepSync?: boolean, target?: import('./SyncManager').SyncTarget) => Promise<void>;
   startRealtimeSync: (shopId: string) => void;
   stopRealtimeSync: () => void;
 }
@@ -74,10 +74,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const triggerSync = useCallback(async (shopId?: string, deepSync = false) => {
+  const triggerSync = useCallback(async (shopId?: string, deepSync = false, target: import('./SyncManager').SyncTarget = 'ALL') => {
     if (managerRef.current) {
       setSyncStatus(SyncStatus.Syncing);
-      await managerRef.current.triggerSync(shopId);
+      await managerRef.current.triggerSync(shopId, deepSync, target);
       setSyncStatus(managerRef.current.getStatus());
       setDataChangeTick(prev => prev + 1);
     }

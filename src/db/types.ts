@@ -13,6 +13,8 @@ export interface Shop {
   currency?: string;
   shopCode?: string;
   branchCount?: number;
+  companyName?: string;
+  address?: string;
 }
 
 export interface Category {
@@ -82,6 +84,8 @@ export interface Sale {
   customerId: string | null;
   timestamp: number;
   totalAmount: number;
+  amountPaid?: number;
+  balance?: number;
   paymentMethod: string;
   paymentStatus: string;
   dueDate: number | null;

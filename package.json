@@ -13,7 +13,9 @@
     "start:web": "webpack serve --mode development --host 127.0.0.1 --port 3000",
     "start:windows": "electron electron/main.js",
     "build:windows": "npm run build:web && electron-builder --win",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "eas:build:dev": "eas build --platform android --profile development",
+    "eas:build:preview": "eas build --platform android --profile preview"
   },
   "dependencies": {
     "@expo/html-elements": "latest",

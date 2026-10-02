@@ -16,7 +16,8 @@ export class SystemRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        logs.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) logs.push(item);
       }
     }
     return logs;
@@ -38,7 +39,8 @@ export class SystemRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        adjustments.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) adjustments.push(item);
       }
     }
     return adjustments;

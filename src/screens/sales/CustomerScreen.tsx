@@ -31,6 +31,7 @@ import { User, RefreshCw, AlertTriangle, XCircle, ArrowLeft } from 'lucide-react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCustomers } from '../../hooks/useCustomers';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import CustomerListItem from './components/CustomerListItem';
 import AddCustomerModal from './components/AddCustomerModal';
 import PaymentModal from './components/PaymentModal';
@@ -225,9 +226,7 @@ const CustomerScreen = ({ route, navigation }: any) => {
           </VStack>
         </Center>
       ) : isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary600" />
-        </Center>
+        <ModernLoader label="Loading Customers..." subLabel="Fetching customer records" />
       ) : (
         <FlatList
           data={filteredCustomers}

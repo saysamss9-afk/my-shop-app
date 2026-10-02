@@ -19,6 +19,7 @@ import { ShoppingBag, Calendar, Hash, CreditCard, ArrowLeft } from 'lucide-react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePurchase } from '../../hooks/usePurchase';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import { getAppShadow } from '../../utils/platformStyles';
 import PurchaseDetailModal from './components/PurchaseDetailModal';
 
@@ -127,9 +128,7 @@ const PurchaseHistoryScreen = ({ route, navigation }: any) => {
       </Box>
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary600" />
-        </Center>
+        <ModernLoader label="Loading Purchase History..." subLabel="Fetching supplier orders" icon="shopping-bag" />
       ) : (
         <FlatList
           data={purchases}

@@ -8,7 +8,12 @@ export interface ReceiptItem {
 
 export interface Receipt {
   shopName: string;
+  companyName?: string;
   address: string;
+  location?: string;
+  phone?: string;
+  email?: string;
+  workingHours?: string;
   saleId: string;
   timestamp: string;
   items: ReceiptItem[];
@@ -20,13 +25,20 @@ export interface Receipt {
 }
 
 export class PrintingService {
-  static async printReceipt(receipt: Receipt): Promise<void> {
+  private static isPrinting = false;
+
+  private static async executePrint(html: string, jobName: string): Promise<void> {
+    if (this.isPrinting) {
+      console.warn('Printing is already in progress. Skipping duplicate print call.');
+      return;
+    }
+    this.isPrinting = true;
     try {
-      const html = this.generateHtml(receipt);
       if (RNPrint && typeof RNPrint.print === 'function') {
         await RNPrint.print({
-          html: html,
-          jobName: `Receipt_${receipt.saleId}`,
+          html,
+          jobName,
+          baseUrl: 'file:///',
         });
       } else if (typeof window !== 'undefined' && typeof window.print === 'function') {
         const printWindow = window.open('', '_blank');
@@ -39,8 +51,21 @@ export class PrintingService {
         console.warn('Printing is not supported on this platform.');
       }
     } catch (error) {
-      console.error('Printing failed:', error);
-      throw error;
+      console.error('Print execution failed gracefully:', error);
+    } finally {
+      // Cooldown buffer to prevent Android WebView mWebView lifecycle races
+      setTimeout(() => {
+        PrintingService.isPrinting = false;
+      }, 1500);
+    }
+  }
+
+  static async printReceipt(receipt: Receipt): Promise<void> {
+    try {
+      const html = this.generateHtml(receipt);
+      await this.executePrint(html, `Receipt_${receipt.saleId || 'Sale'}`);
+    } catch (error) {
+      console.error('Printing receipt failed:', error);
     }
   }
 
@@ -63,16 +88,40 @@ export class PrintingService {
       : `<tr><td colspan="4" style="text-align: center; color: #888;">No items listed</td></tr>`;
 
     const total = Number(receipt.total || 0);
+    const shopName = receipt.shopName || 'My Shop';
+    const companyName = receipt.companyName || '';
+    const address = receipt.location || receipt.address || '';
+    const phone = receipt.phone || '';
+    const email = receipt.email || '';
+    const workingHours = receipt.workingHours || '';
 
-    return `
+    return `<!DOCTYPE html>
       <html>
-        <body style='font-family: monospace; padding: 20px;'>
-          <h2 style='text-align: center;'>${receipt.shopName || 'My Shop'}</h2>
-          <p style='text-align: center;'>${receipt.address || ''}</p>
-          <hr/>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <style>
+            body { font-family: monospace; padding: 20px; margin: 0; background: #fff; color: #000; }
+            table { width: 100%; border-collapse: collapse; text-align: left; }
+            th, td { padding: 4px 0; }
+            .header { text-align: center; margin-bottom: 12px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
+            .header h2 { margin: 0 0 2px 0; font-size: 20px; font-weight: bold; }
+            .header .tagline { font-size: 11px; font-style: italic; color: #333; margin-bottom: 4px; }
+            .header .info { font-size: 11px; margin: 2px 0; color: #222; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>${shopName}</h2>
+            ${companyName ? `<div class="tagline">${companyName}</div>` : ''}
+            ${address ? `<div class="info">Location: ${address}</div>` : ''}
+            ${phone ? `<div class="info">Tel: ${phone}</div>` : ''}
+            ${email ? `<div class="info">Email: ${email}</div>` : ''}
+            ${workingHours ? `<div class="info">Hours: ${workingHours}</div>` : ''}
+          </div>
           <p>Sale ID: ${receipt.saleId || 'N/A'}</p>
           <p>Date: ${receipt.timestamp || ''}</p>
-          <table style='width: 100%; text-align: left;'>
+          <table>
             <thead>
               <tr><th>Item</th><th style="text-align: center;">Qty</th><th>Price</th><th style="text-align: right;">Total</th></tr>
             </thead>
@@ -92,9 +141,11 @@ export class PrintingService {
 
   static async printBarcodes(products: any[]): Promise<void> {
     try {
-      const barcodeHtml = `
+      const barcodeHtml = `<!DOCTYPE html>
         <html>
           <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <style>
               @page {
                 size: auto;
@@ -118,7 +169,7 @@ export class PrintingService {
                 border: 1px solid #000;
                 padding: 8px;
                 border-radius: 4px;
-                width: 130px; /* Compact width for mini-printers */
+                width: 130px;
                 background: #fff;
                 text-align: center;
                 display: flex;
@@ -178,19 +229,7 @@ export class PrintingService {
         </html>
       `;
 
-      if (RNPrint && typeof RNPrint.print === 'function') {
-        await RNPrint.print({
-          html: barcodeHtml,
-          jobName: 'Inventory_Auto_Barcodes',
-        });
-      } else if (typeof window !== 'undefined' && typeof window.print === 'function') {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(barcodeHtml);
-          printWindow.document.close();
-          printWindow.print();
-        }
-      }
+      await this.executePrint(barcodeHtml, 'Inventory_Auto_Barcodes');
     } catch (e) {
       console.error('Barcode listing print failed:', e);
     }
@@ -198,9 +237,11 @@ export class PrintingService {
 
   static async printSalesSummary(shopInfo: any, sales: any[], currency: string): Promise<void> {
     try {
-      const summaryHtml = `
+      const summaryHtml = `<!DOCTYPE html>
         <html>
           <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <style>
               @page { size: auto; margin: 5mm; }
               @media print {
@@ -220,7 +261,11 @@ export class PrintingService {
           <body>
             <div class="header">
               <h2 style="margin: 0;">${shopInfo.name || 'My Shop'}</h2>
-              <div style="font-size: 12px;">${shopInfo.address || ''}</div>
+              ${shopInfo.companyName ? `<div style="font-size: 12px; font-style: italic;">${shopInfo.companyName}</div>` : ''}
+              ${shopInfo.location || shopInfo.address ? `<div style="font-size: 12px;">Location: ${shopInfo.location || shopInfo.address}</div>` : ''}
+              ${shopInfo.phone ? `<div style="font-size: 11px;">Tel: ${shopInfo.phone}</div>` : ''}
+              ${shopInfo.email ? `<div style="font-size: 11px;">Email: ${shopInfo.email}</div>` : ''}
+              ${shopInfo.workingHours ? `<div style="font-size: 11px;">Hours: ${shopInfo.workingHours}</div>` : ''}
               <h3 style="margin: 10px 0 0 0;">BATCH SALES REPORT</h3>
             </div>
 
@@ -267,16 +312,7 @@ export class PrintingService {
         </html>
       `;
 
-      if (RNPrint && typeof RNPrint.print === 'function') {
-        await RNPrint.print({ html: summaryHtml, jobName: 'Sales_Batch_Report' });
-      } else if (typeof window !== 'undefined' && typeof window.print === 'function') {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(summaryHtml);
-          printWindow.document.close();
-          printWindow.print();
-        }
-      }
+      await this.executePrint(summaryHtml, 'Sales_Batch_Report');
     } catch (e) {
       console.error('Batch sales print failed:', e);
     }

@@ -121,7 +121,7 @@ export const useCustomers = (shopId: string) => {
   }, [shopId, loadData, triggerSync]);
 
   const triggerManualSync = () => {
-    triggerSync(shopId, true);
+    triggerSync(shopId, true, 'CUSTOMERS');
   };
 
   const getCustomerHistory = useCallback(async (customerId: string) => {

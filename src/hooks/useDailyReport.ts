@@ -22,7 +22,8 @@ export const useDailyReport = (shopId: string) => {
       // Fetch shop currency
       const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE id = ?', [safeShopId]);
       if (shopResults[0]?.rows?.length > 0) {
-        const item = shopResults[0].rows.item ? shopResults[0].rows.item(0) : shopResults[0].rows[0];
+        const rows = shopResults[0].rows;
+        const item = typeof (rows as any).item === 'function' ? rows.item(0) : (rows as any)[0];
         setCurrency(item?.currency || '$');
       }
 

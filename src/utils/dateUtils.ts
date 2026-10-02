@@ -7,11 +7,14 @@ export const parseTimestamp = (raw: any, fallback = Date.now()): number => {
   }
 
   if (typeof raw === 'string') {
-    const parsedNum = Number(raw);
+    const trimmed = raw.trim();
+    if (!trimmed) return fallback;
+
+    const parsedNum = Number(trimmed);
     if (!isNaN(parsedNum) && parsedNum > 0) {
       return parsedNum < 1e11 ? Math.floor(parsedNum * 1000) : Math.floor(parsedNum);
     }
-    const parsedDate = Date.parse(raw);
+    const parsedDate = Date.parse(trimmed);
     if (!isNaN(parsedDate) && parsedDate > 0) {
       return parsedDate;
     }
@@ -48,4 +51,34 @@ export const parseTimestamp = (raw: any, fallback = Date.now()): number => {
   }
 
   return fallback;
+};
+
+export const groupSalesByDate = (sales: any[] = []) => {
+  const groups: Record<string, any[]> = {};
+
+  sales.forEach((sale: any) => {
+    const ts = parseTimestamp(sale?.timestamp, 0);
+    if (ts <= 0) return;
+
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return;
+
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].push(sale);
+  });
+
+  return Object.keys(groups)
+    .sort((a, b) => b.localeCompare(a))
+    .map((dateKey) => ({
+      title: new Date(dateKey).toLocaleDateString(undefined, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }),
+      data: groups[dateKey],
+    }));
 };

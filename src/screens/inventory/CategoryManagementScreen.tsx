@@ -31,6 +31,7 @@ import {
 import { ChevronLeft, Plus, Edit2, Layers } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import { useCategories } from '../../hooks/useCategories';
 import { getAppShadow, getButtonHeight } from '../../utils/platformStyles';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -153,9 +154,7 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       </Box>
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary600" />
-        </Center>
+        <ModernLoader label="Loading Categories..." subLabel="Fetching product classifications" />
       ) : (
         <VStack flex={1} px="$4">
           <Button

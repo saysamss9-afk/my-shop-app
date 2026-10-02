@@ -27,14 +27,18 @@ export const createTables = async (db: SQLiteDatabase) => {
         currency TEXT DEFAULT '$',
         [plan] TEXT DEFAULT 'STARTER',
         parentShopId TEXT,
-        lastSynced INTEGER DEFAULT 0
+        lastSynced INTEGER DEFAULT 0,
+        phone TEXT,
+        email TEXT,
+        workingHours TEXT,
+        location TEXT,
+        planExpiresAt TEXT
     );`,
     `CREATE TABLE IF NOT EXISTS Category (
         id TEXT PRIMARY KEY,
         shopId TEXT NOT NULL,
         name TEXT NOT NULL,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS Product (
         id TEXT PRIMARY KEY,
@@ -55,10 +59,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         unit TEXT NOT NULL,
         supplierId TEXT,
         status TEXT DEFAULT 'ACTIVE',
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id),
-        FOREIGN KEY (categoryId) REFERENCES Category(id),
-        FOREIGN KEY (supplierId) REFERENCES Supplier(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS Supplier (
         id TEXT PRIMARY KEY,
@@ -70,8 +71,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         address TEXT,
         contactInfo TEXT,
         currentBalance REAL NOT NULL DEFAULT 0.0,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS SupplierPayment (
         id TEXT PRIMARY KEY,
@@ -82,17 +82,14 @@ export const createTables = async (db: SQLiteDatabase) => {
         reference TEXT,
         timestamp INTEGER NOT NULL,
         note TEXT,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (supplierId) REFERENCES Supplier(id),
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS Employee (
         id TEXT PRIMARY KEY,
         shopId TEXT NOT NULL,
         name TEXT NOT NULL,
         role TEXT NOT NULL,
-        email TEXT NOT NULL,
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        email TEXT NOT NULL
     );`,
     `CREATE TABLE IF NOT EXISTS Customer (
         id TEXT PRIMARY KEY,
@@ -101,8 +98,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         phone TEXT,
         email TEXT,
         currentBalance REAL NOT NULL DEFAULT 0.0,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS Sale (
         id TEXT PRIMARY KEY,
@@ -117,10 +113,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         paymentStatus TEXT NOT NULL DEFAULT 'PAID',
         dueDate INTEGER,
         syncStatus INTEGER NOT NULL DEFAULT 0,
-        isReverted INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id),
-        FOREIGN KEY (employeeId) REFERENCES Employee(id),
-        FOREIGN KEY (customerId) REFERENCES Customer(id)
+        isReverted INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS DebtPayment (
         id TEXT PRIMARY KEY,
@@ -130,9 +123,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         paymentMethod TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
         note TEXT,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (customerId) REFERENCES Customer(id),
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS InventoryAdjustment (
         id TEXT PRIMARY KEY,
@@ -141,9 +132,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         quantity REAL NOT NULL,
         reason TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (productId) REFERENCES Product(id),
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS PurchaseOrder (
         id TEXT PRIMARY KEY,
@@ -155,9 +144,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         amountPaid REAL NOT NULL DEFAULT 0.0,
         balance REAL NOT NULL DEFAULT 0.0,
         paymentStatus TEXT NOT NULL DEFAULT 'PAID',
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id),
-        FOREIGN KEY (supplierId) REFERENCES Supplier(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS PurchaseOrderItem (
         id TEXT PRIMARY KEY,
@@ -166,9 +153,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         productName TEXT NOT NULL,
         quantity REAL NOT NULL,
         costPrice REAL NOT NULL,
-        isBulk INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (purchaseOrderId) REFERENCES PurchaseOrder(id),
-        FOREIGN KEY (productId) REFERENCES Product(id)
+        isBulk INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS PurchaseReturn (
         id TEXT PRIMARY KEY,
@@ -180,10 +165,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         returnValue REAL NOT NULL,
         reason TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (purchaseOrderId) REFERENCES PurchaseOrder(id),
-        FOREIGN KEY (supplierId) REFERENCES Supplier(id),
-        FOREIGN KEY (productId) REFERENCES Product(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS SaleItem (
         id TEXT PRIMARY KEY,
@@ -191,9 +173,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         productId TEXT NOT NULL,
         quantity REAL NOT NULL,
         priceAtSale REAL NOT NULL,
-        isBulk INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (saleId) REFERENCES Sale(id),
-        FOREIGN KEY (productId) REFERENCES Product(id)
+        isBulk INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS AuditLog (
         id TEXT PRIMARY KEY,
@@ -203,9 +183,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         targetId TEXT,
         details TEXT,
         timestamp INTEGER NOT NULL,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id),
-        FOREIGN KEY (employeeId) REFERENCES Employee(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
     `CREATE TABLE IF NOT EXISTS Expense (
         id TEXT PRIMARY KEY,
@@ -214,8 +192,7 @@ export const createTables = async (db: SQLiteDatabase) => {
         amount REAL NOT NULL,
         description TEXT,
         timestamp INTEGER NOT NULL,
-        syncStatus INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (shopId) REFERENCES Shop(id)
+        syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
   ];
 
@@ -235,6 +212,11 @@ export const createTables = async (db: SQLiteDatabase) => {
     'ALTER TABLE Shop ADD COLUMN shopCode TEXT',
     'ALTER TABLE Sale ADD COLUMN amountPaid REAL DEFAULT 0.0',
     'ALTER TABLE Sale ADD COLUMN balance REAL DEFAULT 0.0',
+    'ALTER TABLE Shop ADD COLUMN phone TEXT',
+    'ALTER TABLE Shop ADD COLUMN email TEXT',
+    'ALTER TABLE Shop ADD COLUMN workingHours TEXT',
+    'ALTER TABLE Shop ADD COLUMN location TEXT',
+    'ALTER TABLE Shop ADD COLUMN planExpiresAt TEXT',
   ];
 
   for (const migration of migrations) {

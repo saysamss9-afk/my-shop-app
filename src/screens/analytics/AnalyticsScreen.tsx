@@ -19,6 +19,7 @@ import {
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import RNPrint from 'react-native-print';
 import { Platform } from 'react-native';
 
@@ -47,8 +48,12 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
   }, [handleRefresh]);
 
   const handleExport = async () => {
-    const html = `
+    const html = `<!DOCTYPE html>
         <html>
+            <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            </head>
             <body style="font-family: Arial, sans-serif; padding: 30px; color: #333;">
                 <h1 style="color: #1A237E; text-align: center; margin-bottom: 10px;">Item Performance Report</h1>
                 <p style="text-align: center; color: #666;">Generated on ${new Date().toLocaleString()}</p>
@@ -111,7 +116,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
         }
     } else {
         try {
-            await RNPrint.print({ html });
+            await RNPrint.print({ html, jobName: 'Item_Performance_Report', baseUrl: 'file:///' });
         } catch (e) {
             displayAlert("Export Error", "Could not generate report.");
         }
@@ -128,9 +133,7 @@ const AnalyticsScreen = ({ route, navigation }: any) => {
       />
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary800" />
-        </Center>
+        <ModernLoader label="Loading Analytics..." subLabel="Calculating performance metrics" icon="sparkles" />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           <VStack space="xl" pt="$4">

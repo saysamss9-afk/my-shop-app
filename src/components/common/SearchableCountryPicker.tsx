@@ -98,9 +98,11 @@ const SearchableCountryPicker: React.FC<Props> = ({ isOpen, onClose, onSelect, s
               data={filteredCountries}
               renderItem={renderItem}
               keyExtractor={item => item}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
               keyboardShouldPersistTaps="handled"
               initialNumToRender={20}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 40 }}
             />
           </VStack>
         </Box>

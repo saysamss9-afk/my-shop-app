@@ -91,17 +91,23 @@ const SHOP_CATEGORIES = [
   {
     id: 'STARTER',
     label: 'Starter',
-    description: 'Max 3 staff including owner',
+    description: 'Max 3 staff including owner • 1 Month Free Trial',
     basePrice: 100,
+    oldAnnualPrice: 200,
+    newMonthlyPrice: 10,
+    oldMonthlyPrice: 20,
     color: '$blue600',
     bg: '$blue50',
-    badgeText: 'STANDARD'
+    badgeText: '1 MO FREE TRIAL'
   },
   {
     id: 'BUSINESS',
     label: 'Business',
-    description: '4 or more staff',
+    description: '4 or more staff • 1 Month Free Trial',
     basePrice: 200,
+    oldAnnualPrice: 300,
+    newMonthlyPrice: 20,
+    oldMonthlyPrice: 30,
     color: '$purple600',
     bg: '$purple50',
     badgeText: 'MOST POPULAR'
@@ -109,11 +115,14 @@ const SHOP_CATEGORIES = [
   {
     id: 'PREMIUM',
     label: 'Premium',
-    description: 'Shop with branches (up to 5)',
+    description: 'Shop with branches (up to 5) • 1 Month Free Trial',
     basePrice: 300,
+    oldAnnualPrice: 600,
+    newMonthlyPrice: 30,
+    oldMonthlyPrice: 50,
     color: '$amber600',
     bg: '$amber50',
-    badgeText: 'MULTI-BRANCH'
+    badgeText: '1 MO FREE TRIAL'
   },
 ];
 
@@ -433,6 +442,16 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                 <VStack space="lg">
                   <Heading size="md" color="$primary700" textAlign={textAlign}>{t('auth.choose_plan')}</Heading>
                   <VStack space="sm">
+                    {!!shopCategory && (
+                      <Box bg="$amber50" p="$3" rounded="$xl" borderWidth={1} borderColor="$amber200" mb="$2">
+                        <HStack space="xs" alignItems="center" flexDirection={flexDir}>
+                          <Icon as={CheckCircleIcon} size="xs" color="$amber600" />
+                          <Text size="xs" color="$amber800" fontWeight="$bold" textAlign={textAlign}>
+                            🎉 Includes an automatic 1-Month Free Trial!
+                          </Text>
+                        </HStack>
+                      </Box>
+                    )}
                     {SHOP_CATEGORIES.map((cat) => (
                       <Pressable
                         key={cat.id}
@@ -447,18 +466,37 @@ const ShopRequestScreen: React.FC<Props> = ({ navigation }) => {
                           <VStack space="xs" flex={1}>
                             <HStack space="sm" alignItems="center" flexDirection={flexDir}>
                               <Text fontWeight="$bold" color={shopCategory === cat.id ? cat.color : '$text900'}>{cat.label}</Text>
-                              <Badge size="xs" action={cat.id === 'BUSINESS' ? 'warning' : 'info'} borderRadius="$full">
+                              <Badge size="sm" action={cat.id === 'BUSINESS' ? 'warning' : 'info'} borderRadius="$full">
                                 <BadgeText>{cat.badgeText}</BadgeText>
                               </Badge>
                               {shopCategory === cat.id && <Icon as={CheckCircleIcon} size="xs" color={cat.color} />}
                             </HStack>
                             <Text size="xs" color="$text500" textAlign={textAlign}>{cat.description}</Text>
                           </VStack>
-                          <VStack alignItems={isRTL ? 'flex-start' : 'flex-end'}>
-                            <Text size="sm" fontWeight="$bold" color={cat.color}>
-                              {currency}{getConvertedPrice(cat.basePrice)}
-                            </Text>
-                            <Text size="2xs" color="$text400">{t('auth.per_annum')}</Text>
+                          <VStack alignItems={isRTL ? 'flex-start' : 'flex-end'} space="2xs">
+                            <VStack alignItems={isRTL ? 'flex-start' : 'flex-end'}>
+                              <HStack space="xs" alignItems="center" flexDirection={flexDir}>
+                                <Text size="2xs" color="$text400" strikeThrough>
+                                  {currency}{getConvertedPrice(cat.oldAnnualPrice)}
+                                </Text>
+                                <Text size="sm" fontWeight="$bold" color={cat.color}>
+                                  {currency}{getConvertedPrice(cat.basePrice)}
+                                </Text>
+                              </HStack>
+                              <Text size="2xs" color="$text500">{t('auth.per_annum')}</Text>
+                            </VStack>
+
+                            <VStack alignItems={isRTL ? 'flex-start' : 'flex-end'}>
+                              <HStack space="xs" alignItems="center" flexDirection={flexDir}>
+                                <Text size="2xs" color="$text400" strikeThrough>
+                                  {currency}{getConvertedPrice(cat.oldMonthlyPrice)}
+                                </Text>
+                                <Text size="xs" fontWeight="$bold" color="$success700">
+                                  {currency}{getConvertedPrice(cat.newMonthlyPrice)}
+                                </Text>
+                              </HStack>
+                              <Text size="2xs" color="$text500">{t('auth.per_month')}</Text>
+                            </VStack>
                           </VStack>
                         </HStack>
                       </Pressable>

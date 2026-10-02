@@ -23,6 +23,7 @@ export interface DashboardItem {
   description: string;
   onPress: () => void;
   roleRequired?: string[];
+  isLocked?: boolean;
 }
 
 interface Props {
@@ -50,11 +51,17 @@ const ActionGrid: React.FC<Props> = ({ actions, userRole, lowStockCount }) => {
           w={isTablet ? 80 : 64}
           h={isTablet ? 80 : 64}
           rounded="$2xl"
-          bg="$white"
+          bg={item.isLocked ? '$backgroundLight100' : '$white'}
+          opacity={item.isLocked ? 0.75 : 1}
           style={{ ...getAppShadow({ offsetY: 8, radius: 18, color: 'rgba(0,0,0,0.05)' }) }}
           mb="$2"
         >
-          <AppIcon name={item.icon} size={isTablet ? 32 : 28} color={item.color} />
+          <AppIcon name={item.icon} size={isTablet ? 32 : 28} color={item.isLocked ? '#9E9E9E' : item.color} />
+          {item.isLocked && (
+            <Box position="absolute" top={4} right={4} bg="$amber500" p={2} rounded="$full">
+              <Text fontSize={10} color="$white">🔒</Text>
+            </Box>
+          )}
           {item.id === 'inventory' && lowStockCount > 0 && (
             <Box position="absolute" top={-4} right={-4}>
               <Badge size="md" variant="solid" action="error" rounded="$full">
@@ -63,7 +70,9 @@ const ActionGrid: React.FC<Props> = ({ actions, userRole, lowStockCount }) => {
             </Box>
           )}
         </Center>
-        <Text size={isTablet ? 'sm' : 'xs'} fontWeight="$bold" color="$text900" textAlign="center">{item.title}</Text>
+        <Text size={isTablet ? 'sm' : 'xs'} fontWeight="$bold" color={item.isLocked ? '$text400' : '$text900'} textAlign="center">
+          {item.isLocked ? `${item.title} 🔒` : item.title}
+        </Text>
       </Pressable>
     );
   };

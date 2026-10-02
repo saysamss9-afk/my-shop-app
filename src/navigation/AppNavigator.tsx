@@ -18,6 +18,7 @@ import ExpenseManagementScreen from '../screens/analytics/ExpenseManagementScree
 import ProfitLossScreen from '../screens/analytics/ProfitLossScreen';
 import StaffManagementScreen from '../screens/admin/StaffManagementScreen';
 import BranchManagementScreen from '../screens/admin/BranchManagementScreen';
+import ShopIdentityScreen from '../screens/admin/ShopIdentityScreen';
 import SupplierScreen from '../screens/inventory/SupplierScreen';
 import PurchaseScreen from '../screens/inventory/PurchaseScreen';
 import PurchaseHistoryScreen from '../screens/inventory/PurchaseHistoryScreen';
@@ -46,6 +47,7 @@ export type RootStackParamList = {
   ProfitLoss: { shopId: string; userRole: string };
   StaffManagement: { shopId: string };
   BranchManagement: { shopId: string };
+  ShopIdentity: { shopId: string };
   Suppliers: { shopId: string };
   Purchase: { shopId: string; initialSupplierId?: string };
   PurchaseHistory: { shopId: string };
@@ -84,6 +86,7 @@ const AppNavigator = () => {
       <Stack.Screen name="ProfitLoss" component={ProfitLossScreen} />
       <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
       <Stack.Screen name="BranchManagement" component={BranchManagementScreen} />
+      <Stack.Screen name="ShopIdentity" component={ShopIdentityScreen} />
       <Stack.Screen name="Suppliers" component={SupplierScreen} />
       <Stack.Screen name="Purchase" component={PurchaseScreen} />
       <Stack.Screen name="PurchaseHistory" component={PurchaseHistoryScreen} />

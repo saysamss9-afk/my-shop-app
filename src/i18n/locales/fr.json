@@ -22,6 +22,7 @@
     "next_plan": "Suivant : Choisir le forfait",
     "choose_plan": "Choisir le plan d'enregistrement",
     "per_annum": "par an",
+    "per_month": "par mois",
     "submit_registration": "Soumettre l'inscription",
     "admin_verify_note": "L'administrateur vérifiera vos coordonnées et générera un code de boutique pour vous.",
     "request_submitted": "Demande soumise !",

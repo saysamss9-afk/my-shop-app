@@ -40,7 +40,8 @@ export class CategoryRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        categories.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) categories.push(item);
       }
     }
     return categories;

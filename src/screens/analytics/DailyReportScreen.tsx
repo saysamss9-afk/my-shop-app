@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDailyReport } from '../../hooks/useDailyReport';
 import { getAppShadow, isWeb } from '../../utils/platformStyles';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import { SyncStatus } from '../../sync/SyncManager';
 import { useTranslation } from 'react-i18next';
 
@@ -298,9 +299,7 @@ const DailyReportScreen = ({ route, navigation }: any) => {
       </Box>
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary800" />
-        </Center>
+        <ModernLoader label="Generating Daily Report..." subLabel="Processing sales & transactions" icon="sparkles" />
       ) : (
         <Box flex={1} bg="$white" mx="$1" rounded="$xl" overflow="hidden" borderWidth={1} borderColor="$borderLight" style={{ ...getAppShadow({ offsetY: 4, radius: 15, color: 'rgba(0,0,0,0.05)' }) }}>
           {/* Scrollable Table View for Full Content Display */}

@@ -31,20 +31,58 @@ export class CustomerRepository {
   }
 
   async recordPayment(payment: Omit<DebtPayment, 'syncStatus'>) {
-    await this.db.transaction(async (tx: any) => {
-      const paymentQuery = `
-        INSERT INTO DebtPayment(id, customerId, shopId, amount, paymentMethod, timestamp, note, syncStatus)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-      `;
-      const params = [
-        payment.id, payment.customerId, payment.shopId, payment.amount,
-        payment.paymentMethod, payment.timestamp, payment.note
-      ];
-      await tx.executeSql(paymentQuery, params);
+    const paymentQuery = `
+      INSERT INTO DebtPayment(id, customerId, shopId, amount, paymentMethod, timestamp, note, syncStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+    `;
+    const params = [
+      payment.id, payment.customerId, payment.shopId, payment.amount,
+      payment.paymentMethod, payment.timestamp, payment.note
+    ];
+    await this.db.executeSql(paymentQuery, params);
 
-      const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
-      await tx.executeSql(updateBalanceQuery, [payment.amount, payment.customerId]);
-    });
+    const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
+    await this.db.executeSql(updateBalanceQuery, [payment.amount, payment.customerId]);
+
+    // Apply debt payment to customer's open credit sales (oldest first) to update sale balance and status
+    try {
+      const openSalesQuery = `
+        SELECT id, totalAmount, amountPaid, balance
+        FROM Sale
+        WHERE customerId = ? AND COALESCE(isReverted, 0) = 0 AND (balance > 0 OR paymentStatus IN ('DEBT', 'PARTIAL'))
+        ORDER BY timestamp ASC
+      `;
+      const [salesRes] = await this.db.executeSql(openSalesQuery, [payment.customerId]);
+      const rows = salesRes?.rows;
+      if (rows) {
+        let remainingPayment = Number(payment.amount || 0);
+        const len = rows.length ?? 0;
+        for (let i = 0; i < len && remainingPayment > 0; i++) {
+          const s = typeof rows.item === 'function' ? rows.item(i) : rows[i];
+          if (!s) continue;
+          const saleId = s.id;
+          const tot = Number(s.totalAmount || 0);
+          const currentPaid = Number(s.amountPaid || 0);
+          const currentBal = s.balance !== undefined && s.balance !== null ? Number(s.balance) : Math.max(0, tot - currentPaid);
+
+          if (currentBal <= 0) continue;
+
+          const payForThisSale = Math.min(remainingPayment, currentBal);
+          const newPaid = currentPaid + payForThisSale;
+          const newBal = Math.max(0, currentBal - payForThisSale);
+          const newStatus = newBal <= 0 ? 'PAID' : (newPaid > 0 ? 'PARTIAL' : 'DEBT');
+
+          await this.db.executeSql(
+            'UPDATE Sale SET amountPaid = ?, balance = ?, paymentStatus = ?, syncStatus = 0 WHERE id = ?',
+            [newPaid, newBal, newStatus, saleId]
+          );
+
+          remainingPayment -= payForThisSale;
+        }
+      }
+    } catch (e) {
+      console.error('Error updating open sale balances during debt payment:', e);
+    }
   }
 
   async getPaymentsByCustomer(customerId: string): Promise<DebtPayment[]> {
@@ -79,7 +117,8 @@ export class CustomerRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        payments.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) payments.push(item);
       }
     }
     return payments;
@@ -100,45 +139,39 @@ export class CustomerRepository {
     timestamp: number;
     isBulk: boolean;
   }) {
-    await this.db.transaction(async (tx: any) => {
-      // 1. Record the adjustment
-      const adjQuery = `
-        INSERT INTO InventoryAdjustment(id, productId, shopId, quantity, reason, timestamp, syncStatus)
-        VALUES (?, ?, ?, ?, ?, ?, 0)
-      `;
-      await tx.executeSql(adjQuery, [
-        returnOrder.id,
-        returnOrder.productId,
-        returnOrder.shopId,
-        returnOrder.quantity,
-        'CUSTOMER_RETURN',
-        returnOrder.timestamp
-      ]);
+    const adjQuery = `
+      INSERT INTO InventoryAdjustment(id, productId, shopId, quantity, reason, timestamp, syncStatus)
+      VALUES (?, ?, ?, ?, ?, ?, 0)
+    `;
+    await this.db.executeSql(adjQuery, [
+      returnOrder.id,
+      returnOrder.productId,
+      returnOrder.shopId,
+      returnOrder.quantity,
+      'CUSTOMER_RETURN',
+      returnOrder.timestamp
+    ]);
 
-      // 2. Reduce customer debt
-      const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
-      await tx.executeSql(updateBalanceQuery, [returnOrder.value, returnOrder.customerId]);
+    const updateBalanceQuery = 'UPDATE Customer SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
+    await this.db.executeSql(updateBalanceQuery, [returnOrder.value, returnOrder.customerId]);
 
-      // 3. Restore stock in Product table
-      const column = returnOrder.isBulk ? 'bulkStockQuantity' : 'stockQuantity';
-      const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ?, syncStatus = 0 WHERE id = ?`;
-      await tx.executeSql(restoreStockQuery, [returnOrder.quantity, returnOrder.productId]);
+    const column = returnOrder.isBulk ? 'bulkStockQuantity' : 'stockQuantity';
+    const restoreStockQuery = `UPDATE Product SET ${column} = ${column} + ?, syncStatus = 0 WHERE id = ?`;
+    await this.db.executeSql(restoreStockQuery, [returnOrder.quantity, returnOrder.productId]);
 
-      // 4. Record in AuditLog
-      const auditQuery = `
-        INSERT INTO AuditLog(id, shopId, employeeId, action, targetId, details, timestamp, syncStatus)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-      `;
-      await tx.executeSql(auditQuery, [
-        generateUUID(),
-        returnOrder.shopId,
-        'SYSTEM', // Ideally passed from UI
-        'ITEM_RETURNED',
-        returnOrder.customerId,
-        `Returned ${returnOrder.quantity} of ${returnOrder.productId}. Value: ${returnOrder.value}`,
-        returnOrder.timestamp
-      ]);
-    });
+    const auditQuery = `
+      INSERT INTO AuditLog(id, shopId, employeeId, action, targetId, details, timestamp, syncStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+    `;
+    await this.db.executeSql(auditQuery, [
+      generateUUID(),
+      returnOrder.shopId,
+      'SYSTEM',
+      'ITEM_RETURNED',
+      returnOrder.customerId,
+      `Returned ${returnOrder.quantity} of ${returnOrder.productId}. Value: ${returnOrder.value}`,
+      returnOrder.timestamp
+    ]);
   }
 
   async getUnsyncedCustomers(shopId?: string): Promise<Customer[]> {
@@ -153,7 +186,8 @@ export class CustomerRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        customers.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) customers.push(item);
       }
     }
     return customers;

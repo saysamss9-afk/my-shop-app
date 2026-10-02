@@ -27,10 +27,9 @@ export const useSuppliers = (shopId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('');
 
-  const [hasLoaded, setHasLoaded] = useState(false);
-
   const loadData = useCallback(async (isSilent = false) => {
-    if (!isSilent && !hasLoaded) setIsLoading(true);
+    // Only show full loading spinner if not silent and we have no suppliers loaded yet
+    if (!isSilent && suppliers.length === 0) setIsLoading(true);
     setError(null);
     try {
       const db = await getDBConnection();
@@ -46,17 +45,16 @@ export const useSuppliers = (shopId: string) => {
 
       const dashboardStats = await repo.getDashboardStats(shopId);
       setStats(dashboardStats);
-      setHasLoaded(true);
     } catch (e: any) {
       setError(e.message);
     } finally {
       setIsLoading(false);
     }
-  }, [shopId, hasLoaded]);
+  }, [shopId, suppliers.length]);
 
   useEffect(() => {
-    loadData(hasLoaded);
-  }, [dataChangeTick]); // loadData(true) if already loaded once
+    loadData(suppliers.length > 0);
+  }, [dataChangeTick]);
 
   const addSupplier = useCallback(async (supplierData: Partial<Supplier>) => {
     try {
@@ -112,7 +110,7 @@ export const useSuppliers = (shopId: string) => {
   }, [shopId, loadData, triggerSync]);
 
   const triggerManualSync = () => {
-    triggerSync(shopId, true);
+    triggerSync(shopId, true, 'SUPPLIERS');
   };
 
   const getSupplierProducts = useCallback(async (supplierId: string) => {

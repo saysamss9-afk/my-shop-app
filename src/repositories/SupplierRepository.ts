@@ -52,20 +52,18 @@ export class SupplierRepository {
   }
 
   async recordPayment(payment: Omit<SupplierPayment, 'syncStatus'>) {
-    await this.db.transaction(async (tx: any) => {
-      const paymentQuery = `
-        INSERT INTO SupplierPayment(id, supplierId, shopId, amount, paymentMethod, reference, timestamp, note, syncStatus)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-      `;
-      const params = [
-        payment.id, payment.supplierId, payment.shopId, payment.amount,
-        payment.paymentMethod, payment.reference, payment.timestamp, payment.note
-      ];
-      await tx.executeSql(paymentQuery, params);
+    const paymentQuery = `
+      INSERT INTO SupplierPayment(id, supplierId, shopId, amount, paymentMethod, reference, timestamp, note, syncStatus)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `;
+    const params = [
+      payment.id, payment.supplierId, payment.shopId, payment.amount,
+      payment.paymentMethod, payment.reference, payment.timestamp, payment.note
+    ];
+    await this.db.executeSql(paymentQuery, params);
 
-      const updateBalanceQuery = 'UPDATE Supplier SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
-      await tx.executeSql(updateBalanceQuery, [payment.amount, payment.supplierId]);
-    });
+    const updateBalanceQuery = 'UPDATE Supplier SET currentBalance = currentBalance - ?, syncStatus = 0 WHERE id = ?';
+    await this.db.executeSql(updateBalanceQuery, [payment.amount, payment.supplierId]);
   }
 
   async getDashboardStats(shopId: string) {
@@ -128,7 +126,8 @@ export class SupplierRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        suppliers.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) suppliers.push(item);
       }
     }
     return suppliers;
@@ -151,7 +150,8 @@ export class SupplierRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        payments.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) payments.push(item);
       }
     }
     return payments;

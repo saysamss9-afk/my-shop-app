@@ -21,7 +21,8 @@ export const useSales = (shopId: string) => {
 
       const shopResults = await db.executeSql('SELECT currency FROM Shop WHERE TRIM(id) = TRIM(?)', [safeShopId]);
       if (shopResults[0]?.rows?.length > 0) {
-        const item = shopResults[0].rows.item ? shopResults[0].rows.item(0) : shopResults[0].rows[0];
+        const rows = shopResults[0].rows;
+        const item = typeof (rows as any).item === 'function' ? rows.item(0) : (rows as any)[0];
         setCurrency(item?.currency || '$');
       }
 
@@ -37,8 +38,6 @@ export const useSales = (shopId: string) => {
   }, [shopId]);
 
   useEffect(() => {
-    // Default to current month if no range provided?
-    // Actually, the component should handle the range.
     loadSales();
   }, [loadSales, dataChangeTick]);
 
@@ -73,7 +72,7 @@ export const useSales = (shopId: string) => {
   }, [loadSales]);
 
   const triggerManualSync = () => {
-    triggerSync(shopId, true);
+    triggerSync(shopId, true, 'SALES');
   };
 
   const getSaleDetails = useCallback(async (saleId: string) => {
@@ -90,8 +89,11 @@ export const useSales = (shopId: string) => {
   const getShopInfo = useCallback(async () => {
     try {
       const db = await getDBConnection();
-      const results = await db.executeSql('SELECT name, address FROM Shop WHERE id = ?', [shopId]);
-      if (results[0].rows.length > 0) {
+      const results = await db.executeSql(
+        'SELECT name, companyName, address, location, phone, email, workingHours, currency FROM Shop WHERE TRIM(id) = TRIM(?) OR id = ?',
+        [shopId, shopId]
+      );
+      if (results[0]?.rows?.length > 0) {
         return results[0].rows.item(0);
       }
     } catch (e) {

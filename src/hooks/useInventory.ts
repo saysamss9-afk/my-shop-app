@@ -150,12 +150,14 @@ export const useInventory = (shopId: string) => {
   };
 
   const filteredProducts = showLowStockOnly
-    ? products.filter(p => p.stockQuantity <= p.minStockLevel)
+    ? products.filter(p => {
+        const totalUnits = Number(p.stockQuantity || 0) + (Number(p.bulkStockQuantity || 0) * (Number(p.bulkQuantity) > 0 ? Number(p.bulkQuantity) : 1));
+        return totalUnits <= Number(p.minStockLevel || 0);
+      })
     : products;
 
   const triggerManualSync = () => {
-    // Perform a deep sync to fully reconcile local device data with remote
-    triggerSync(shopId, true);
+    triggerSync(shopId, true, 'PRODUCTS');
   };
 
   return {

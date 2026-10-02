@@ -22,6 +22,7 @@
     "next_plan": "Next: Choose Plan",
     "choose_plan": "Choose Registration Plan",
     "per_annum": "per annum",
+    "per_month": "per month",
     "submit_registration": "Submit Registration",
     "admin_verify_note": "The admin will verify your details and generate a shop code for you.",
     "request_submitted": "Request Submitted!",

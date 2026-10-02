@@ -35,9 +35,11 @@ import {
 import { ChevronLeft, MapPin, Building2, Copy, Check, Store, Edit2, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import { ShopRepository } from '../../repositories/ShopRepository';
 import { useAuthContext } from '../../auth/AuthContext';
 import { getAppShadow } from '../../utils/platformStyles';
+import { getDBConnection } from '../../db/database';
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -72,6 +74,27 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
   const fetchBranches = async () => {
     if (!user) return;
     try {
+      // 1. Instant Cache Load from local SQLite / AlaSQL DB
+      const safeShopId = (shopId || '').toString().trim();
+      const db = await getDBConnection();
+      const localRes = await db.executeSql(
+        'SELECT * FROM Shop WHERE parentShopId = ? OR TRIM(parentShopId) = ? OR TRIM(LOWER(parentShopId)) = TRIM(LOWER(?))',
+        [safeShopId, safeShopId, safeShopId]
+      );
+      const rows = localRes[0]?.rows;
+      if (rows && rows.length > 0) {
+        const cached: any[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          const row = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+          if (row && row.id !== safeShopId) cached.push(row);
+        }
+        if (cached.length > 0) {
+          setBranches(cached);
+          setLoading(false);
+        }
+      }
+
+      // 2. Fetch remote owner shops & update local DB
       const allShops = await shopRepo.getOwnerShops(user.uid);
       const currentShop = allShops.find(s => s.id === shopId);
       const effectiveParentId = currentShop?.parentShopId || currentShop?.parentshopid || shopId;
@@ -85,6 +108,14 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
           return (isDirectBranch || isNestedBranch) && s.id !== effectiveParentId;
       });
       setBranches(filtered);
+
+      // Background upsert into local Shop table
+      for (const s of allShops) {
+        await db.executeSql(
+          'INSERT OR REPLACE INTO Shop(id, name, companyName, address, ownerId, country, currency, [plan], parentShopId, shopCode, lastSynced) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [s.id, s.name || '', s.companyName || null, s.address || null, s.ownerId || user.uid, s.country || null, s.currency || '$', s.plan || 'STARTER', s.parentShopId || null, s.shopCode || null, Date.now()]
+        );
+      }
     } catch (e) {
       console.error('Error fetching branches:', e);
     } finally {
@@ -206,10 +237,7 @@ const BranchManagementScreen: React.FC<Props> = ({ route, navigation }) => {
           </Box>
 
           {loading ? (
-            <Center py="$20">
-              <Spinner size="large" color="$primary600" />
-              <Text size="sm" color="$text400" mt="$2">Loading business profile hierarchy...</Text>
-            </Center>
+            <ModernLoader label="Loading business profile hierarchy..." icon="store" />
           ) : (
             <VStack space="md">
               {branches.length === 0 ? (

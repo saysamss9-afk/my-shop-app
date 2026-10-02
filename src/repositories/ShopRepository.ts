@@ -1,6 +1,7 @@
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import type { Shop } from '../db/types';
+import { getDBConnection } from '../db/database';
 
 export interface ShopRequest {
   userId?: string;
@@ -38,7 +39,24 @@ export class ShopRepository {
 
   async getShopDetails(shopId: string): Promise<Shop | null> {
     const doc = await firestore().collection('registered_shops').doc(shopId).get();
-    return doc.exists ? { id: doc.id, ...doc.data() } as Shop : null;
+    if (!doc.exists) return null;
+    const data = { id: doc.id, ...doc.data() } as any;
+    if (!data.planExpiresAt) {
+      let baseDate = new Date();
+      if (data.createdAt?.toDate) baseDate = data.createdAt.toDate();
+      else if (data.createdAt?.seconds) baseDate = new Date(data.createdAt.seconds * 1000);
+      else if (data.createdAt) baseDate = new Date(data.createdAt);
+      const trialExpiry = new Date(baseDate);
+      trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+      const now = new Date();
+      if (trialExpiry < now) {
+        trialExpiry.setTime(now.getTime());
+        trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+      }
+      data.planExpiresAt = trialExpiry.toISOString().split('T')[0];
+      doc.ref.update({ planExpiresAt: data.planExpiresAt }).catch(() => {});
+    }
+    return data as Shop;
   }
 
   async getOwnerShops(ownerId: string): Promise<Shop[]> {
@@ -48,12 +66,72 @@ export class ShopRepository {
       .where('ownerId', '==', ownerId)
       .get();
 
-    // We also need to fetch any shop where the ownerId might be missing in metadata
-    // but the user is effectively the owner (e.g. from shop_requests or just direct ownerId)
-    // The current query covers most cases, but we ensure branches are also caught.
-    // Since branches inherit the ownerId, the current where query is actually sufficient.
+    return directShopsSnapshot.docs.map(doc => {
+      const data = { id: doc.id, ...doc.data() } as any;
+      if (!data.planExpiresAt) {
+        let baseDate = new Date();
+        if (data.createdAt?.toDate) baseDate = data.createdAt.toDate();
+        else if (data.createdAt?.seconds) baseDate = new Date(data.createdAt.seconds * 1000);
+        else if (data.createdAt) baseDate = new Date(data.createdAt);
+        const trialExpiry = new Date(baseDate);
+        trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+        const now = new Date();
+        if (trialExpiry < now) {
+          trialExpiry.setTime(now.getTime());
+          trialExpiry.setMonth(trialExpiry.getMonth() + 1);
+        }
+        data.planExpiresAt = trialExpiry.toISOString().split('T')[0];
+        doc.ref.update({ planExpiresAt: data.planExpiresAt }).catch(() => {});
+      }
+      return data as Shop;
+    });
+  }
 
-    return directShopsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Shop));
+  async updateShopIdentity(shopId: string, details: Partial<Shop>) {
+    const safeShopId = (shopId || '').toString().trim();
+    if (!safeShopId) return;
+
+    // 1. Update Firestore registered_shops document if online
+    try {
+      await firestore().collection('registered_shops').doc(safeShopId).update({
+        name: details.name,
+        companyName: details.companyName,
+        address: details.address || details.location,
+        location: details.location || details.address,
+        phone: details.phone,
+        email: details.email,
+        workingHours: details.workingHours,
+        currency: details.currency,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      console.warn('Firestore shop identity update warning:', e);
+    }
+
+    // 2. Update local SQLite database
+    try {
+      const db = await getDBConnection();
+      const query = `
+        UPDATE Shop
+        SET name = ?, companyName = ?, address = ?, location = ?, phone = ?, email = ?, workingHours = ?, currency = ?
+        WHERE TRIM(id) = TRIM(?) OR id = ?
+      `;
+      const params = [
+        details.name || '',
+        details.companyName || '',
+        details.address || details.location || '',
+        details.location || details.address || '',
+        details.phone || '',
+        details.email || '',
+        details.workingHours || '',
+        details.currency || '$',
+        safeShopId,
+        safeShopId,
+      ];
+      await db.executeSql(query, params);
+    } catch (e) {
+      console.error('Local SQLite shop identity update error:', e);
+    }
   }
 
   async createBranch(shopId: string, branchData: any) {
@@ -91,6 +169,7 @@ export class ShopRepository {
       parentShopId: rootParentId,
       ownerId,
       plan: 'PREMIUM',
+      planExpiresAt: rootData?.planExpiresAt || null,
       staffCount: 0,
       shopCode,
       createdAt: firestore.FieldValue.serverTimestamp(),

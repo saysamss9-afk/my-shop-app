@@ -21,8 +21,10 @@ import {
 import { ChevronLeft, ChevronRight, Landmark, Zap, Briefcase, Home, Wrench } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import { useExpenses } from '../../hooks/useExpenses';
 import { getAppShadow } from '../../utils/platformStyles';
+import { parseTimestamp } from '../../utils/dateUtils';
 import { displayAlert } from '../../utils/alert';
 import type { Expense } from '../../db/types';
 import { useTranslation } from 'react-i18next';
@@ -86,8 +88,8 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
 
   // Filter expenses by selected month and year with safe timestamp conversion
   const filteredExpenses = expenses.filter(item => {
-    const ts = Number(item.timestamp);
-    if (isNaN(ts) || !ts) return false;
+    const ts = parseTimestamp(item.timestamp, 0);
+    if (ts <= 0) return false;
     const d = new Date(ts);
     return !isNaN(d.getTime()) &&
            d.getMonth() === currentDate.getMonth() &&
@@ -222,9 +224,7 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
       </HStack>
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary800" />
-        </Center>
+        <ModernLoader label="Loading Expenses..." subLabel="Fetching transaction logs" />
       ) : (
         <FlatList
           data={filteredExpenses}

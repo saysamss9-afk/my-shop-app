@@ -31,7 +31,7 @@ export class ProductRepository {
     const results = await this.db.executeSql(query, [barcode, barcode, safeShopId, shopId]);
     const rows = results[0]?.rows;
     if (rows && rows.length > 0) {
-      return rows.item ? rows.item(0) : rows[0];
+      return typeof (rows as any).item === 'function' ? rows.item(0) : (rows as any)[0];
     }
     return null;
   }
@@ -41,7 +41,7 @@ export class ProductRepository {
     const results = await this.db.executeSql(query, [id]);
     const rows = results[0]?.rows;
     if (rows && rows.length > 0) {
-      return rows.item ? rows.item(0) : rows[0];
+      return typeof (rows as any).item === 'function' ? rows.item(0) : (rows as any)[0];
     }
     return null;
   }
@@ -55,7 +55,8 @@ export class ProductRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        products.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) products.push(item);
       }
     }
     return products;
@@ -73,7 +74,8 @@ export class ProductRepository {
     if (rows) {
       const len = rows.length ?? 0;
       for (let i = 0; i < len; i++) {
-        products.push(rows.item ? rows.item(i) : rows[i]);
+        const item = typeof (rows as any).item === 'function' ? rows.item(i) : (rows as any)[i];
+        if (item) products.push(item);
       }
     }
     return products;
@@ -120,9 +122,10 @@ export class ProductRepository {
 
   async getLowStockCount(shopId: string): Promise<number> {
     const safeShopId = (shopId || '').toString().trim();
-    const query = 'SELECT COUNT(*) as total FROM Product WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?) AND status != "DELETED" AND stockQuantity <= minStockLevel';
+    const query = 'SELECT COUNT(*) as total FROM Product WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?) AND COALESCE(status, "ACTIVE") != "DELETED" AND (COALESCE(stockQuantity, 0) + (COALESCE(bulkStockQuantity, 0) * CASE WHEN COALESCE(bulkQuantity, 0) > 0 THEN bulkQuantity ELSE 1 END)) <= COALESCE(minStockLevel, 0)';
     const results = await this.db.executeSql(query, [safeShopId, shopId]);
-    const row = results?.[0]?.rows?.item ? results[0].rows.item(0) : (results?.[0]?.rows?.[0] ?? null);
+    const rows = results?.[0]?.rows;
+    const row = rows && typeof (rows as any).item === 'function' ? rows.item(0) : (rows as any)?.[0];
     return Number(row?.total ?? row?.TOTAL ?? 0);
   }
 }

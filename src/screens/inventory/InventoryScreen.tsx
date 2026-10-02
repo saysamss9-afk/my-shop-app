@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { FlatList, StatusBar, Alert, Platform, Keyboard } from 'react-native';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
+import ModernLoader from '../../components/common/ModernLoader';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   Box,
@@ -240,7 +241,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
                 style={{ ...getAppShadow({ offsetY: 4, radius: 12, color: 'rgba(0,0,0,0.03)' }) }}
             >
                 <HStack space="sm" alignItems="center" justifyContent="center">
-                    <MaterialCommunityIcons name="printer-matrix" size={16} color={selectedProductIds.length > 0 ? "#fff" : "#E65100"} />
+                    <MaterialCommunityIcons name="printer" size={16} color={selectedProductIds.length > 0 ? "#fff" : "#E65100"} />
                     <GlueText color={selectedProductIds.length > 0 ? "$white" : "$primary600"} fontWeight="$bold" size="sm">
                         {selectedProductIds.length > 0 ? `Print (${selectedProductIds.length}) Selected` : 'Print Barcodes'}
                     </GlueText>
@@ -279,9 +280,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {isLoading ? (
-        <Center flex={1}>
-          <Spinner size="large" color="$primary600" />
-        </Center>
+        <ModernLoader label="Loading Products..." subLabel="Fetching inventory data" icon="shopping-bag" />
       ) : (
         <FlatList
           key={numColumns}
