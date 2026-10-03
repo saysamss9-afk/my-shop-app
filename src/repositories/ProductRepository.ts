@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Product } from '../db/types';
+import { cleanBarcode } from '../utils/barcodeUtils';
 
 export class ProductRepository {
   constructor(public db: SQLiteDatabase) {}
@@ -10,13 +11,16 @@ export class ProductRepository {
         throw new Error(`Invalid Shop ID: Product ${product.id} must be linked to a shop.`);
     }
 
+    const cleanedUnit = cleanBarcode(product.barcode);
+    const cleanedBulk = cleanBarcode(product.bulkBarcode);
+
     const query = `
       INSERT OR REPLACE INTO Product(id, shopId, categoryId, name, description, barcode, bulkBarcode, bulkQuantity, bulkPrice, bulkStockQuantity, bulkUnit, price, costPrice, stockQuantity, minStockLevel, unit, supplierId, status, syncStatus)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       product.id, safeShopId, product.categoryId, product.name, product.description,
-      product.barcode, product.bulkBarcode, product.bulkQuantity, product.bulkPrice,
+      cleanedUnit || null, cleanedBulk || null, product.bulkQuantity, product.bulkPrice,
       product.bulkStockQuantity, product.bulkUnit || 'Carton', product.price, product.costPrice, product.stockQuantity,
       product.minStockLevel, product.unit, product.supplierId, product.status || 'ACTIVE',
       product.syncStatus ?? 0
@@ -25,10 +29,11 @@ export class ProductRepository {
   }
 
   async getProductByBarcode(barcode: string, shopId: string): Promise<Product | null> {
-    if (!barcode) return null;
+    const cleaned = cleanBarcode(barcode);
+    if (!cleaned) return null;
     const safeShopId = (shopId || '').toString().trim();
-    const query = 'SELECT * FROM Product WHERE (barcode = ? OR bulkBarcode = ?) AND (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?) AND status != "DELETED" LIMIT 1';
-    const results = await this.db.executeSql(query, [barcode, barcode, safeShopId, shopId]);
+    const query = 'SELECT * FROM Product WHERE (barcode = ? OR bulkBarcode = ?) AND (shopId = ? OR TRIM(LOWER(shopId)) = TRIM(LOWER(?))) AND status != "DELETED" LIMIT 1';
+    const results = await this.db.executeSql(query, [cleaned, cleaned, safeShopId, safeShopId]);
     const rows = results[0]?.rows;
     if (rows && rows.length > 0) {
       return typeof (rows as any).item === 'function' ? rows.item(0) : (rows as any)[0];
@@ -48,8 +53,8 @@ export class ProductRepository {
 
   async getProductsByShop(shopId: string): Promise<Product[]> {
     const safeShopId = (shopId || '').toString().trim();
-    const query = 'SELECT * FROM Product WHERE (TRIM(LOWER(shopId)) = TRIM(LOWER(?)) OR shopId = ?) AND status != "DELETED" ORDER BY name ASC';
-    const results = await this.db.executeSql(query, [safeShopId, shopId]);
+    const query = 'SELECT * FROM Product WHERE (shopId = ? OR TRIM(LOWER(shopId)) = TRIM(LOWER(?))) AND status != "DELETED" ORDER BY name ASC';
+    const results = await this.db.executeSql(query, [safeShopId, safeShopId]);
     const products: Product[] = [];
     const rows = results[0]?.rows;
     if (rows) {

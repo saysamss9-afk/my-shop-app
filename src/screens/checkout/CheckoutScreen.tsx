@@ -290,7 +290,9 @@ const CheckoutScreen = ({ route, navigation }: any) => {
             contentContainerStyle={{ paddingBottom: 160 }}
             renderItem={renderItem}
             initialNumToRender={10}
-            removeClippedSubviews={true}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
             ListEmptyComponent={
               <Center mt="$20">
                   <VStack space="md" alignItems="center">
@@ -317,39 +319,45 @@ const CheckoutScreen = ({ route, navigation }: any) => {
         }}
       />
 
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        total={total}
-        currency={currency}
-        onConfirm={handleCompleteSale}
-        selectedCustomer={selectedCustomer}
-        cart={cart}
-      />
+      {showPaymentModal && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          total={total}
+          currency={currency}
+          onConfirm={handleCompleteSale}
+          selectedCustomer={selectedCustomer}
+          cart={cart}
+        />
+      )}
 
-      <SelectCustomerModal
-        isOpen={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
-        customers={customers}
-        onSelect={(customerId) => {
-            setSelectedCustomerId(customerId);
-            setShowCustomerModal(false);
-        }}
-        selectedCustomerId={selectedCustomerId}
-        onAdd={addCustomer}
-      />
+      {showCustomerModal && (
+        <SelectCustomerModal
+          isOpen={showCustomerModal}
+          onClose={() => setShowCustomerModal(false)}
+          customers={customers}
+          onSelect={(customerId) => {
+              setSelectedCustomerId(customerId);
+              setShowCustomerModal(false);
+          }}
+          selectedCustomerId={selectedCustomerId}
+          onAdd={addCustomer}
+        />
+      )}
 
-      <SelectProductModal
-        isOpen={showProductModal}
-        onClose={() => setShowProductModal(false)}
-        products={products}
-        categories={categories}
-        currency={currency}
-        onSelect={(product, isBulk) => {
-            addToCart(product, 1, isBulk);
-            setShowProductModal(false);
-        }}
-      />
+      {showProductModal && (
+        <SelectProductModal
+          isOpen={showProductModal}
+          onClose={() => setShowProductModal(false)}
+          products={products}
+          categories={categories}
+          currency={currency}
+          onSelect={(product, isBulk) => {
+              addToCart(product, 1, isBulk);
+              setShowProductModal(false);
+          }}
+        />
+      )}
     </ScreenWrapper>
   );
 };

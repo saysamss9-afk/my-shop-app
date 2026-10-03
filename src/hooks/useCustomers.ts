@@ -14,8 +14,8 @@ export const useCustomers = (shopId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('$');
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent && customers.length === 0) setIsLoading(true);
     setError(null);
     try {
       const db = await getDBConnection();
@@ -40,11 +40,11 @@ export const useCustomers = (shopId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, customers.length]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, dataChangeTick]);
+    loadData(customers.length > 0);
+  }, [dataChangeTick]);
 
   const addCustomer = useCallback(async (name: string, phone: string) => {
     try {

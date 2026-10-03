@@ -194,6 +194,18 @@ export const createTables = async (db: SQLiteDatabase) => {
         timestamp INTEGER NOT NULL,
         syncStatus INTEGER NOT NULL DEFAULT 0
     );`,
+    `CREATE INDEX IF NOT EXISTS idx_product_shopId ON Product(shopId);`,
+    `CREATE INDEX IF NOT EXISTS idx_product_barcode ON Product(barcode);`,
+    `CREATE INDEX IF NOT EXISTS idx_product_bulkBarcode ON Product(bulkBarcode);`,
+    `CREATE INDEX IF NOT EXISTS idx_product_status ON Product(status);`,
+    `CREATE INDEX IF NOT EXISTS idx_product_categoryId ON Product(categoryId);`,
+    `CREATE INDEX IF NOT EXISTS idx_category_shopId ON Category(shopId);`,
+    `CREATE INDEX IF NOT EXISTS idx_sale_shopId ON Sale(shopId);`,
+    `CREATE INDEX IF NOT EXISTS idx_saleitem_saleId ON SaleItem(saleId);`,
+    `CREATE INDEX IF NOT EXISTS idx_customer_shopId ON Customer(shopId);`,
+    `CREATE INDEX IF NOT EXISTS idx_supplier_shopId ON Supplier(shopId);`,
+    `CREATE INDEX IF NOT EXISTS idx_expense_shopId ON Expense(shopId);`,
+    `CREATE INDEX IF NOT EXISTS idx_purchaseorder_shopId ON PurchaseOrder(shopId);`,
   ];
 
   for (const query of queries) {

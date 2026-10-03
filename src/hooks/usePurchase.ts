@@ -26,8 +26,8 @@ export const usePurchase = (shopId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('');
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent && purchases.length === 0) setIsLoading(true);
     try {
       const db = await getDBConnection();
       const sRepo = new SupplierRepository(db);
@@ -57,7 +57,7 @@ export const usePurchase = (shopId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, purchases.length]);
 
   useEffect(() => {
     loadData();

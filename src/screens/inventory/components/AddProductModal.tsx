@@ -40,6 +40,7 @@ import { getButtonHeight } from '../../../utils/platformStyles';
 import { displayAlert } from '../../../utils/alert';
 import type { Category } from '../../../db/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { cleanBarcode } from '../../../utils/barcodeUtils';
 
 const BULK_UNITS = ['Carton', 'Pack', 'Bag', 'Crate', 'Box', 'Bundle', 'Set'];
 
@@ -52,6 +53,7 @@ interface Props {
   onScanPress: (target: 'unit' | 'bulk') => void;
   generateBarcode: () => string;
   scannedBarcode?: { code: string; target: 'unit' | 'bulk'; timestamp: number } | null;
+  onBarcodeConsumed?: () => void;
 }
 
 const AddProductModal: React.FC<Props> = ({
@@ -63,6 +65,7 @@ const AddProductModal: React.FC<Props> = ({
   onScanPress,
   generateBarcode,
   scannedBarcode,
+  onBarcodeConsumed,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -107,14 +110,16 @@ const AddProductModal: React.FC<Props> = ({
   // Capture scanned barcode from Camera Scanner Modal
   useEffect(() => {
     if (scannedBarcode?.code && isOpen) {
+      const cleaned = cleanBarcode(scannedBarcode.code);
       if (scannedBarcode.target === 'unit') {
-        setFormData(prev => ({ ...prev, barcode: scannedBarcode.code }));
+        setFormData(prev => ({ ...prev, barcode: cleaned }));
       } else if (scannedBarcode.target === 'bulk') {
-        setFormData(prev => ({ ...prev, bulkBarcode: scannedBarcode.code }));
+        setFormData(prev => ({ ...prev, bulkBarcode: cleaned }));
         setHasBulkOption(true);
       }
+      onBarcodeConsumed?.();
     }
-  }, [scannedBarcode, isOpen]);
+  }, [scannedBarcode, isOpen, onBarcodeConsumed]);
 
   const insets = useSafeAreaInsets();
 
@@ -128,11 +133,14 @@ const AddProductModal: React.FC<Props> = ({
         return;
     }
 
+    const cleanUnitBarcode = cleanBarcode(formData.barcode);
+    const cleanBulkBarcode = cleanBarcode(formData.bulkBarcode);
+
     // Ensure barcodes exist as per requirement: "must either be scanned, or auto generated"
     const finalData = {
       ...formData,
-      barcode: formData.barcode || generateBarcode(),
-      bulkBarcode: (hasBulkOption && (formData.bulkBarcode || formData.bulkPrice)) ? (formData.bulkBarcode || generateBarcode()) : '',
+      barcode: cleanUnitBarcode || generateBarcode(),
+      bulkBarcode: (hasBulkOption && (cleanBulkBarcode || formData.bulkPrice)) ? (cleanBulkBarcode || generateBarcode()) : '',
       bulkPrice: hasBulkOption ? formData.bulkPrice : '0',
       bulkQuantity: hasBulkOption ? formData.bulkQuantity : '1',
       bulkStockQuantity: hasBulkOption ? formData.bulkStockQuantity : '0',

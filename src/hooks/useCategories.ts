@@ -11,8 +11,8 @@ export const useCategories = (shopId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCategories = useCallback(async () => {
-    setIsLoading(true);
+  const loadCategories = useCallback(async (isSilent = false) => {
+    if (!isSilent && categories.length === 0) setIsLoading(true);
     try {
       const db = await getDBConnection();
       const repo = new CategoryRepository(db);
@@ -23,11 +23,11 @@ export const useCategories = (shopId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, categories.length]);
 
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories, dataChangeTick]);
+    loadCategories(categories.length > 0);
+  }, [dataChangeTick]);
 
   const addCategory = async (name: string) => {
     try {

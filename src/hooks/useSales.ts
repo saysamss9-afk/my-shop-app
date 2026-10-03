@@ -11,8 +11,8 @@ export const useSales = (shopId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState('$');
 
-  const loadSales = useCallback(async (start?: number, end?: number) => {
-    setIsLoading(true);
+  const loadSales = useCallback(async (start?: number, end?: number, isSilent = false) => {
+    if (!isSilent && sales.length === 0) setIsLoading(true);
     setError(null);
     try {
       const safeShopId = (shopId || '').toString().trim();
@@ -35,11 +35,11 @@ export const useSales = (shopId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, sales.length]);
 
   useEffect(() => {
-    loadSales();
-  }, [loadSales, dataChangeTick]);
+    loadSales(undefined, undefined, sales.length > 0);
+  }, [dataChangeTick]);
 
   const revertSale = useCallback(async (saleId: string) => {
     setIsLoading(true);

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FlatList, StatusBar } from 'react-native';
+import { FlatList, StatusBar, Platform } from 'react-native';
 import { displayAlert } from '../../utils/alert';
 import {
   Box,
@@ -173,6 +173,10 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
             data={categories}
             keyExtractor={item => item.id}
             renderItem={renderItem}
+            initialNumToRender={10}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={{ paddingBottom: 100 }}
             ListEmptyComponent={
               <Center mt="$20">
@@ -189,40 +193,42 @@ const CategoryManagementScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       {/* Add/Edit Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => !submitting && setIsModalOpen(false)}>
-        <ModalBackdrop />
-        <ModalContent rounded="$3xl">
-          <ModalHeader>
-            <Heading size="lg" fontWeight="$black">{isEditMode ? 'Edit Category' : 'New Category'}</Heading>
-            <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
-          </ModalHeader>
-          <ModalBody>
-            <VStack space="lg" py="$4">
-              <FormControl isRequired>
-                <FormControlLabel mb="$1">
-                  <FormControlLabelText size="sm">Category Name</FormControlLabelText>
-                </FormControlLabel>
-                <Input borderRadius={12} bg="$backgroundLight50">
-                  <InputField
-                    placeholder="e.g. Beverages, Toiletries..."
-                    value={categoryName}
-                    onChangeText={setCategoryName}
-                    autoFocus
-                  />
-                </Input>
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="outline" action="secondary" onPress={() => setIsModalOpen(false)} mr="$3" borderRadius={16}>
-              <ButtonText>Cancel</ButtonText>
-            </Button>
-            <Button action="primary" onPress={handleSave} borderRadius={16} bg="$primary600" isDisabled={submitting}>
-              {submitting ? <Spinner color="white" /> : <ButtonText fontWeight="$bold">Save Category</ButtonText>}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onClose={() => !submitting && setIsModalOpen(false)}>
+          <ModalBackdrop />
+          <ModalContent rounded="$3xl">
+            <ModalHeader>
+              <Heading size="lg" fontWeight="$black">{isEditMode ? 'Edit Category' : 'New Category'}</Heading>
+              <ModalCloseButton><Icon as={CloseIcon} /></ModalCloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <VStack space="lg" py="$4">
+                <FormControl isRequired>
+                  <FormControlLabel mb="$1">
+                    <FormControlLabelText size="sm">Category Name</FormControlLabelText>
+                  </FormControlLabel>
+                  <Input borderRadius={12} bg="$backgroundLight50">
+                    <InputField
+                      placeholder="e.g. Beverages, Toiletries..."
+                      value={categoryName}
+                      onChangeText={setCategoryName}
+                      autoFocus
+                    />
+                  </Input>
+                </FormControl>
+              </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="outline" action="secondary" onPress={() => setIsModalOpen(false)} mr="$3" borderRadius={16}>
+                <ButtonText>Cancel</ButtonText>
+              </Button>
+              <Button action="primary" onPress={handleSave} borderRadius={16} bg="$primary600" isDisabled={submitting}>
+                {submitting ? <Spinner color="white" /> : <ButtonText fontWeight="$bold">Save Category</ButtonText>}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
     </ScreenWrapper>
   );
 };

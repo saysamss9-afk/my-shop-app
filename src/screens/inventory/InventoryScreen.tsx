@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FlatList, StatusBar, Alert, Platform, Keyboard } from 'react-native';
+import { FlatList, StatusBar, Platform, Keyboard } from 'react-native';
 import ScreenWrapper from '../../components/common/ScreenWrapper';
 import ModernLoader from '../../components/common/ModernLoader';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -9,7 +9,6 @@ import {
   Text as GlueText,
   Icon,
   Center,
-  Spinner,
   SearchIcon,
   Fab,
   FabIcon,
@@ -84,25 +83,24 @@ const InventoryScreen = ({ route, navigation }: any) => {
 
   const numColumns = isTablet ? (isLandscape ? 3 : 2) : 1;
 
-  const toggleSelectProduct = (id: string) => {
+  const toggleSelectProduct = useCallback((id: string) => {
     setSelectedProductIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
-  };
+  }, []);
 
-  const handlePrintSelectedBarcodes = () => {
+  const handlePrintSelectedBarcodes = useCallback(() => {
     const itemsToPrint = products.filter(p => selectedProductIds.includes(p.id));
     if (itemsToPrint.length === 0) {
       displayAlert('Selection Empty', 'Please select at least one item below by checking it first to print barcodes.');
       return;
     }
     PrintingService.printBarcodes(itemsToPrint);
-  };
+  }, [products, selectedProductIds]);
 
-  const handleSave = async (productData: any) => {
+  const handleSave = useCallback(async (productData: any) => {
     if (!productData.name) return;
 
-    // Robust parsing of all numeric fields to ensure they don't default to 0 incorrectly
     await addProduct({
       ...productData,
       bulkQuantity: parseFloat(productData.bulkQuantity) || 1,
@@ -119,45 +117,49 @@ const InventoryScreen = ({ route, navigation }: any) => {
     setIsModalOpen(false);
     setScannedBarcode(null);
     displayAlert("Success", `${productData.name} has been added to your products.`);
-  };
+  }, [addProduct]);
 
-  const handleUpdate = async (updatedProduct: Product) => {
+  const handleUpdate = useCallback(async (updatedProduct: Product) => {
       await updateProduct(updatedProduct);
       setIsEditModalOpen(false);
       setScannedBarcode(null);
       displayAlert("Updated", `${updatedProduct.name} details have been saved.`);
-  };
+  }, [updateProduct]);
 
-  const handleBarCodeScanned = (code: string) => {
+  const handleBarCodeScanned = useCallback((code: string) => {
     console.log("Scanned barcode:", code, "target:", scanTarget);
     if (scanTarget === 'unit' || scanTarget === 'bulk') {
       setScannedBarcode({ code, target: scanTarget, timestamp: Date.now() });
       displayAlert("Barcode Captured", `${scanTarget === 'unit' ? 'Unit' : 'Bulk'} Barcode captured: ${code}`);
     }
     setScanTarget(null);
-  };
+  }, [scanTarget]);
 
   const pendingCount = useMemo(
     () => products.filter(p => p.status?.toUpperCase() === 'DRAFT' || p.status?.toUpperCase() === 'PENDING').length,
     [products]
   );
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (p.barcode && p.barcode.includes(searchQuery)) ||
-                         (p.id && p.id.includes(searchQuery));
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return products.filter(p => {
+      const matchesSearch = !query ||
+                           p.name.toLowerCase().includes(query) ||
+                           (p.barcode && p.barcode.includes(query)) ||
+                           (p.id && p.id.includes(query));
 
-    const statusUpper = p.status?.toUpperCase() || 'ACTIVE';
-    if (activeTab === 'PENDING') return matchesSearch && (statusUpper === 'DRAFT' || statusUpper === 'PENDING');
-    return matchesSearch && statusUpper !== 'ARCHIVED' && statusUpper !== 'DELETED';
-  });
+      const statusUpper = p.status?.toUpperCase() || 'ACTIVE';
+      if (activeTab === 'PENDING') return matchesSearch && (statusUpper === 'DRAFT' || statusUpper === 'PENDING');
+      return matchesSearch && statusUpper !== 'ARCHIVED' && statusUpper !== 'DELETED';
+    });
+  }, [products, searchQuery, activeTab]);
 
-  const handleItemPress = (product: Product) => {
+  const handleItemPress = useCallback((product: Product) => {
       setSelectedProduct(product);
       setIsEditModalOpen(true);
-  };
+  }, []);
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = useCallback((product: Product) => {
     const message = `Remove "${product.name}" from products? This cannot be undone.`;
 
     if (typeof window !== 'undefined' && (window as any).confirm) {
@@ -174,7 +176,7 @@ const InventoryScreen = ({ route, navigation }: any) => {
         ]
       );
     }
-  };
+  }, [deleteProduct]);
 
   const renderItem = useCallback(({ item }: { item: Product }) => (
     <Box flex={1} mx={numColumns > 1 ? "$2" : "$0"}>
@@ -187,9 +189,9 @@ const InventoryScreen = ({ route, navigation }: any) => {
         onSelectToggle={() => toggleSelectProduct(item.id)}
       />
     </Box>
-  ), [currency, selectedProductIds, numColumns]);
+  ), [currency, selectedProductIds, numColumns, handleItemPress, handleDelete, toggleSelectProduct]);
 
-  const renderHeader = () => (
+  const renderHeader = useCallback(() => (
     <VStack bg="$surfaceLavender">
       <ProductHeader
         onBack={() => navigation.goBack()}
@@ -273,7 +275,20 @@ const InventoryScreen = ({ route, navigation }: any) => {
           </Pressable>
       </HStack>
     </VStack>
-  );
+  ), [
+    navigation,
+    toggleLowStockFilter,
+    showLowStockOnly,
+    shopName,
+    syncStatus,
+    triggerManualSync,
+    userRole,
+    searchQuery,
+    selectedProductIds.length,
+    handlePrintSelectedBarcodes,
+    activeTab,
+    pendingCount,
+  ]);
 
   return (
     <ScreenWrapper withHeader>
@@ -289,10 +304,10 @@ const InventoryScreen = ({ route, navigation }: any) => {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
           windowSize={5}
-          removeClippedSubviews={true}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{ paddingBottom: 120 }}
           ListEmptyComponent={
             <Center mt="$20">
@@ -326,71 +341,79 @@ const InventoryScreen = ({ route, navigation }: any) => {
         </Fab>
       )}
 
-      <EntryTypeModal
-        isOpen={isSelectionModalOpen}
-        onClose={() => setIsSelectionModalOpen(false)}
-        onSelect={(mode) => {
-            setEntryMode(mode);
-            setIsSelectionModalOpen(false);
-            // On Android, closing one modal and immediately opening another can cause the second to stay hidden.
-            // A small delay ensures the first modal has finished its transition.
-            setTimeout(() => {
-                setIsModalOpen(true);
-            }, Platform.OS === 'android' ? 500 : 0);
-        }}
-      />
+      {isSelectionModalOpen && (
+        <EntryTypeModal
+          isOpen={isSelectionModalOpen}
+          onClose={() => setIsSelectionModalOpen(false)}
+          onSelect={(mode) => {
+              setEntryMode(mode);
+              setIsSelectionModalOpen(false);
+              setTimeout(() => {
+                  setIsModalOpen(true);
+              }, Platform.OS === 'android' ? 500 : 0);
+          }}
+        />
+      )}
 
-      <AddProductModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        entryMode={entryMode}
-        categories={categories}
-        onSave={handleSave}
-        onScanPress={setScanTarget}
-        generateBarcode={generateBarcode}
-        scannedBarcode={scannedBarcode}
-      />
+      {isModalOpen && (
+        <AddProductModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          entryMode={entryMode}
+          categories={categories}
+          onSave={handleSave}
+          onScanPress={setScanTarget}
+          generateBarcode={generateBarcode}
+          scannedBarcode={scannedBarcode}
+          onBarcodeConsumed={() => setScannedBarcode(null)}
+        />
+      )}
 
-      <EditProductModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-            setIsEditModalOpen(false);
-            setSelectedProduct(null);
-        }}
-        product={selectedProduct}
-        categories={categories}
-        onSave={handleUpdate}
-        onDelete={handleDelete}
-        onScanPress={setScanTarget}
-        generateBarcode={generateBarcode}
-        canEdit={userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'ADMIN'}
-        scannedBarcode={scannedBarcode}
-      />
+      {isEditModalOpen && (
+        <EditProductModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedProduct(null);
+          }}
+          product={selectedProduct}
+          categories={categories}
+          onSave={handleUpdate}
+          onDelete={handleDelete}
+          onScanPress={setScanTarget}
+          generateBarcode={generateBarcode}
+          canEdit={userRole === 'OWNER' || userRole === 'MANAGER' || userRole === 'ADMIN'}
+          scannedBarcode={scannedBarcode}
+          onBarcodeConsumed={() => setScannedBarcode(null)}
+        />
+      )}
 
       {/* Camera Scanner Modal */}
-      <Modal
-        isOpen={scanTarget !== null}
-        onClose={() => setScanTarget(null)}
-        size="lg"
-      >
-        <ModalBackdrop />
-        <ModalContent bg="black" rounded="$3xl" overflow="hidden">
-          <ModalHeader borderBottomWidth={0} bg="$black">
-            <Heading size="md" color="$white">Scan {scanTarget === 'unit' ? 'Unit' : 'Carton'} Barcode</Heading>
-            <ModalCloseButton onPress={() => setScanTarget(null)}>
-              <Icon as={CloseIcon} color="$white" />
-            </ModalCloseButton>
-          </ModalHeader>
-          <ModalBody p="$0" bg="$black">
-            <Box h={400} w="100%">
-              <ScannerView
-                isActive={scanTarget !== null}
-                onScan={handleBarCodeScanned}
-              />
-            </Box>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      {scanTarget !== null && (
+        <Modal
+          isOpen={scanTarget !== null}
+          onClose={() => setScanTarget(null)}
+          size="lg"
+        >
+          <ModalBackdrop />
+          <ModalContent bg="black" rounded="$3xl" overflow="hidden">
+            <ModalHeader borderBottomWidth={0} bg="$black">
+              <Heading size="md" color="$white">Scan {scanTarget === 'unit' ? 'Unit' : 'Carton'} Barcode</Heading>
+              <ModalCloseButton onPress={() => setScanTarget(null)}>
+                <Icon as={CloseIcon} color="$white" />
+              </ModalCloseButton>
+            </ModalHeader>
+            <ModalBody p="$0" bg="$black">
+              <Box h={400} w="100%">
+                <ScannerView
+                  isActive={scanTarget !== null}
+                  onScan={handleBarCodeScanned}
+                />
+              </Box>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
     </ScreenWrapper>
   );
 };

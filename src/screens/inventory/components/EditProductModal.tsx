@@ -41,6 +41,7 @@ import { getButtonHeight } from '../../../utils/platformStyles';
 import { displayAlert } from '../../../utils/alert';
 import type { Product } from '../../../db/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { cleanBarcode } from '../../../utils/barcodeUtils';
 
 const BULK_UNITS = ['Carton', 'Pack', 'Bag', 'Crate', 'Box', 'Bundle', 'Set'];
 
@@ -55,6 +56,7 @@ interface Props {
   generateBarcode: () => string;
   canEdit?: boolean;
   scannedBarcode?: { code: string; target: 'unit' | 'bulk'; timestamp: number } | null;
+  onBarcodeConsumed?: () => void;
 }
 
 const EditProductModal: React.FC<Props> = ({
@@ -68,6 +70,7 @@ const EditProductModal: React.FC<Props> = ({
   generateBarcode,
   canEdit = true,
   scannedBarcode,
+  onBarcodeConsumed,
 }) => {
   const [formData, setFormData] = useState<any>(null);
   const [hasBulkOption, setHasBulkOption] = useState(false);
@@ -98,14 +101,16 @@ const EditProductModal: React.FC<Props> = ({
   // Capture scanned barcode from Camera Scanner Modal
   useEffect(() => {
     if (scannedBarcode?.code && isOpen) {
+      const cleaned = cleanBarcode(scannedBarcode.code);
       if (scannedBarcode.target === 'unit') {
-        setFormData((prev: any) => (prev ? { ...prev, barcode: scannedBarcode.code } : prev));
+        setFormData((prev: any) => (prev ? { ...prev, barcode: cleaned } : prev));
       } else if (scannedBarcode.target === 'bulk') {
-        setFormData((prev: any) => (prev ? { ...prev, bulkBarcode: scannedBarcode.code } : prev));
+        setFormData((prev: any) => (prev ? { ...prev, bulkBarcode: cleaned } : prev));
         setHasBulkOption(true);
       }
+      onBarcodeConsumed?.();
     }
-  }, [scannedBarcode, isOpen]);
+  }, [scannedBarcode, isOpen, onBarcodeConsumed]);
 
   const insets = useSafeAreaInsets();
 
@@ -137,10 +142,13 @@ const EditProductModal: React.FC<Props> = ({
         return;
     }
 
+    const cleanUnitBarcode = cleanBarcode(formData.barcode);
+    const cleanBulkBarcode = cleanBarcode(formData.bulkBarcode);
+
     onSave({
       ...formData,
-      barcode: formData.barcode || generateBarcode(),
-      bulkBarcode: (hasBulkOption && (formData.bulkBarcode || parseFloat(formData.bulkPrice) > 0)) ? (formData.bulkBarcode || generateBarcode()) : '',
+      barcode: cleanUnitBarcode || generateBarcode(),
+      bulkBarcode: (hasBulkOption && (cleanBulkBarcode || parseFloat(formData.bulkPrice) > 0)) ? (cleanBulkBarcode || generateBarcode()) : '',
       bulkUnit: hasBulkOption ? formData.bulkUnit : null,
       bulkQuantity: hasBulkOption ? parseFloat(formData.bulkQuantity) || 1 : 1,
       bulkPrice: hasBulkOption ? parseFloat(formData.bulkPrice) || 0 : 0,

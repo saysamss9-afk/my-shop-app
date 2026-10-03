@@ -5,6 +5,7 @@ import { SaleRepository } from '../repositories/SaleRepository';
 import type { Product, Sale, SaleItem } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 import { generateUUID } from '../utils/uuid';
+import { cleanBarcode } from '../utils/barcodeUtils';
 
 export interface CartItem {
   product: Product;
@@ -191,12 +192,15 @@ export const useCheckout = (shopId: string, employeeId: string) => {
 
   const searchProductByBarcode = useCallback(async (barcode: string) => {
     try {
+      const cleanTarget = cleanBarcode(barcode);
+      if (!cleanTarget) return false;
+
       const db = await getDBConnection();
       const productRepo = new ProductRepository(db);
       const products = await productRepo.getProductsByShop(shopId);
-      const product = products.find(p => p.barcode === barcode || p.bulkBarcode === barcode);
+      const product = products.find(p => cleanBarcode(p.barcode) === cleanTarget || cleanBarcode(p.bulkBarcode) === cleanTarget);
       if (product) {
-        const isBulk = barcode === product.bulkBarcode;
+        const isBulk = cleanBarcode(product.bulkBarcode) === cleanTarget;
         // In this new separate inventory model, if it's bulkBarcode, we add 1 carton (quantity=1, isBulk=true)
         // If it's unit barcode, we add 1 unit (quantity=1, isBulk=false)
         addToCart(product, 1, isBulk);

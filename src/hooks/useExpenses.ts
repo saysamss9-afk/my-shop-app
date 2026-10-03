@@ -11,8 +11,8 @@ export const useExpenses = (shopId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currency, setCurrency] = useState('$');
 
-  const loadExpenses = useCallback(async () => {
-    setIsLoading(true);
+  const loadExpenses = useCallback(async (isSilent = false) => {
+    if (!isSilent && expenses.length === 0) setIsLoading(true);
     try {
       const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();
       const db = await getDBConnection();
@@ -57,7 +57,7 @@ export const useExpenses = (shopId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, expenses.length]);
 
   const addExpense = async (category: string, amount: number, description: string) => {
     try {
@@ -96,8 +96,8 @@ export const useExpenses = (shopId: string) => {
   };
 
   useEffect(() => {
-    loadExpenses();
-  }, [loadExpenses, dataChangeTick]);
+    loadExpenses(expenses.length > 0);
+  }, [dataChangeTick]);
 
   const triggerManualSync = () => {
     const safeShopId = (typeof shopId === 'object' ? (shopId as any).shopId || (shopId as any).id || (shopId as any).uid : shopId)?.toString().trim();

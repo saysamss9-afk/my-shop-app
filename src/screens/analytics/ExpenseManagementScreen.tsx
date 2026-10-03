@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, FlatList, StatusBar, Modal } from 'react-native';
+import { ScrollView, FlatList, StatusBar, Modal, Platform } from 'react-native';
 import {
   Box,
   VStack,
@@ -230,6 +230,10 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
           data={filteredExpenses}
           keyExtractor={item => item.id}
           renderItem={renderExpenseItem}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
           ListEmptyComponent={
             <Box py="$10" alignItems="center">
@@ -240,98 +244,100 @@ const ExpenseManagementScreen = ({ route, navigation }: any) => {
       )}
 
       {/* Add Expenditure Bottom Sheet Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <Box flex={1} bg="rgba(0,0,0,0.5)" justifyContent="flex-end">
-          <Box bg="$white" borderTopLeftRadius={24} borderTopRightRadius={24} p="$6" pb="$8">
-            <VStack space="xl">
-              <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
-                <Heading size="md" color="$text900" fontWeight="$black" textAlign={textAlign}>Record Expenditure</Heading>
-                <Pressable onPress={() => setModalVisible(false)} p="$2" minWidth={44} minHeight={44} justifyContent="center" alignItems="center">
-                  <Text size="sm" color="$text500" fontWeight="$medium">Cancel</Text>
-                </Pressable>
-              </HStack>
+      {modalVisible && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <Box flex={1} bg="rgba(0,0,0,0.5)" justifyContent="flex-end">
+            <Box bg="$white" borderTopLeftRadius={24} borderTopRightRadius={24} p="$6" pb="$8">
+              <VStack space="xl">
+                <HStack justifyContent="space-between" alignItems="center" flexDirection={flexDir}>
+                  <Heading size="md" color="$text900" fontWeight="$black" textAlign={textAlign}>Record Expenditure</Heading>
+                  <Pressable onPress={() => setModalVisible(false)} p="$2" minWidth={44} minHeight={44} justifyContent="center" alignItems="center">
+                    <Text size="sm" color="$text500" fontWeight="$medium">Cancel</Text>
+                  </Pressable>
+                </HStack>
 
-              {/* Category Picker Selector */}
-              <VStack space="xs">
-                <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Select Category</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <HStack space="xs" pb="$2" flexDirection={flexDir}>
-                    {CATEGORIES.map(c => {
-                      const isSelected = selectedCategory === c.id;
-                      return (
-                        <Pressable
-                          key={c.id}
-                          onPress={() => setSelectedCategory(c.id)}
-                          bg={isSelected ? c.bgColor : '$backgroundLight50'}
-                          borderWidth={1}
-                          borderColor={isSelected ? c.color : '$borderLight'}
-                          px="$4"
-                          py="$3"
-                          rounded="$xl"
-                          alignItems="center"
-                          minWidth={110}
-                          accessibilityLabel={`Category ${c.label}`}
-                          accessibilityRole="button"
-                        >
-                          <Icon as={c.icon} color={isSelected ? c.color : '$text400'} size="sm" mb="$1" />
-                          <Text size="2xs" fontWeight="$bold" color={isSelected ? '$text900' : '$text500'}>{c.label}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </HStack>
-                </ScrollView>
+                {/* Category Picker Selector */}
+                <VStack space="xs">
+                  <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Select Category</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <HStack space="xs" pb="$2" flexDirection={flexDir}>
+                      {CATEGORIES.map(c => {
+                        const isSelected = selectedCategory === c.id;
+                        return (
+                          <Pressable
+                            key={c.id}
+                            onPress={() => setSelectedCategory(c.id)}
+                            bg={isSelected ? c.bgColor : '$backgroundLight50'}
+                            borderWidth={1}
+                            borderColor={isSelected ? c.color : '$borderLight'}
+                            px="$4"
+                            py="$3"
+                            rounded="$xl"
+                            alignItems="center"
+                            minWidth={110}
+                            accessibilityLabel={`Category ${c.label}`}
+                            accessibilityRole="button"
+                          >
+                            <Icon as={c.icon} color={isSelected ? c.color : '$text400'} size="sm" mb="$1" />
+                            <Text size="2xs" fontWeight="$bold" color={isSelected ? '$text900' : '$text500'}>{c.label}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </HStack>
+                  </ScrollView>
+                </VStack>
+
+                {/* Amount Input */}
+                <VStack space="xs">
+                  <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Amount ({currency})</Text>
+                  <Input variant="outline" size="md" borderRadius={12} style={{ flexDirection: flexDir }}>
+                    <InputField
+                      placeholder="0.00"
+                      keyboardType="numeric"
+                      value={amount}
+                      onChangeText={setAmount}
+                      textAlign={textAlign}
+                    />
+                  </Input>
+                </VStack>
+
+                {/* Note/Description Input */}
+                <VStack space="xs">
+                  <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Description / Note</Text>
+                  <Input variant="outline" size="md" borderRadius={12} style={{ flexDirection: flexDir }}>
+                    <InputField
+                      placeholder="e.g. Electricity bill, Staff bonus..."
+                      value={description}
+                      onChangeText={setDescription}
+                      textAlign={textAlign}
+                    />
+                  </Input>
+                </VStack>
+
+                {/* Submit Button */}
+                <Button
+                  size="lg"
+                  action="primary"
+                  bg="$primary800"
+                  borderRadius={14}
+                  onPress={handleAddExpense}
+                  disabled={isSubmitting}
+                  accessibilityLabel="Save Expenditure"
+                  accessibilityRole="button"
+                >
+                  {isSubmitting ? <Spinner color="$white" mr="$2" /> : null}
+                  <ButtonText fontWeight="$bold">Save Expenditure</ButtonText>
+                </Button>
               </VStack>
-
-              {/* Amount Input */}
-              <VStack space="xs">
-                <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Amount ({currency})</Text>
-                <Input variant="outline" size="md" borderRadius={12} style={{ flexDirection: flexDir }}>
-                  <InputField
-                    placeholder="0.00"
-                    keyboardType="numeric"
-                    value={amount}
-                    onChangeText={setAmount}
-                    textAlign={textAlign}
-                  />
-                </Input>
-              </VStack>
-
-              {/* Note/Description Input */}
-              <VStack space="xs">
-                <Text size="xs" fontWeight="$bold" color="$text700" textAlign={textAlign}>Description / Note</Text>
-                <Input variant="outline" size="md" borderRadius={12} style={{ flexDirection: flexDir }}>
-                  <InputField
-                    placeholder="e.g. Electricity bill, Staff bonus..."
-                    value={description}
-                    onChangeText={setDescription}
-                    textAlign={textAlign}
-                  />
-                </Input>
-              </VStack>
-
-              {/* Submit Button */}
-              <Button
-                size="lg"
-                action="primary"
-                bg="$primary800"
-                borderRadius={14}
-                onPress={handleAddExpense}
-                disabled={isSubmitting}
-                accessibilityLabel="Save Expenditure"
-                accessibilityRole="button"
-              >
-                {isSubmitting ? <Spinner color="$white" mr="$2" /> : null}
-                <ButtonText fontWeight="$bold">Save Expenditure</ButtonText>
-              </Button>
-            </VStack>
+            </Box>
           </Box>
-        </Box>
-      </Modal>
+        </Modal>
+      )}
     </ScreenWrapper>
   );
 };

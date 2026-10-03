@@ -6,6 +6,7 @@ import type { Product, Category } from '../db/types';
 import { useSync } from '../sync/SyncContext';
 import { generateUUID } from '../utils/uuid';
 import { displayAlert } from '../utils/alert';
+import { cleanBarcode } from '../utils/barcodeUtils';
 
 import type { SyncStatus } from '../sync/SyncManager';
 
@@ -19,8 +20,8 @@ export const useInventory = (shopId: string) => {
   const [currency, setCurrency] = useState('$');
   const [shopName, setShopName] = useState('');
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent && products.length === 0) setIsLoading(true);
     setError(null);
     try {
       const db = await getDBConnection();
@@ -44,11 +45,11 @@ export const useInventory = (shopId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [shopId]);
+  }, [shopId, products.length]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, dataChangeTick]);
+    loadData(products.length > 0);
+  }, [dataChangeTick]);
 
   const addProduct = useCallback(async (productData: Omit<Product, 'id' | 'shopId' | 'syncStatus'>) => {
     try {
@@ -64,21 +65,27 @@ export const useInventory = (shopId: string) => {
       const db = await getDBConnection();
       const productRepo = new ProductRepository(db);
 
-      // Barcode collision detection and automatic merging
-      if (productData.barcode) {
-        const existingProduct = await productRepo.getProductByBarcode(productData.barcode, safeShopId);
+      const cleanedUnitBarcode = cleanBarcode(productData.barcode);
+      const cleanedBulkBarcode = cleanBarcode(productData.bulkBarcode);
+
+      // Barcode collision detection and automatic merging (only for valid non-empty barcodes)
+      if (cleanedUnitBarcode) {
+        const existingProduct = await productRepo.getProductByBarcode(cleanedUnitBarcode, safeShopId);
         if (existingProduct) {
           const updatedProduct: Product = {
             ...existingProduct,
             stockQuantity: existingProduct.stockQuantity + (productData.stockQuantity ?? 0),
             bulkStockQuantity: existingProduct.bulkStockQuantity + (productData.bulkStockQuantity ?? 0),
-            // Optionally update prices if supplied as non-zero
             price: productData.price || existingProduct.price,
             costPrice: productData.costPrice || existingProduct.costPrice,
-            syncStatus: 0 // Mark as pending sync
+            syncStatus: 0
           };
           await productRepo.updateProduct(updatedProduct);
           setProducts(prev => prev.map(p => p.id === existingProduct.id ? updatedProduct : p));
+          displayAlert(
+            "Product Merged",
+            `Stock added to existing product "${existingProduct.name}" (Barcode: ${cleanedUnitBarcode}).`
+          );
           return;
         }
       }
@@ -97,8 +104,8 @@ export const useInventory = (shopId: string) => {
         bulkStockQuantity: productData.bulkStockQuantity ?? 0,
         unit: productData.unit ?? 'pcs',
         bulkUnit: productData.bulkUnit ?? 'Carton',
-        barcode: productData.barcode ?? null,
-        bulkBarcode: productData.bulkBarcode ?? null,
+        barcode: cleanedUnitBarcode || null,
+        bulkBarcode: cleanedBulkBarcode || null,
         supplierId: productData.supplierId ?? null,
         categoryId: productData.categoryId ?? null,
         description: productData.description ?? null,

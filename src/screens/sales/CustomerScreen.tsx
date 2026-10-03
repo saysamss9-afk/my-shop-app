@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FlatList, StatusBar, Alert } from 'react-native';
+import { FlatList, StatusBar, Alert, Platform } from 'react-native';
 import {
   Box,
   VStack,
@@ -232,6 +232,10 @@ const CustomerScreen = ({ route, navigation }: any) => {
           data={filteredCustomers}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
           ListEmptyComponent={
             <Center mt="$20">
@@ -260,45 +264,53 @@ const CustomerScreen = ({ route, navigation }: any) => {
         <FabLabel fontWeight="$black">New Customer</FabLabel>
       </Fab>
 
-      <AddCustomerModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={onAddCustomer}
-      />
+      {isModalOpen && (
+        <AddCustomerModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSave={onAddCustomer}
+        />
+      )}
 
-      <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => {
-            setIsPaymentModalOpen(false);
-            setSelectedCustomer(null);
-        }}
-        onSave={onRecordPayment}
-        customer={selectedCustomer}
-        currency={currency}
-      />
+      {isPaymentModalOpen && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => {
+              setIsPaymentModalOpen(false);
+              setSelectedCustomer(null);
+          }}
+          onSave={onRecordPayment}
+          customer={selectedCustomer}
+          currency={currency}
+        />
+      )}
 
-      <ReturnModal
-        isOpen={isReturnModalOpen}
-        onClose={() => {
-            setIsReturnModalOpen(false);
-            setSelectedCustomer(null);
-        }}
-        onSave={handleReturnProduct}
-        customer={selectedCustomer}
-        currency={currency}
-        fetchItemsTaken={getItemsTakenOnCredit}
-      />
+      {isReturnModalOpen && (
+        <ReturnModal
+          isOpen={isReturnModalOpen}
+          onClose={() => {
+              setIsReturnModalOpen(false);
+              setSelectedCustomer(null);
+          }}
+          onSave={handleReturnProduct}
+          customer={selectedCustomer}
+          currency={currency}
+          fetchItemsTaken={getItemsTakenOnCredit}
+        />
+      )}
 
-      <CustomerDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => {
-            setIsDetailModalOpen(false);
-            setSelectedCustomer(null);
-        }}
-        customer={selectedCustomer}
-        currency={currency}
-        fetchHistory={getCustomerHistory}
-      />
+      {isDetailModalOpen && (
+        <CustomerDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+              setIsDetailModalOpen(false);
+              setSelectedCustomer(null);
+          }}
+          customer={selectedCustomer}
+          currency={currency}
+          fetchHistory={getCustomerHistory}
+        />
+      )}
     </ScreenWrapper>
   );
 };

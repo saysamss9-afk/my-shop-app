@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { SectionList, StatusBar } from 'react-native';
+import { SectionList, StatusBar, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Box,
@@ -443,7 +443,7 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
-          removeClippedSubviews={true}
+          removeClippedSubviews={Platform.OS === 'android'}
           renderSectionHeader={({ section: { title } }) => (
             <Box bg="$backgroundLight50" px="$5" py="$3" mb="$2">
               <HStack alignItems="center" space="sm" flexDirection={flexDir}>
@@ -467,15 +467,17 @@ const SaleHistoryScreen = ({ route, navigation }: any) => {
         />
       )}
 
-      <SaleDetailModal
-        isOpen={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
-        sale={selectedSale}
-        items={saleItems}
-        currency={currency}
-        onPrint={handlePrint}
-        onRefundItem={handleRefundItem}
-      />
+      {showDetailModal && (
+        <SaleDetailModal
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          sale={selectedSale}
+          items={saleItems}
+          currency={currency}
+          onPrint={handlePrint}
+          onRefundItem={handleRefundItem}
+        />
+      )}
     </ScreenWrapper>
   );
 };
